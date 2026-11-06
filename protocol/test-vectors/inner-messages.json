@@ -1,0 +1,4369 @@
+{
+  "format": 1,
+  "generated_by": "syncky-core GenerateProtocolArtifacts",
+  "cases": [
+    {
+      "name": "sync_full",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"C-1\",\"type\":\"sleep_analysis\",\"value\":\"asleep_core\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"W-1\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"characteristic:biological_sex\",\"type\":\"characteristic\",\"name\":\"biological_sex\",\"value\":\"female\"},{\"uuid\":\"Q-2\",\"type\":\"heart_rate\",\"value\":71.5,\"unit\":\"count/min\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"deleted\":[{\"uuid\":\"Q-0\",\"type\":\"steps\"}],\"acks\":[{\"command_id\":\"c_1\",\"version\":1,\"status\":\"applied\"},{\"command_id\":\"c_2\",\"version\":3,\"status\":\"rejected\",\"reason\":\"value_out_of_range\"}],\"more\":true}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "C-1",
+            "type": "sleep_analysis",
+            "value": "asleep_core",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 250,
+            "distance_m": 5000.25,
+            "location": "unknown",
+            "metadata": {},
+            "events": [],
+            "activities": [],
+            "statistics": [],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "characteristic:biological_sex",
+            "type": "characteristic",
+            "name": "biological_sex",
+            "value": "female"
+          },
+          {
+            "uuid": "Q-2",
+            "type": "heart_rate",
+            "value": 71.5,
+            "unit": "count/min",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [
+          {
+            "uuid": "Q-0",
+            "type": "steps"
+          }
+        ],
+        "acks": [
+          {
+            "command_id": "c_1",
+            "version": 1,
+            "status": "applied"
+          },
+          {
+            "command_id": "c_2",
+            "version": 3,
+            "status": "rejected",
+            "reason": "value_out_of_range"
+          }
+        ],
+        "more": true
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_minimal_defaults",
+      "json": "{\"v\":1,\"type\":\"sync\"}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "samples": [],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_empty_arrays",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[],\"deleted\":[],\"acks\":[],\"more\":false}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_unknown_fields_ignored_at_every_level",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\",\"os\":\"27.1\"},\"note\":\"x\"}],\"deleted\":[{\"uuid\":\"Q-0\",\"type\":\"steps\",\"why\":1}],\"acks\":[{\"command_id\":\"c_1\",\"version\":1,\"status\":\"applied\",\"extra\":true}],\"x_top\":{\"a\":1}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [
+          {
+            "uuid": "Q-0",
+            "type": "steps"
+          }
+        ],
+        "acks": [
+          {
+            "command_id": "c_1",
+            "version": 1,
+            "status": "applied"
+          }
+        ],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_device_not_a_string_is_omitted",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":42,\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_device_absent",
+      "json": "{\"v\":1,\"type\":\"sync\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_timestamps_offset_normalized",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T10:00:00+02:00\",\"end\":\"2026-10-11T03:30:00.5-05:00\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00.500Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_timestamps_fraction_truncated_to_millis",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00.123456789Z\",\"end\":\"2026-10-11T08:00:00.9999Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00.123Z",
+            "end": "2026-10-11T08:00:00.999Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_timestamps_lowercase_t_and_z",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11t08:00:00z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_start_equals_end_after_truncation",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00.0009Z\",\"end\":\"2026-10-11T08:00:00.0001Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_integral_numbers_emitted_as_integers",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812.0,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-2\",\"type\":\"steps\",\"value\":1e3,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-3\",\"type\":\"steps\",\"value\":-0.0,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-4\",\"type\":\"heart_rate\",\"value\":71.50,\"unit\":\"count/min\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"W-1\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1.8e3,\"energy_kcal\":250.0,\"distance_m\":5000.250,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"acks\":[{\"command_id\":\"c_1\",\"version\":2.0,\"status\":\"applied\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "Q-2",
+            "type": "steps",
+            "value": 1000,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "Q-3",
+            "type": "steps",
+            "value": 0,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "Q-4",
+            "type": "heart_rate",
+            "value": 71.5,
+            "unit": "count/min",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 250,
+            "distance_m": 5000.25,
+            "location": "unknown",
+            "metadata": {},
+            "events": [],
+            "activities": [],
+            "statistics": [],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [
+          {
+            "command_id": "c_1",
+            "version": 2,
+            "status": "applied"
+          }
+        ],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_v_1_0_accepted",
+      "json": "{\"v\":1.0,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_ack_without_version_kept",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"acks\":[{\"command_id\":\"c_1\",\"status\":\"applied\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [
+          {
+            "command_id": "c_1",
+            "status": "applied"
+          }
+        ],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_ack_deleted_by_user_kept",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"acks\":[{\"command_id\":\"c_1\",\"version\":2,\"status\":\"deleted_by_user\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [
+          {
+            "command_id": "c_1",
+            "version": 2,
+            "status": "deleted_by_user"
+          }
+        ],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_source_device_missing_or_null",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\"}},{\"uuid\":\"Q-2\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":null}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": null
+            }
+          },
+          {
+            "uuid": "Q-2",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": null
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_workout_optional_fields_omitted",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"W-1\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":null,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "location": "unknown",
+            "metadata": {},
+            "events": [],
+            "activities": [],
+            "statistics": [],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_characteristic_value_is_any_string",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"characteristic:date_of_birth\",\"type\":\"characteristic\",\"name\":\"date_of_birth\",\"value\":\"1990-01-01\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "characteristic:date_of_birth",
+            "type": "characteristic",
+            "name": "date_of_birth",
+            "value": "1990-01-01"
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_scope_all",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":{\"read\":\"all\",\"write\":\"all\"}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false,
+        "scope": {
+          "read": "all",
+          "write": "all"
+        }
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_scope_selected",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":{\"read\":[\"steps\",\"heart_rate\",\"steps\",\"x_future_kind\"],\"write\":[\"dietary_water\",\"body_mass\"],\"x_extra\":1}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false,
+        "scope": {
+          "read": [
+            "heart_rate",
+            "steps",
+            "x_future_kind"
+          ],
+          "write": [
+            "body_mass",
+            "dietary_water"
+          ]
+        }
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_scope_none",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":{\"read\":\"none\",\"write\":\"none\"}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false,
+        "scope": {
+          "read": "none",
+          "write": "none"
+        }
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_scope_none_and_selected",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":{\"read\":\"none\",\"write\":[\"dietary_water\",\"body_mass\"]}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false,
+        "scope": {
+          "read": "none",
+          "write": [
+            "body_mass",
+            "dietary_water"
+          ]
+        }
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_without_scope_has_none",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"deleted\":[],\"acks\":[],\"more\":false}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_scope_malformed_dropped_not_object",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":5}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/scope"
+      ]
+    },
+    {
+      "name": "sync_scope_malformed_dropped_null",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":null}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/scope"
+      ]
+    },
+    {
+      "name": "sync_scope_malformed_dropped_string",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":\"all\"}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/scope"
+      ]
+    },
+    {
+      "name": "sync_scope_malformed_dropped_array",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":[\"steps\"]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/scope"
+      ]
+    },
+    {
+      "name": "sync_scope_malformed_dropped_missing_write",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":{\"read\":\"all\"}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/scope"
+      ]
+    },
+    {
+      "name": "sync_scope_malformed_dropped_missing_read",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":{\"write\":\"all\"}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/scope"
+      ]
+    },
+    {
+      "name": "sync_scope_malformed_dropped_unknown_word",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":{\"read\":\"some\",\"write\":\"all\"}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/scope"
+      ]
+    },
+    {
+      "name": "sync_scope_malformed_dropped_uppercase_none",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":{\"read\":\"all\",\"write\":\"NONE\"}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/scope"
+      ]
+    },
+    {
+      "name": "sync_scope_malformed_dropped_non_string_element",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":{\"read\":[\"steps\",1],\"write\":\"all\"}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/scope"
+      ]
+    },
+    {
+      "name": "sync_scope_malformed_dropped_bad_name",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":{\"read\":\"all\",\"write\":[\"Steps\"]}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/scope"
+      ]
+    },
+    {
+      "name": "sync_scope_malformed_dropped_empty_list",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":{\"read\":[],\"write\":\"all\"}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/scope"
+      ]
+    },
+    {
+      "name": "sync_ack_type_not_in_scope",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"acks\":[{\"command_id\":\"c_1\",\"version\":1,\"status\":\"rejected\",\"reason\":\"type_not_in_scope\"}],\"scope\":{\"read\":\"all\",\"write\":[\"dietary_water\"]}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [
+          {
+            "command_id": "c_1",
+            "version": 1,
+            "status": "rejected",
+            "reason": "type_not_in_scope"
+          }
+        ],
+        "more": false,
+        "scope": {
+          "read": "all",
+          "write": [
+            "dietary_water"
+          ]
+        }
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_scope_malformed_dropped_after_element_drops",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-2\",\"type\":\"teleport_count\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"acks\":[true],\"scope\":{\"read\":\"all\"}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/1",
+        "/acks/0",
+        "/scope"
+      ]
+    },
+    {
+      "name": "sync_drop_non_object_elements",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[5,\"x\",null,[],{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"deleted\":[[]],\"acks\":[true]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2",
+        "/samples/3",
+        "/deleted/0",
+        "/acks/0"
+      ]
+    },
+    {
+      "name": "sync_drop_unknown_or_missing_type",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"teleport_count\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-2\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-3\",\"type\":1,\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2"
+      ]
+    },
+    {
+      "name": "sync_drop_quantity_missing_required_fields",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-1\",\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\"},{\"uuid\":\"Q-2\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-2",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2",
+        "/samples/3",
+        "/samples/4",
+        "/samples/5"
+      ]
+    },
+    {
+      "name": "sync_drop_quantity_wrong_field_types",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":\"812\",\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-2\",\"type\":\"steps\",\"value\":812,\"unit\":5,\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-3\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":\"iPhone\"},{\"uuid\":\"Q-4\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"device\":\"iPhone\"}},{\"uuid\":\"Q-5\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":7}},{\"uuid\":\"Q-6\",\"type\":\"steps\",\"value\":null,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2",
+        "/samples/3",
+        "/samples/4",
+        "/samples/5"
+      ]
+    },
+    {
+      "name": "sync_drop_unit_mismatch",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"kcal\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-2\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-2",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0"
+      ]
+    },
+    {
+      "name": "sync_drop_non_finite_value",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":1e999,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-2\",\"type\":\"steps\",\"value\":-1e999,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1"
+      ]
+    },
+    {
+      "name": "sync_drop_category_value",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"C-1\",\"type\":\"sleep_analysis\",\"value\":\"napping\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"C-2\",\"type\":\"sleep_analysis\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"C-3\",\"type\":\"sleep_analysis\",\"value\":\"asleep_core\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "C-3",
+            "type": "sleep_analysis",
+            "value": "asleep_core",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1"
+      ]
+    },
+    {
+      "name": "sync_drop_workout_rules",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"W-1\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":-1,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"W-2\",\"type\":\"workout\",\"activity\":\"teleporting\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"W-3\",\"type\":\"workout\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"W-4\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"W-5\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":\"250\",\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"W-6\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":0,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "W-6",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 0,
+            "energy_kcal": 250,
+            "distance_m": 5000.25,
+            "location": "unknown",
+            "metadata": {},
+            "events": [],
+            "activities": [],
+            "statistics": [],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2",
+        "/samples/3",
+        "/samples/4"
+      ]
+    },
+    {
+      "name": "sync_drop_characteristic_rules",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"characteristic:blood_type\",\"type\":\"characteristic\",\"name\":\"biological_sex\",\"value\":\"female\"},{\"uuid\":\"characteristic:eye_color\",\"type\":\"characteristic\",\"name\":\"eye_color\",\"value\":\"brown\"},{\"uuid\":\"characteristic:blood_type\",\"type\":\"characteristic\",\"name\":\"blood_type\"},{\"uuid\":\"characteristic:wheelchair_use\",\"type\":\"characteristic\",\"name\":\"wheelchair_use\",\"value\":\"no\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "characteristic:wheelchair_use",
+            "type": "characteristic",
+            "name": "wheelchair_use",
+            "value": "no"
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2"
+      ]
+    },
+    {
+      "name": "sync_drop_sample_uuid",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q 1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"q:a_b-9\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "q:a_b-9",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2"
+      ]
+    },
+    {
+      "name": "sync_drop_start_after_end",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:30:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0"
+      ]
+    },
+    {
+      "name": "sync_drop_bad_timestamps",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-2\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2016-12-31T23:59:60Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-3\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-4\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-13-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-5\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11 08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-6\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":1791792000,\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2",
+        "/samples/3",
+        "/samples/4",
+        "/samples/5"
+      ]
+    },
+    {
+      "name": "sync_drop_deleted_rules",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"deleted\":[{\"uuid\":\"Q 1\",\"type\":\"steps\"},{\"uuid\":\"Q-1\",\"type\":\"teleport_count\"},{\"uuid\":\"Q-2\"},{\"type\":\"steps\"},{\"uuid\":\"W-1\",\"type\":\"workout\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [
+          {
+            "uuid": "W-1",
+            "type": "workout"
+          }
+        ],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/deleted/0",
+        "/deleted/1",
+        "/deleted/2",
+        "/deleted/3"
+      ]
+    },
+    {
+      "name": "sync_drop_ack_rules",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"acks\":[{\"command_id\":\"c_1\",\"version\":1,\"status\":\"done\"},{\"command_id\":\"c_2\",\"version\":1,\"status\":\"rejected\"},{\"command_id\":\"c_3\",\"version\":1,\"status\":\"applied\",\"reason\":\"invalid\"},{\"command_id\":\"c_4\",\"version\":1,\"status\":\"rejected\",\"reason\":\"nope\"},{\"command_id\":\"c_5\",\"version\":1,\"status\":\"applied\",\"reason\":null},{\"command_id\":\"c_6\",\"version\":0,\"status\":\"applied\"},{\"command_id\":\"c_7\",\"version\":1.5,\"status\":\"applied\"},{\"command_id\":\"c_8\",\"version\":\"1\",\"status\":\"applied\"},{\"version\":1,\"status\":\"applied\"},{\"command_id\":\"c 10\",\"version\":1,\"status\":\"applied\"},{\"command_id\":\"c_11\",\"version\":1},{\"command_id\":\"c_12\",\"version\":1,\"status\":\"rejected\",\"reason\":\"healthkit_denied\"},{\"command_id\":\"c_13\",\"version\":1,\"status\":\"deleted_by_user\",\"reason\":\"invalid\"},{\"command_id\":\"c_14\",\"version\":1,\"status\":\"removed_by_user\"},{\"command_id\":\"c_15\",\"version\":1,\"status\":\"deleted_by_user\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [
+          {
+            "command_id": "c_12",
+            "version": 1,
+            "status": "rejected",
+            "reason": "healthkit_denied"
+          },
+          {
+            "command_id": "c_15",
+            "version": 1,
+            "status": "deleted_by_user"
+          }
+        ],
+        "more": false
+      },
+      "dropped": [
+        "/acks/0",
+        "/acks/1",
+        "/acks/2",
+        "/acks/3",
+        "/acks/4",
+        "/acks/5",
+        "/acks/6",
+        "/acks/7",
+        "/acks/8",
+        "/acks/9",
+        "/acks/10",
+        "/acks/12",
+        "/acks/13"
+      ]
+    },
+    {
+      "name": "sync_drops_keep_the_order_of_valid_elements",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-2\",\"type\":\"steps\",\"value\":812,\"unit\":\"kg\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"C-1\",\"type\":\"sleep_analysis\",\"value\":\"asleep_core\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},0,{\"uuid\":\"W-1\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "C-1",
+            "type": "sleep_analysis",
+            "value": "asleep_core",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 250,
+            "distance_m": 5000.25,
+            "location": "unknown",
+            "metadata": {},
+            "events": [],
+            "activities": [],
+            "statistics": [],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/1",
+        "/samples/3"
+      ]
+    },
+    {
+      "name": "sync_state_of_mind",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"M-1\",\"type\":\"state_of_mind\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"kind\":\"momentary_emotion\",\"valence\":0.35,\"valence_class\":\"slightly_pleasant\",\"labels\":[\"calm\",\"grateful\"],\"associations\":[\"family\",\"fitness\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"M-2\",\"type\":\"state_of_mind\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"kind\":\"daily_mood\",\"valence\":0.35,\"valence_class\":\"slightly_pleasant\",\"labels\":[],\"associations\":[],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "M-1",
+            "type": "state_of_mind",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z",
+            "kind": "momentary_emotion",
+            "valence": 0.35,
+            "valence_class": "slightly_pleasant",
+            "labels": [
+              "calm",
+              "grateful"
+            ],
+            "associations": [
+              "family",
+              "fitness"
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "M-2",
+            "type": "state_of_mind",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z",
+            "kind": "daily_mood",
+            "valence": 0.35,
+            "valence_class": "slightly_pleasant",
+            "labels": [],
+            "associations": [],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_scored_assessments",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"G-1\",\"type\":\"gad7_assessment\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"score\":7,\"risk\":\"mild\",\"answers\":[\"not_at_all\",\"several_days\",\"not_at_all\",\"more_than_half_the_days\",\"not_at_all\",\"several_days\",\"nearly_every_day\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"P-1\",\"type\":\"phq9_assessment\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"score\":3,\"risk\":\"none_to_minimal\",\"answers\":[\"several_days\",\"not_at_all\",\"not_at_all\",\"several_days\",\"not_at_all\",\"not_at_all\",\"several_days\",\"not_at_all\",\"prefer_not_to_answer\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "G-1",
+            "type": "gad7_assessment",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z",
+            "score": 7,
+            "risk": "mild",
+            "answers": [
+              "not_at_all",
+              "several_days",
+              "not_at_all",
+              "more_than_half_the_days",
+              "not_at_all",
+              "several_days",
+              "nearly_every_day"
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "P-1",
+            "type": "phq9_assessment",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z",
+            "score": 3,
+            "risk": "none_to_minimal",
+            "answers": [
+              "several_days",
+              "not_at_all",
+              "not_at_all",
+              "several_days",
+              "not_at_all",
+              "not_at_all",
+              "several_days",
+              "not_at_all",
+              "prefer_not_to_answer"
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_audiogram",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"A-1\",\"type\":\"audiogram\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"points\":[{\"frequency_hz\":500,\"tests\":[{\"side\":\"left\",\"conduction\":\"air\",\"masked\":false,\"sensitivity_dbhl\":15,\"clamp_low_dbhl\":null,\"clamp_high_dbhl\":null},{\"side\":\"right\",\"conduction\":\"air\",\"masked\":true,\"sensitivity_dbhl\":20.5,\"clamp_low_dbhl\":-10,\"clamp_high_dbhl\":90}]},{\"frequency_hz\":1000,\"tests\":[{\"side\":\"left\",\"conduction\":\"air\",\"masked\":false,\"sensitivity_dbhl\":10,\"clamp_low_dbhl\":null,\"clamp_high_dbhl\":null}]},{\"frequency_hz\":4000,\"tests\":[]}],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "A-1",
+            "type": "audiogram",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "points": [
+              {
+                "frequency_hz": 500,
+                "tests": [
+                  {
+                    "side": "left",
+                    "conduction": "air",
+                    "masked": false,
+                    "sensitivity_dbhl": 15,
+                    "clamp_low_dbhl": null,
+                    "clamp_high_dbhl": null
+                  },
+                  {
+                    "side": "right",
+                    "conduction": "air",
+                    "masked": true,
+                    "sensitivity_dbhl": 20.5,
+                    "clamp_low_dbhl": -10,
+                    "clamp_high_dbhl": 90
+                  }
+                ]
+              },
+              {
+                "frequency_hz": 1000,
+                "tests": [
+                  {
+                    "side": "left",
+                    "conduction": "air",
+                    "masked": false,
+                    "sensitivity_dbhl": 10,
+                    "clamp_low_dbhl": null,
+                    "clamp_high_dbhl": null
+                  }
+                ]
+              },
+              {
+                "frequency_hz": 4000,
+                "tests": []
+              }
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_activity_summary",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"activity_summary:2026-10-11\",\"type\":\"activity_summary\",\"date\":\"2026-10-11\",\"move_mode\":\"active_energy\",\"active_energy_kcal\":512.75,\"active_energy_goal_kcal\":600,\"move_time_min\":0,\"move_time_goal_min\":0,\"exercise_time_min\":34,\"exercise_time_goal_min\":30,\"stand_hours\":9,\"stand_hours_goal\":null,\"paused\":false},{\"uuid\":\"activity_summary:2026-10-12\",\"type\":\"activity_summary\",\"date\":\"2026-10-12\",\"move_mode\":\"active_energy\",\"active_energy_kcal\":512.75,\"active_energy_goal_kcal\":600,\"move_time_min\":0,\"move_time_goal_min\":0,\"exercise_time_min\":34,\"exercise_time_goal_min\":30,\"stand_hours\":9,\"stand_hours_goal\":12,\"paused\":true}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "activity_summary:2026-10-11",
+            "type": "activity_summary",
+            "date": "2026-10-11",
+            "move_mode": "active_energy",
+            "active_energy_kcal": 512.75,
+            "active_energy_goal_kcal": 600,
+            "move_time_min": 0,
+            "move_time_goal_min": 0,
+            "exercise_time_min": 34,
+            "exercise_time_goal_min": 30,
+            "stand_hours": 9,
+            "stand_hours_goal": null,
+            "paused": false
+          },
+          {
+            "uuid": "activity_summary:2026-10-12",
+            "type": "activity_summary",
+            "date": "2026-10-12",
+            "move_mode": "active_energy",
+            "active_energy_kcal": 512.75,
+            "active_energy_goal_kcal": 600,
+            "move_time_min": 0,
+            "move_time_goal_min": 0,
+            "exercise_time_min": 34,
+            "exercise_time_goal_min": 30,
+            "stand_hours": 9,
+            "stand_hours_goal": 12,
+            "paused": true
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_workout_extended",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"W-1\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"},\"location\":\"outdoor\",\"metadata\":{\"average_mets\":9.5,\"elevation_ascended_m\":42,\"elevation_descended_m\":40.5,\"weather_temperature_degc\":14.5,\"weather_humidity\":0.65,\"time_zone\":\"Europe/Riga\",\"user_entered\":false,\"x_unknown_key\":1},\"events\":[{\"type\":\"segment\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:10:00Z\"},{\"type\":\"lap\",\"start\":\"2026-10-11T08:02:00Z\",\"end\":\"2026-10-11T08:02:00Z\",\"metadata\":{\"lap_length_m\":400}}],\"activities\":[{\"uuid\":\"WA-1\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"location\":\"outdoor\",\"statistics\":[{\"type\":\"heart_rate\",\"unit\":\"count/min\",\"sum\":null,\"min\":98,\"max\":171,\"avg\":142.5,\"most_recent\":150}]}],\"statistics\":[{\"type\":\"active_energy_burned\",\"unit\":\"kcal\",\"sum\":250,\"min\":null,\"max\":null,\"avg\":null,\"most_recent\":null},{\"type\":\"distance_walking_running\",\"unit\":\"m\",\"sum\":5000.25,\"min\":null,\"max\":null,\"avg\":null,\"most_recent\":null},{\"type\":\"heart_rate\",\"unit\":\"count/min\",\"sum\":null,\"min\":98,\"max\":171,\"avg\":142.5,\"most_recent\":150}]}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 250,
+            "distance_m": 5000.25,
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "elevation_descended_m": 40.5,
+              "weather_temperature_degc": 14.5,
+              "weather_humidity": 0.65,
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "segment",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:10:00Z"
+              },
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:02:00Z",
+                "end": "2026-10-11T08:02:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z",
+                "duration_s": 1800,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": null,
+                    "min": 98,
+                    "max": 171,
+                    "avg": 142.5,
+                    "most_recent": 150
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "active_energy_burned",
+                "unit": "kcal",
+                "sum": 250,
+                "min": null,
+                "max": null,
+                "avg": null,
+                "most_recent": null
+              },
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000.25,
+                "min": null,
+                "max": null,
+                "avg": null,
+                "most_recent": null
+              },
+              {
+                "type": "heart_rate",
+                "unit": "count/min",
+                "sum": null,
+                "min": 98,
+                "max": 171,
+                "avg": 142.5,
+                "most_recent": 150
+              }
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_workout_truncated",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"W-1\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"},\"location\":\"outdoor\",\"metadata\":{\"average_mets\":9.5,\"elevation_ascended_m\":42,\"elevation_descended_m\":40.5,\"weather_temperature_degc\":14.5,\"weather_humidity\":0.65,\"time_zone\":\"Europe/Riga\",\"user_entered\":false,\"x_unknown_key\":1},\"events\":[],\"activities\":[{\"uuid\":\"WA-1\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"location\":\"outdoor\",\"statistics\":[{\"type\":\"heart_rate\",\"unit\":\"count/min\",\"sum\":null,\"min\":98,\"max\":171,\"avg\":142.5,\"most_recent\":150}]}],\"statistics\":[{\"type\":\"active_energy_burned\",\"unit\":\"kcal\",\"sum\":250,\"min\":null,\"max\":null,\"avg\":null,\"most_recent\":null},{\"type\":\"distance_walking_running\",\"unit\":\"m\",\"sum\":5000.25,\"min\":null,\"max\":null,\"avg\":null,\"most_recent\":null},{\"type\":\"heart_rate\",\"unit\":\"count/min\",\"sum\":null,\"min\":98,\"max\":171,\"avg\":142.5,\"most_recent\":150}],\"truncated\":[\"activity_statistics\",\"events\"]}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 250,
+            "distance_m": 5000.25,
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "elevation_descended_m": 40.5,
+              "weather_temperature_degc": 14.5,
+              "weather_humidity": 0.65,
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z",
+                "duration_s": 1800,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": null,
+                    "min": 98,
+                    "max": 171,
+                    "avg": 142.5,
+                    "most_recent": 150
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "active_energy_burned",
+                "unit": "kcal",
+                "sum": 250,
+                "min": null,
+                "max": null,
+                "avg": null,
+                "most_recent": null
+              },
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000.25,
+                "min": null,
+                "max": null,
+                "avg": null,
+                "most_recent": null
+              },
+              {
+                "type": "heart_rate",
+                "unit": "count/min",
+                "sum": null,
+                "min": 98,
+                "max": 171,
+                "avg": 142.5,
+                "most_recent": 150
+              }
+            ],
+            "truncated": [
+              "activity_statistics",
+              "events"
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_workout_old_shape_gets_defaults",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"W-1\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "distance_m": 5000.25,
+            "location": "unknown",
+            "metadata": {},
+            "events": [],
+            "activities": [],
+            "statistics": [],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_workout_statistic_outside_the_catalog_skipped",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"W-1\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"},\"statistics\":[{\"type\":\"teleport_count\",\"unit\":\"count\",\"sum\":3,\"min\":null,\"max\":null,\"avg\":null,\"most_recent\":null},{\"type\":\"steps\",\"unit\":\"count\",\"sum\":4100,\"min\":null,\"max\":null,\"avg\":null,\"most_recent\":null}]}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 250,
+            "distance_m": 5000.25,
+            "location": "unknown",
+            "metadata": {},
+            "events": [],
+            "activities": [],
+            "statistics": [
+              {
+                "type": "steps",
+                "unit": "count",
+                "sum": 4100,
+                "min": null,
+                "max": null,
+                "avg": null,
+                "most_recent": null
+              }
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_workout_route_part",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"R-1\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":\"W-1\",\"count\":9,\"part\":1,\"parts\":3,\"points\":[[0,56.9496,24.1052,11.5,4.5,3,2.75,0.5,181.25,12],[1000,56.94961234567891,24.10527654321,11.5,4.5,3,null,0.5,181.25,12],[1000,-33.8688,-151.2093,-2.25,4.5,3,2.75,0.5,181.25,12]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "R-1",
+            "type": "workout_route",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "workout_uuid": "W-1",
+            "count": 9,
+            "part": 1,
+            "parts": 3,
+            "points": [
+              [
+                0,
+                56.9496,
+                24.1052,
+                11.5,
+                4.5,
+                3,
+                2.75,
+                0.5,
+                181.25,
+                12
+              ],
+              [
+                1000,
+                56.94961234567891,
+                24.10527654321,
+                11.5,
+                4.5,
+                3,
+                null,
+                0.5,
+                181.25,
+                12
+              ],
+              [
+                1000,
+                -33.8688,
+                -151.2093,
+                -2.25,
+                4.5,
+                3,
+                2.75,
+                0.5,
+                181.25,
+                12
+              ]
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_workout_route_whole_in_one_part_without_parent",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"R-2\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":null,\"count\":2,\"part\":0,\"parts\":1,\"points\":[[0,56.9496,24.1052,11.5,4.5,3,2.75,0.5,181.25,12],[500,56.9496,24.1052,11.5,4.5,3,2.75,0.5,181.25,12]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "R-2",
+            "type": "workout_route",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "workout_uuid": null,
+            "count": 2,
+            "part": 0,
+            "parts": 1,
+            "points": [
+              [
+                0,
+                56.9496,
+                24.1052,
+                11.5,
+                4.5,
+                3,
+                2.75,
+                0.5,
+                181.25,
+                12
+              ],
+              [
+                500,
+                56.9496,
+                24.1052,
+                11.5,
+                4.5,
+                3,
+                2.75,
+                0.5,
+                181.25,
+                12
+              ]
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_heartbeat_series_part",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"H-1\",\"type\":\"heartbeat_series\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"count\":5,\"part\":0,\"parts\":2,\"beats\":[[0,0],[812,0],[1650,1]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "H-1",
+            "type": "heartbeat_series",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z",
+            "count": 5,
+            "part": 0,
+            "parts": 2,
+            "beats": [
+              [
+                0,
+                0
+              ],
+              [
+                812,
+                0
+              ],
+              [
+                1650,
+                1
+              ]
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_new_kind_deletions",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"deleted\":[{\"uuid\":\"D-0\",\"type\":\"state_of_mind\"},{\"uuid\":\"D-1\",\"type\":\"gad7_assessment\"},{\"uuid\":\"D-2\",\"type\":\"phq9_assessment\"},{\"uuid\":\"D-3\",\"type\":\"audiogram\"},{\"uuid\":\"D-4\",\"type\":\"workout_route\"},{\"uuid\":\"D-5\",\"type\":\"heartbeat_series\"},{\"uuid\":\"D-6\",\"type\":\"activity_summary\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [
+          {
+            "uuid": "D-0",
+            "type": "state_of_mind"
+          },
+          {
+            "uuid": "D-1",
+            "type": "gad7_assessment"
+          },
+          {
+            "uuid": "D-2",
+            "type": "phq9_assessment"
+          },
+          {
+            "uuid": "D-3",
+            "type": "audiogram"
+          },
+          {
+            "uuid": "D-4",
+            "type": "workout_route"
+          },
+          {
+            "uuid": "D-5",
+            "type": "heartbeat_series"
+          }
+        ],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/deleted/6"
+      ]
+    },
+    {
+      "name": "sync_drop_state_of_mind_rules",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"M-1\",\"type\":\"state_of_mind\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"kind\":\"momentary_emotion\",\"valence\":0.35,\"valence_class\":\"slightly_pleasant\",\"labels\":[\"calm\",\"bored\"],\"associations\":[\"family\",\"fitness\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"M-2\",\"type\":\"state_of_mind\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"kind\":\"momentary_emotion\",\"valence\":1.5,\"valence_class\":\"slightly_pleasant\",\"labels\":[\"calm\",\"grateful\"],\"associations\":[\"family\",\"fitness\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"M-3\",\"type\":\"state_of_mind\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"kind\":\"weekly_mood\",\"valence\":0.35,\"valence_class\":\"slightly_pleasant\",\"labels\":[\"calm\",\"grateful\"],\"associations\":[\"family\",\"fitness\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"M-4\",\"type\":\"state_of_mind\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"kind\":\"momentary_emotion\",\"valence\":0.35,\"valence_class\":\"slightly_pleasant\",\"labels\":[\"calm\",\"grateful\"],\"associations\":[\"pets\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"M-5\",\"type\":\"state_of_mind\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"kind\":\"momentary_emotion\",\"valence\":0.35,\"labels\":[\"calm\",\"grateful\"],\"associations\":[\"family\",\"fitness\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"M-6\",\"type\":\"state_of_mind\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"kind\":\"momentary_emotion\",\"valence\":-1,\"valence_class\":\"slightly_pleasant\",\"labels\":[\"calm\",\"grateful\"],\"associations\":[\"family\",\"fitness\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "M-6",
+            "type": "state_of_mind",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z",
+            "kind": "momentary_emotion",
+            "valence": -1,
+            "valence_class": "slightly_pleasant",
+            "labels": [
+              "calm",
+              "grateful"
+            ],
+            "associations": [
+              "family",
+              "fitness"
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2",
+        "/samples/3",
+        "/samples/4"
+      ]
+    },
+    {
+      "name": "sync_drop_assessment_rules",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"G-1\",\"type\":\"gad7_assessment\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"score\":7,\"risk\":\"mild\",\"answers\":[\"several_days\",\"not_at_all\",\"more_than_half_the_days\",\"not_at_all\",\"several_days\",\"nearly_every_day\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"G-2\",\"type\":\"gad7_assessment\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"score\":7,\"risk\":\"mild\",\"answers\":[\"prefer_not_to_answer\",\"prefer_not_to_answer\",\"prefer_not_to_answer\",\"prefer_not_to_answer\",\"prefer_not_to_answer\",\"prefer_not_to_answer\",\"prefer_not_to_answer\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"P-1\",\"type\":\"phq9_assessment\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"score\":3,\"risk\":\"none_to_minimal\",\"answers\":[\"not_at_all\",\"several_days\",\"not_at_all\",\"more_than_half_the_days\",\"not_at_all\",\"several_days\",\"nearly_every_day\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"G-3\",\"type\":\"gad7_assessment\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"score\":7.5,\"risk\":\"mild\",\"answers\":[\"not_at_all\",\"several_days\",\"not_at_all\",\"more_than_half_the_days\",\"not_at_all\",\"several_days\",\"nearly_every_day\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"G-4\",\"type\":\"gad7_assessment\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"score\":7,\"risk\":\"moderately_severe\",\"answers\":[\"not_at_all\",\"several_days\",\"not_at_all\",\"more_than_half_the_days\",\"not_at_all\",\"several_days\",\"nearly_every_day\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"P-2\",\"type\":\"phq9_assessment\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"score\":3,\"risk\":\"moderately_severe\",\"answers\":[\"several_days\",\"not_at_all\",\"not_at_all\",\"several_days\",\"not_at_all\",\"not_at_all\",\"several_days\",\"not_at_all\",\"prefer_not_to_answer\"],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "P-2",
+            "type": "phq9_assessment",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z",
+            "score": 3,
+            "risk": "moderately_severe",
+            "answers": [
+              "several_days",
+              "not_at_all",
+              "not_at_all",
+              "several_days",
+              "not_at_all",
+              "not_at_all",
+              "several_days",
+              "not_at_all",
+              "prefer_not_to_answer"
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2",
+        "/samples/3",
+        "/samples/4"
+      ]
+    },
+    {
+      "name": "sync_drop_audiogram_rules",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"A-1\",\"type\":\"audiogram\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"points\":[{\"frequency_hz\":1000,\"tests\":[{\"side\":\"left\",\"conduction\":\"air\",\"masked\":false,\"sensitivity_dbhl\":10,\"clamp_low_dbhl\":null,\"clamp_high_dbhl\":null}]},{\"frequency_hz\":500,\"tests\":[{\"side\":\"left\",\"conduction\":\"air\",\"masked\":false,\"sensitivity_dbhl\":15,\"clamp_low_dbhl\":null,\"clamp_high_dbhl\":null},{\"side\":\"right\",\"conduction\":\"air\",\"masked\":true,\"sensitivity_dbhl\":20.5,\"clamp_low_dbhl\":-10,\"clamp_high_dbhl\":90}]}],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"A-2\",\"type\":\"audiogram\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"points\":[{\"frequency_hz\":500,\"tests\":[{\"side\":\"left\",\"conduction\":\"air\",\"masked\":false,\"sensitivity_dbhl\":15,\"clamp_low_dbhl\":null,\"clamp_high_dbhl\":null},{\"side\":\"right\",\"conduction\":\"air\",\"masked\":true,\"sensitivity_dbhl\":20.5,\"clamp_low_dbhl\":-10,\"clamp_high_dbhl\":90}]},{\"frequency_hz\":500,\"tests\":[{\"side\":\"left\",\"conduction\":\"air\",\"masked\":false,\"sensitivity_dbhl\":15,\"clamp_low_dbhl\":null,\"clamp_high_dbhl\":null},{\"side\":\"right\",\"conduction\":\"air\",\"masked\":true,\"sensitivity_dbhl\":20.5,\"clamp_low_dbhl\":-10,\"clamp_high_dbhl\":90}]}],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"A-3\",\"type\":\"audiogram\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"points\":[],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"A-4\",\"type\":\"audiogram\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"points\":[{\"frequency_hz\":100,\"tests\":[]},{\"frequency_hz\":200,\"tests\":[]},{\"frequency_hz\":300,\"tests\":[]},{\"frequency_hz\":400,\"tests\":[]},{\"frequency_hz\":500,\"tests\":[]},{\"frequency_hz\":600,\"tests\":[]},{\"frequency_hz\":700,\"tests\":[]},{\"frequency_hz\":800,\"tests\":[]},{\"frequency_hz\":900,\"tests\":[]},{\"frequency_hz\":1000,\"tests\":[]},{\"frequency_hz\":1100,\"tests\":[]},{\"frequency_hz\":1200,\"tests\":[]},{\"frequency_hz\":1300,\"tests\":[]},{\"frequency_hz\":1400,\"tests\":[]},{\"frequency_hz\":1500,\"tests\":[]},{\"frequency_hz\":1600,\"tests\":[]},{\"frequency_hz\":1700,\"tests\":[]},{\"frequency_hz\":1800,\"tests\":[]},{\"frequency_hz\":1900,\"tests\":[]},{\"frequency_hz\":2000,\"tests\":[]},{\"frequency_hz\":2100,\"tests\":[]},{\"frequency_hz\":2200,\"tests\":[]},{\"frequency_hz\":2300,\"tests\":[]},{\"frequency_hz\":2400,\"tests\":[]},{\"frequency_hz\":2500,\"tests\":[]},{\"frequency_hz\":2600,\"tests\":[]},{\"frequency_hz\":2700,\"tests\":[]},{\"frequency_hz\":2800,\"tests\":[]},{\"frequency_hz\":2900,\"tests\":[]},{\"frequency_hz\":3000,\"tests\":[]},{\"frequency_hz\":3100,\"tests\":[]}],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"A-5\",\"type\":\"audiogram\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"points\":[{\"frequency_hz\":500,\"tests\":[{\"side\":\"both\",\"conduction\":\"air\",\"masked\":false,\"sensitivity_dbhl\":15,\"clamp_low_dbhl\":null,\"clamp_high_dbhl\":null}]}],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"A-6\",\"type\":\"audiogram\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"points\":[{\"frequency_hz\":100,\"tests\":[]},{\"frequency_hz\":200,\"tests\":[]},{\"frequency_hz\":300,\"tests\":[]},{\"frequency_hz\":400,\"tests\":[]},{\"frequency_hz\":500,\"tests\":[]},{\"frequency_hz\":600,\"tests\":[]},{\"frequency_hz\":700,\"tests\":[]},{\"frequency_hz\":800,\"tests\":[]},{\"frequency_hz\":900,\"tests\":[]},{\"frequency_hz\":1000,\"tests\":[]},{\"frequency_hz\":1100,\"tests\":[]},{\"frequency_hz\":1200,\"tests\":[]},{\"frequency_hz\":1300,\"tests\":[]},{\"frequency_hz\":1400,\"tests\":[]},{\"frequency_hz\":1500,\"tests\":[]},{\"frequency_hz\":1600,\"tests\":[]},{\"frequency_hz\":1700,\"tests\":[]},{\"frequency_hz\":1800,\"tests\":[]},{\"frequency_hz\":1900,\"tests\":[]},{\"frequency_hz\":2000,\"tests\":[]},{\"frequency_hz\":2100,\"tests\":[]},{\"frequency_hz\":2200,\"tests\":[]},{\"frequency_hz\":2300,\"tests\":[]},{\"frequency_hz\":2400,\"tests\":[]},{\"frequency_hz\":2500,\"tests\":[]},{\"frequency_hz\":2600,\"tests\":[]},{\"frequency_hz\":2700,\"tests\":[]},{\"frequency_hz\":2800,\"tests\":[]},{\"frequency_hz\":2900,\"tests\":[]},{\"frequency_hz\":3000,\"tests\":[]}],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "A-6",
+            "type": "audiogram",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "points": [
+              {
+                "frequency_hz": 100,
+                "tests": []
+              },
+              {
+                "frequency_hz": 200,
+                "tests": []
+              },
+              {
+                "frequency_hz": 300,
+                "tests": []
+              },
+              {
+                "frequency_hz": 400,
+                "tests": []
+              },
+              {
+                "frequency_hz": 500,
+                "tests": []
+              },
+              {
+                "frequency_hz": 600,
+                "tests": []
+              },
+              {
+                "frequency_hz": 700,
+                "tests": []
+              },
+              {
+                "frequency_hz": 800,
+                "tests": []
+              },
+              {
+                "frequency_hz": 900,
+                "tests": []
+              },
+              {
+                "frequency_hz": 1000,
+                "tests": []
+              },
+              {
+                "frequency_hz": 1100,
+                "tests": []
+              },
+              {
+                "frequency_hz": 1200,
+                "tests": []
+              },
+              {
+                "frequency_hz": 1300,
+                "tests": []
+              },
+              {
+                "frequency_hz": 1400,
+                "tests": []
+              },
+              {
+                "frequency_hz": 1500,
+                "tests": []
+              },
+              {
+                "frequency_hz": 1600,
+                "tests": []
+              },
+              {
+                "frequency_hz": 1700,
+                "tests": []
+              },
+              {
+                "frequency_hz": 1800,
+                "tests": []
+              },
+              {
+                "frequency_hz": 1900,
+                "tests": []
+              },
+              {
+                "frequency_hz": 2000,
+                "tests": []
+              },
+              {
+                "frequency_hz": 2100,
+                "tests": []
+              },
+              {
+                "frequency_hz": 2200,
+                "tests": []
+              },
+              {
+                "frequency_hz": 2300,
+                "tests": []
+              },
+              {
+                "frequency_hz": 2400,
+                "tests": []
+              },
+              {
+                "frequency_hz": 2500,
+                "tests": []
+              },
+              {
+                "frequency_hz": 2600,
+                "tests": []
+              },
+              {
+                "frequency_hz": 2700,
+                "tests": []
+              },
+              {
+                "frequency_hz": 2800,
+                "tests": []
+              },
+              {
+                "frequency_hz": 2900,
+                "tests": []
+              },
+              {
+                "frequency_hz": 3000,
+                "tests": []
+              }
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2",
+        "/samples/3",
+        "/samples/4"
+      ]
+    },
+    {
+      "name": "sync_drop_activity_summary_rules",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"activity_summary:2026-10-12\",\"type\":\"activity_summary\",\"date\":\"2026-10-11\",\"move_mode\":\"active_energy\",\"active_energy_kcal\":512.75,\"active_energy_goal_kcal\":600,\"move_time_min\":0,\"move_time_goal_min\":0,\"exercise_time_min\":34,\"exercise_time_goal_min\":30,\"stand_hours\":9,\"stand_hours_goal\":null,\"paused\":false},{\"uuid\":\"activity_summary:2026-02-30\",\"type\":\"activity_summary\",\"date\":\"2026-02-30\",\"move_mode\":\"active_energy\",\"active_energy_kcal\":512.75,\"active_energy_goal_kcal\":600,\"move_time_min\":0,\"move_time_goal_min\":0,\"exercise_time_min\":34,\"exercise_time_goal_min\":30,\"stand_hours\":9,\"stand_hours_goal\":null,\"paused\":false},{\"uuid\":\"activity_summary:2026-10-11\",\"type\":\"activity_summary\",\"date\":\"2026-10-11\",\"move_mode\":\"steps\",\"active_energy_kcal\":512.75,\"active_energy_goal_kcal\":600,\"move_time_min\":0,\"move_time_goal_min\":0,\"exercise_time_min\":34,\"exercise_time_goal_min\":30,\"stand_hours\":9,\"stand_hours_goal\":null,\"paused\":false},{\"uuid\":\"activity_summary:2026-10-11\",\"type\":\"activity_summary\",\"date\":\"2026-10-11\",\"move_mode\":\"active_energy\",\"active_energy_kcal\":512.75,\"active_energy_goal_kcal\":600,\"move_time_min\":0,\"move_time_goal_min\":0,\"exercise_time_min\":34,\"exercise_time_goal_min\":30,\"stand_hours\":9,\"stand_hours_goal\":null},{\"uuid\":\"activity_summary:2026-10-13\",\"type\":\"activity_summary\",\"date\":\"2026-10-13\",\"move_mode\":\"active_energy\",\"active_energy_kcal\":512.75,\"active_energy_goal_kcal\":600,\"move_time_min\":0,\"move_time_goal_min\":0,\"exercise_time_min\":34,\"stand_hours\":9,\"stand_hours_goal\":null,\"paused\":false}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "activity_summary:2026-10-13",
+            "type": "activity_summary",
+            "date": "2026-10-13",
+            "move_mode": "active_energy",
+            "active_energy_kcal": 512.75,
+            "active_energy_goal_kcal": 600,
+            "move_time_min": 0,
+            "move_time_goal_min": 0,
+            "exercise_time_min": 34,
+            "exercise_time_goal_min": null,
+            "stand_hours": 9,
+            "stand_hours_goal": null,
+            "paused": false
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2",
+        "/samples/3"
+      ]
+    },
+    {
+      "name": "sync_drop_series_part_framing",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"R-1\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":\"W-1\",\"count\":1,\"part\":3,\"parts\":3,\"points\":[[0,56.9496,24.1052,11.5,4.5,3,2.75,0.5,181.25,12]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"R-2\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":\"W-1\",\"count\":1,\"points\":[[0,56.9496,24.1052,11.5,4.5,3,2.75,0.5,181.25,12]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"R-3\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":\"W-1\",\"count\":1,\"parts\":1,\"points\":[[0,56.9496,24.1052,11.5,4.5,3,2.75,0.5,181.25,12]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"H-1\",\"type\":\"heartbeat_series\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"count\":1,\"part\":0,\"parts\":0,\"beats\":[[0,0]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"H-2\",\"type\":\"heartbeat_series\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"count\":1,\"part\":0,\"parts\":100001,\"beats\":[[0,0]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"H-3\",\"type\":\"heartbeat_series\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"count\":1,\"part\":0.5,\"parts\":1,\"beats\":[[0,0]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"R-4\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":\"W-1\",\"count\":10000001,\"part\":0,\"parts\":1,\"points\":[[0,56.9496,24.1052,11.5,4.5,3,2.75,0.5,181.25,12]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"R-5\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":\"W-1\",\"part\":0,\"parts\":1,\"points\":[[0,56.9496,24.1052,11.5,4.5,3,2.75,0.5,181.25,12]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"H-4\",\"type\":\"heartbeat_series\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"count\":10000000,\"part\":99999,\"parts\":100000,\"beats\":[[0,0]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "H-4",
+            "type": "heartbeat_series",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z",
+            "count": 10000000,
+            "part": 99999,
+            "parts": 100000,
+            "beats": [
+              [
+                0,
+                0
+              ]
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2",
+        "/samples/3",
+        "/samples/4",
+        "/samples/5",
+        "/samples/6",
+        "/samples/7"
+      ]
+    },
+    {
+      "name": "sync_drop_series_bad_tuples",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"R-1\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":\"W-1\",\"count\":2,\"part\":0,\"parts\":1,\"points\":[[0,56.9496,24.1052,11.5,4.5,3,2.75,0.5,181.25,12],[1000,56.9]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"R-2\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":\"W-1\",\"count\":1,\"part\":0,\"parts\":1,\"points\":[[0,91,24.1052,11.5,4.5,3,2.75,0.5,181.25,12]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"R-3\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":\"W-1\",\"count\":1,\"part\":0,\"parts\":1,\"points\":[[0,56.9496,-180.5,11.5,4.5,3,2.75,0.5,181.25,12]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"R-4\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":\"W-1\",\"count\":2,\"part\":0,\"parts\":1,\"points\":[[1000,56.9496,24.1052,11.5,4.5,3,2.75,0.5,181.25,12],[0,56.9496,24.1052,11.5,4.5,3,2.75,0.5,181.25,12]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"R-5\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":\"W-1\",\"count\":1,\"part\":0,\"parts\":1,\"points\":[[0,56.9496,24.1052,11.5,4.5,3,-1,0.5,181.25,12]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"R-6\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":\"W-1\",\"count\":1,\"part\":0,\"parts\":1,\"points\":[[0,56.9496,24.1052,null,4.5,3,2.75,0.5,181.25,12]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"R-7\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":\"W 1\",\"count\":1,\"part\":0,\"parts\":1,\"points\":[[0,56.9496,24.1052,11.5,4.5,3,2.75,0.5,181.25,12]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"H-1\",\"type\":\"heartbeat_series\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"count\":1,\"part\":0,\"parts\":1,\"beats\":[[0,2]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"H-2\",\"type\":\"heartbeat_series\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"count\":1,\"part\":0,\"parts\":1,\"beats\":[[0.5,0]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"H-3\",\"type\":\"heartbeat_series\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"count\":2,\"part\":0,\"parts\":1,\"beats\":[[5,0],[5,1]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "H-3",
+            "type": "heartbeat_series",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z",
+            "count": 2,
+            "part": 0,
+            "parts": 1,
+            "beats": [
+              [
+                5,
+                0
+              ],
+              [
+                5,
+                1
+              ]
+            ],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2",
+        "/samples/3",
+        "/samples/4",
+        "/samples/5",
+        "/samples/6",
+        "/samples/7",
+        "/samples/8"
+      ]
+    },
+    {
+      "name": "sync_drop_workout_detail_rules",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"W-1\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"},\"events\":[{\"type\":\"nap\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"}]},{\"uuid\":\"W-2\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"},\"location\":\"orbit\"},{\"uuid\":\"W-3\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"},\"statistics\":[{\"type\":\"active_energy_burned\",\"unit\":\"kJ\",\"sum\":1,\"min\":null,\"max\":null,\"avg\":null,\"most_recent\":null}]},{\"uuid\":\"W-4\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"},\"metadata\":{\"weather_humidity\":65}},{\"uuid\":\"W-5\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"},\"activities\":[{\"uuid\":\"WA-1\",\"activity\":\"jousting\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":null,\"duration_s\":1,\"location\":\"indoor\",\"statistics\":[]}]},{\"uuid\":\"W-6\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"},\"truncated\":[\"metadata\"]},{\"uuid\":\"W-7\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":250,\"distance_m\":5000.25,\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"},\"metadata\":{\"swimming_location\":\"open_water\",\"lap_length_m\":50}}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "W-7",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 250,
+            "distance_m": 5000.25,
+            "location": "unknown",
+            "metadata": {
+              "lap_length_m": 50,
+              "swimming_location": "open_water"
+            },
+            "events": [],
+            "activities": [],
+            "statistics": [],
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/samples/0",
+        "/samples/1",
+        "/samples/2",
+        "/samples/3",
+        "/samples/4",
+        "/samples/5"
+      ]
+    },
+    {
+      "name": "invalid_unparsable_text",
+      "json": "{\"v\":1,\"type\":\"sync\"",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_trailing_comma",
+      "json": "{\"v\":1,\"type\":\"sync\",}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_empty_text",
+      "json": "",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_array_root",
+      "json": "[{\"v\":1,\"type\":\"sync\"}]",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_string_root",
+      "json": "\"sync\"",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_v_missing",
+      "json": "{\"type\":\"sync\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_v_string",
+      "json": "{\"v\":\"1\",\"type\":\"sync\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_v_fraction",
+      "json": "{\"v\":1.5,\"type\":\"sync\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_v_null",
+      "json": "{\"v\":null,\"type\":\"sync\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "unsupported_version_2",
+      "json": "{\"v\":2,\"type\":\"sync\",\"samples\":[]}",
+      "expect": "unsupported_version"
+    },
+    {
+      "name": "unsupported_version_0",
+      "json": "{\"v\":0,\"type\":\"commands\",\"commands\":[]}",
+      "expect": "unsupported_version"
+    },
+    {
+      "name": "unsupported_version_checked_before_type",
+      "json": "{\"v\":2,\"type\":\"ping\"}",
+      "expect": "unsupported_version"
+    },
+    {
+      "name": "unsupported_version_without_type",
+      "json": "{\"v\":-1}",
+      "expect": "unsupported_version"
+    },
+    {
+      "name": "invalid_type_missing",
+      "json": "{\"v\":1,\"samples\":[]}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_type_unknown",
+      "json": "{\"v\":1,\"type\":\"ping\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_type_wrong_case",
+      "json": "{\"v\":1,\"type\":\"Sync\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_type_number",
+      "json": "{\"v\":1,\"type\":1}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_samples_object",
+      "json": "{\"v\":1,\"type\":\"sync\",\"samples\":{}}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_samples_null",
+      "json": "{\"v\":1,\"type\":\"sync\",\"samples\":null}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_deleted_string",
+      "json": "{\"v\":1,\"type\":\"sync\",\"deleted\":\"none\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_acks_number",
+      "json": "{\"v\":1,\"type\":\"sync\",\"acks\":0}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_more_string",
+      "json": "{\"v\":1,\"type\":\"sync\",\"more\":\"true\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_more_null",
+      "json": "{\"v\":1,\"type\":\"sync\",\"more\":null}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_more_number",
+      "json": "{\"v\":1,\"type\":\"sync\",\"more\":1}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_commands_object",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":{}}",
+      "expect": "invalid"
+    },
+    {
+      "name": "invalid_commands_null",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":null}",
+      "expect": "invalid"
+    },
+    {
+      "name": "commands_write_quantity_category_and_delete",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c_2\",\"version\":1,\"op\":\"write\",\"type\":\"mindful_session\",\"value\":\"not_applicable\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\"},{\"command_id\":\"c_1\",\"version\":2,\"op\":\"delete\",\"type\":\"dietary_water\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": [
+          {
+            "command_id": "c_1",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          },
+          {
+            "command_id": "c_2",
+            "version": 1,
+            "op": "write",
+            "type": "mindful_session",
+            "value": "not_applicable",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z"
+          },
+          {
+            "command_id": "c_1",
+            "version": 2,
+            "op": "delete",
+            "type": "dietary_water"
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "commands_missing_array",
+      "json": "{\"v\":1,\"type\":\"commands\"}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": []
+      },
+      "dropped": []
+    },
+    {
+      "name": "commands_unknown_fields_kept_after_known_keys",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"note\":\"from the agent\",\"end\":\"2026-10-11T08:00:00Z\",\"version\":1,\"unit\":\"L\",\"meta\":{\"b\":2.0,\"a\":[1.0,2.5,\"3\"]},\"value\":0.5,\"type\":\"dietary_water\",\"start\":\"2026-10-11T08:00:00Z\",\"op\":\"write\",\"command_id\":\"c_1\"}],\"x_top\":true}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": [
+          {
+            "command_id": "c_1",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.5,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z",
+            "note": "from the agent",
+            "meta": {
+              "b": 2,
+              "a": [
+                1,
+                2.5,
+                "3"
+              ]
+            }
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "commands_raw_fields_are_not_parser_drops",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":1,\"op\":\"update\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c_2\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"lb\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c_3\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c_4\",\"version\":1,\"op\":\"write\",\"type\":\"teleport_count\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c_5\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":\"lots\",\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c_6\",\"version\":1}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": [
+          {
+            "command_id": "c_1",
+            "version": 1,
+            "op": "update",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          },
+          {
+            "command_id": "c_2",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "lb",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          },
+          {
+            "command_id": "c_3",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          },
+          {
+            "command_id": "c_4",
+            "version": 1,
+            "op": "write",
+            "type": "teleport_count",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          },
+          {
+            "command_id": "c_5",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": "lots",
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          },
+          {
+            "command_id": "c_6",
+            "version": 1
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "commands_timestamps_normalized",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T10:00:00+02:00\",\"end\":\"2026-10-11t08:00:00.123456z\"},{\"command_id\":\"c_2\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"yesterday\",\"end\":5}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": [
+          {
+            "command_id": "c_1",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00.123Z"
+          },
+          {
+            "command_id": "c_2",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "yesterday",
+            "end": 5
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "commands_integral_numbers_emitted_as_integers",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":3.0,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":2.0,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c_2\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":1e2,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": [
+          {
+            "command_id": "c_1",
+            "version": 3,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 2,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          },
+          {
+            "command_id": "c_2",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 100,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "commands_non_finite_value_becomes_null",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":1e999,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": [
+          {
+            "command_id": "c_1",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": null,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "commands_max_safe_version",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":9007199254740991,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": [
+          {
+            "command_id": "c_1",
+            "version": 9007199254740991,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "commands_drop_rules",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[1,{\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c 1\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c_2\",\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c_3\",\"version\":0,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c_4\",\"version\":-1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c_5\",\"version\":1.5,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c_6\",\"version\":\"1\",\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c_7\",\"version\":null,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c_8\",\"version\":9007199254740993,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"command_id\":\"c.9:x-y_zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": [
+          {
+            "command_id": "c.9:x-y_zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          }
+        ]
+      },
+      "dropped": [
+        "/commands/0",
+        "/commands/1",
+        "/commands/2",
+        "/commands/3",
+        "/commands/4",
+        "/commands/5",
+        "/commands/6",
+        "/commands/7",
+        "/commands/8",
+        "/commands/9",
+        "/commands/10",
+        "/commands/11"
+      ]
+    },
+    {
+      "name": "system_access_request",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_request",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-10-11T08:00:00Z",
+        "expires_at": "2026-10-12T08:00:00Z",
+        "read": [
+          "biological_sex",
+          "dietary_water",
+          "workout"
+        ],
+        "write": [
+          "dietary_water"
+        ],
+        "reason": "literal <b>💧</b>"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_request_seventeen",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"read\":[\"abdominal_cramps\",\"acne\",\"active_energy_burned\",\"activity_summary\",\"appetite_changes\",\"apple_exercise_time\",\"apple_move_time\",\"apple_sleeping_breathing_disturbances\",\"apple_sleeping_wrist_temperature\",\"apple_stand_hour\",\"apple_stand_time\",\"apple_walking_steadiness\",\"apple_walking_steadiness_event\",\"atrial_fibrillation_burden\",\"audiogram\",\"basal_body_temperature\",\"basal_energy_burned\"],\"write\":[]}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_request",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-10-11T08:00:00Z",
+        "expires_at": "2026-10-12T08:00:00Z",
+        "read": [
+          "abdominal_cramps",
+          "acne",
+          "active_energy_burned",
+          "activity_summary",
+          "appetite_changes",
+          "apple_exercise_time",
+          "apple_move_time",
+          "apple_sleeping_breathing_disturbances",
+          "apple_sleeping_wrist_temperature",
+          "apple_stand_hour",
+          "apple_stand_time",
+          "apple_walking_steadiness",
+          "apple_walking_steadiness_event",
+          "atrial_fibrillation_burden",
+          "audiogram",
+          "basal_body_temperature",
+          "basal_energy_burned"
+        ],
+        "write": []
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reason_escaped",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\\u0000\\\\\\\"\\n\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_request",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-10-11T08:00:00Z",
+        "expires_at": "2026-10-12T08:00:00Z",
+        "read": [
+          "biological_sex",
+          "dietary_water",
+          "workout"
+        ],
+        "write": [
+          "dietary_water"
+        ],
+        "reason": "\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n\u0000\\\"\n"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reason_unicode_boundary",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_request",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-10-11T08:00:00Z",
+        "expires_at": "2026-10-12T08:00:00Z",
+        "read": [
+          "biological_sex",
+          "dietary_water",
+          "workout"
+        ],
+        "write": [
+          "dietary_water"
+        ],
+        "reason": "💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reason_unicode_overflow",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧💧\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_unknown_name",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"read\":[\"unknown_type\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_non_writable",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"biological_sex\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_duplicate",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"read\":[\"workout\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_bad_expiry",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-11T08:30:00Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_mixed",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"biological_sex\",\"outcome\":\"needs_health_settings\"},{\"type\":\"dietary_water\",\"outcome\":\"needs_health_settings\"},{\"type\":\"workout\",\"outcome\":\"needs_health_settings\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"declined\"}]}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-11T08:00:00Z",
+        "outcome": "resolved",
+        "read": [
+          {
+            "type": "biological_sex",
+            "outcome": "needs_health_settings"
+          },
+          {
+            "type": "dietary_water",
+            "outcome": "needs_health_settings"
+          },
+          {
+            "type": "workout",
+            "outcome": "needs_health_settings"
+          }
+        ],
+        "write": [
+          {
+            "type": "dietary_water",
+            "outcome": "declined"
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reply_expired",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-12T08:00:00Z\",\"outcome\":\"expired\",\"read\":[],\"write\":[]}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-12T08:00:00Z",
+        "outcome": "expired",
+        "read": [],
+        "write": []
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reply_limited",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"rate_limited\",\"read\":[],\"write\":[],\"next_available_at\":\"2026-10-12T08:00:00Z\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-11T08:00:00Z",
+        "outcome": "rate_limited",
+        "read": [],
+        "write": [],
+        "next_available_at": "2026-10-12T08:00:00Z"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_request_in_data",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "data",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_in_data",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"biological_sex\",\"outcome\":\"needs_health_settings\"},{\"type\":\"dietary_water\",\"outcome\":\"needs_health_settings\"},{\"type\":\"workout\",\"outcome\":\"needs_health_settings\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"declined\"}]}",
+      "kind": "data",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_diagnostics_request",
+      "json": "{\"v\":1,\"type\":\"diagnostics_request\",\"request_ref\":\"0123456789abcdef0123456789abcdef\",\"created_at\":\"2026-11-03T12:00:00Z\",\"expires_at\":\"2026-11-04T12:00:00Z\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "diagnostics_request",
+        "request_ref": "0123456789abcdef0123456789abcdef",
+        "created_at": "2026-11-03T12:00:00Z",
+        "expires_at": "2026-11-04T12:00:00Z"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_diagnostics_request_bad_ttl",
+      "json": "{\"v\":1,\"type\":\"diagnostics_request\",\"request_ref\":\"0123456789abcdef0123456789abcdef\",\"created_at\":\"2026-11-03T12:00:00Z\",\"expires_at\":\"2026-11-03T13:00:00Z\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_diagnostics_request_extra",
+      "json": "{\"v\":1,\"type\":\"diagnostics_request\",\"request_ref\":\"0123456789abcdef0123456789abcdef\",\"created_at\":\"2026-11-03T12:00:00Z\",\"expires_at\":\"2026-11-04T12:00:00Z\",\"prompt\":\"x\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_diagnostics_request_wrong_kind",
+      "json": "{\"v\":1,\"type\":\"diagnostics_request\",\"request_ref\":\"0123456789abcdef0123456789abcdef\",\"created_at\":\"2026-11-03T12:00:00Z\",\"expires_at\":\"2026-11-04T12:00:00Z\"}",
+      "kind": "data",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_diagnostics_reply_declined",
+      "json": "{\"v\":1,\"type\":\"diagnostics_reply\",\"request_ref\":\"0123456789abcdef0123456789abcdef\",\"outcome\":\"declined\",\"reason\":\"user\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "diagnostics_reply",
+        "request_ref": "0123456789abcdef0123456789abcdef",
+        "outcome": "declined",
+        "reason": "user"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_diagnostics_reply_pending_limit",
+      "json": "{\"v\":1,\"type\":\"diagnostics_reply\",\"request_ref\":\"0123456789abcdef0123456789abcdef\",\"outcome\":\"declined\",\"reason\":\"pending_limit\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "diagnostics_reply",
+        "request_ref": "0123456789abcdef0123456789abcdef",
+        "outcome": "declined",
+        "reason": "pending_limit"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_diagnostics_reply_rate_limited",
+      "json": "{\"v\":1,\"type\":\"diagnostics_reply\",\"request_ref\":\"0123456789abcdef0123456789abcdef\",\"outcome\":\"declined\",\"reason\":\"rate_limited\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "diagnostics_reply",
+        "request_ref": "0123456789abcdef0123456789abcdef",
+        "outcome": "declined",
+        "reason": "rate_limited"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_diagnostics_reply_expired",
+      "json": "{\"v\":1,\"type\":\"diagnostics_reply\",\"request_ref\":\"0123456789abcdef0123456789abcdef\",\"outcome\":\"expired\",\"reason\":\"deadline\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "diagnostics_reply",
+        "request_ref": "0123456789abcdef0123456789abcdef",
+        "outcome": "expired",
+        "reason": "deadline"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_diagnostics_reply_bad_reason",
+      "json": "{\"v\":1,\"type\":\"diagnostics_reply\",\"request_ref\":\"0123456789abcdef0123456789abcdef\",\"outcome\":\"expired\",\"reason\":\"user\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_diagnostics_reply_wrong_kind",
+      "json": "{\"v\":1,\"type\":\"diagnostics_reply\",\"request_ref\":\"0123456789abcdef0123456789abcdef\",\"outcome\":\"declined\",\"reason\":\"user\"}",
+      "kind": "data",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_unpair_user",
+      "json": "{\"v\":1,\"type\":\"unpair\",\"reason\":\"user\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "unpair",
+        "reason": "user"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_unpair_reset",
+      "json": "{\"v\":1,\"type\":\"unpair\",\"reason\":\"reset\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "unpair",
+        "reason": "reset"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_unpair_replaced",
+      "json": "{\"v\":1,\"type\":\"unpair\",\"reason\":\"replaced\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "unpair",
+        "reason": "replaced"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_unpair_delete_relay_data",
+      "json": "{\"v\":1,\"type\":\"unpair\",\"reason\":\"delete_relay_data\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "unpair",
+        "reason": "delete_relay_data"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_paused_subscription_ended",
+      "json": "{\"v\":1,\"type\":\"paused\",\"reason\":\"subscription_ended\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "paused",
+        "reason": "subscription_ended"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_paused_user_paused",
+      "json": "{\"v\":1,\"type\":\"paused\",\"reason\":\"user_paused\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "paused",
+        "reason": "user_paused"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_paused_health_access_changed",
+      "json": "{\"v\":1,\"type\":\"paused\",\"reason\":\"health_access_changed\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "paused",
+        "reason": "health_access_changed"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_resumed",
+      "json": "{\"v\":1,\"type\":\"resumed\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "resumed"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_confirmed",
+      "json": "{\"v\":1,\"type\":\"confirmed\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "confirmed"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_unpaired_user",
+      "json": "{\"v\":1,\"type\":\"unpaired\",\"reason\":\"user\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "unpaired",
+        "reason": "user"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_unpaired_reset",
+      "json": "{\"v\":1,\"type\":\"unpaired\",\"reason\":\"reset\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "unpaired",
+        "reason": "reset"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_unpaired_replaced",
+      "json": "{\"v\":1,\"type\":\"unpaired\",\"reason\":\"replaced\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "unpaired",
+        "reason": "replaced"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_resync_request",
+      "json": "{\"v\":1,\"type\":\"resync_request\",\"from\":\"2026-10-04T08:00:00Z\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "resync_request",
+        "from": "2026-10-04T08:00:00Z"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_resync_request_from_normalized",
+      "json": "{\"v\":1,\"type\":\"resync_request\",\"from\":\"2026-10-04t10:00:00.123456+02:00\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "resync_request",
+        "from": "2026-10-04T08:00:00.123Z"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_agent_info",
+      "json": "{\"v\":1,\"type\":\"agent_info\",\"version\":\"0.14.0\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "agent_info",
+        "version": "0.14.0"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_keys_in_any_order",
+      "json": "{\"reason\":\"user_paused\",\"type\":\"paused\",\"v\":1.0}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "paused",
+        "reason": "user_paused"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_unknown_type_skipped",
+      "json": "{\"v\":1,\"type\":\"future_notice\",\"text\":\"hello\",\"n\":[1,2]}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "future_notice"
+      },
+      "dropped": [
+        "/type"
+      ]
+    },
+    {
+      "name": "system_unpair_missing_reason",
+      "json": "{\"v\":1,\"type\":\"unpair\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_unpair_unknown_reason",
+      "json": "{\"v\":1,\"type\":\"unpair\",\"reason\":\"bored\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_unpair_extra_key",
+      "json": "{\"v\":1,\"type\":\"unpair\",\"reason\":\"user\",\"note\":\"bye\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_paused_unpair_reason",
+      "json": "{\"v\":1,\"type\":\"paused\",\"reason\":\"user\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_unpaired_phone_reason",
+      "json": "{\"v\":1,\"type\":\"unpaired\",\"reason\":\"delete_relay_data\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_resumed_extra_key",
+      "json": "{\"v\":1,\"type\":\"resumed\",\"reason\":\"user\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_resync_request_bad_from",
+      "json": "{\"v\":1,\"type\":\"resync_request\",\"from\":\"last week\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_agent_info_empty_version",
+      "json": "{\"v\":1,\"type\":\"agent_info\",\"version\":\"\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_agent_info_version_with_space",
+      "json": "{\"v\":1,\"type\":\"agent_info\",\"version\":\"0.14 beta\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_type_uppercase",
+      "json": "{\"v\":1,\"type\":\"Unpair\",\"reason\":\"user\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_type_33_chars",
+      "json": "{\"v\":1,\"type\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_type_missing",
+      "json": "{\"v\":1,\"reason\":\"user\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_sync_in_control_envelope",
+      "json": "{\"v\":1,\"type\":\"sync\",\"samples\":[],\"deleted\":[],\"acks\":[],\"more\":false}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_commands_in_control_envelope",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_unpair_in_data_envelope",
+      "json": "{\"v\":1,\"type\":\"unpair\",\"reason\":\"user\"}",
+      "kind": "data",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_confirmed_in_data_envelope",
+      "json": "{\"v\":1,\"type\":\"confirmed\"}",
+      "kind": "data",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_unsupported_version",
+      "json": "{\"v\":2,\"type\":\"unpair\",\"reason\":\"user\"}",
+      "kind": "control",
+      "expect": "unsupported_version"
+    },
+    {
+      "name": "system_pair_proof",
+      "json": "{\"v\":1,\"type\":\"pair_proof\",\"proof\":\"AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "pair_proof",
+        "proof": "AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_pair_proof_31_bytes",
+      "json": "{\"v\":1,\"type\":\"pair_proof\",\"proof\":\"AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1Q\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_pair_proof_33_bytes",
+      "json": "{\"v\":1,\"type\":\"pair_proof\",\"proof\":\"AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dwA\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_pair_proof_padded",
+      "json": "{\"v\":1,\"type\":\"pair_proof\",\"proof\":\"AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_pair_proof_not_a_string",
+      "json": "{\"v\":1,\"type\":\"pair_proof\",\"proof\":42}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_pair_proof_missing",
+      "json": "{\"v\":1,\"type\":\"pair_proof\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_pair_proof_extra_key",
+      "json": "{\"v\":1,\"type\":\"pair_proof\",\"proof\":\"AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw\",\"code\":\"482 913 057\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_pair_proof_in_data_envelope",
+      "json": "{\"v\":1,\"type\":\"pair_proof\",\"proof\":\"AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw\"}",
+      "kind": "data",
+      "expect": "invalid"
+    },
+    {
+      "name": "diagnostics_six_accepted_wakes",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"1.0\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":\"2026-11-03T12:00:00Z\",\"history_since\":\"2026-11-01T12:00:00Z\",\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":\"2026-11-03T10:00:00Z\",\"phone_last_contact_source\":\"relay_push_tokens\",\"push_sends\":[{\"kind\":\"sync_wake\",\"sent_at\":\"2026-11-03T11:00:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"sync_wake\",\"sent_at\":\"2026-11-03T11:01:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"sync_wake\",\"sent_at\":\"2026-11-03T11:02:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"sync_wake\",\"sent_at\":\"2026-11-03T11:03:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"sync_wake\",\"sent_at\":\"2026-11-03T11:04:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"unlock_to_apply\",\"sent_at\":\"2026-11-03T11:05:00Z\",\"apns_status\":200,\"outcome\":\"response\"}],\"reason\":null,\"status\":\"available\"},\"request_ref\":null,\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-11-01T12:00:00Z\"}",
+      "expect": "ok",
+      "normalized": {
+        "app": {
+          "build": "1",
+          "channel": "dev",
+          "os": "26.0",
+          "version": "1.0"
+        },
+        "archive_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "checks": {
+          "checked_at": "2026-11-03T12:00:00Z",
+          "findings": [],
+          "relay_state": "missing"
+        },
+        "connections": [],
+        "events": [],
+        "generated_at": "2026-11-03T12:00:00Z",
+        "ledger_counts": {
+          "status": "unavailable"
+        },
+        "pairing": {
+          "status": "unavailable"
+        },
+        "relay_summary": {
+          "agent_activity": [],
+          "as_of": "2026-11-03T12:00:00Z",
+          "history_since": "2026-11-01T12:00:00Z",
+          "http_status": null,
+          "is_stale": false,
+          "local_last_relay_exchange_at": null,
+          "local_last_run_as_of": "2026-11-03T12:00:00Z",
+          "local_last_run_at": null,
+          "local_last_run_source": "unknown",
+          "pending": null,
+          "phone_last_contact_at": "2026-11-03T10:00:00Z",
+          "phone_last_contact_source": "relay_push_tokens",
+          "push_sends": [
+            {
+              "apns_status": 200,
+              "kind": "sync_wake",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:00:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "sync_wake",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:01:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "sync_wake",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:02:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "sync_wake",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:03:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "sync_wake",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:04:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "unlock_to_apply",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:05:00Z"
+            }
+          ],
+          "reason": null,
+          "status": "available"
+        },
+        "request_ref": null,
+        "truncation": {
+          "archive_events": 0,
+          "archive_expired": 0,
+          "available_history_start": "2026-11-03T12:00:00Z",
+          "connections": 0,
+          "findings": 0,
+          "history_status": "available",
+          "push_sends": 0,
+          "store_evicted": 0,
+          "store_expired": 0
+        },
+        "type": "diagnostics",
+        "v": 1,
+        "window_end": "2026-11-03T12:00:00Z",
+        "window_start": "2026-11-01T12:00:00Z"
+      },
+      "dropped": []
+    },
+    {
+      "name": "diagnostics_request_push_history",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"1.0\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[{\"at\":\"2026-11-03T11:00:00Z\",\"kind\":\"push_received\",\"reason\":\"none\",\"counts\":{},\"push_kind\":\"diagnostics_request\"}],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":\"2026-11-03T12:00:00Z\",\"history_since\":\"2026-11-01T12:00:00Z\",\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":\"2026-11-03T10:00:00Z\",\"phone_last_contact_source\":\"relay_push_tokens\",\"push_sends\":[{\"kind\":\"diagnostics_request\",\"sent_at\":\"2026-11-03T11:00:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"diagnostics_request\",\"sent_at\":\"2026-11-03T11:01:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"diagnostics_request\",\"sent_at\":\"2026-11-03T11:02:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"diagnostics_request\",\"sent_at\":\"2026-11-03T11:03:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"diagnostics_request\",\"sent_at\":\"2026-11-03T11:04:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"unlock_to_apply\",\"sent_at\":\"2026-11-03T11:05:00Z\",\"apns_status\":200,\"outcome\":\"response\"}],\"reason\":null,\"status\":\"available\"},\"request_ref\":null,\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-11-01T12:00:00Z\"}",
+      "expect": "ok",
+      "normalized": {
+        "app": {
+          "build": "1",
+          "channel": "dev",
+          "os": "26.0",
+          "version": "1.0"
+        },
+        "archive_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "checks": {
+          "checked_at": "2026-11-03T12:00:00Z",
+          "findings": [],
+          "relay_state": "missing"
+        },
+        "connections": [],
+        "events": [
+          {
+            "at": "2026-11-03T11:00:00Z",
+            "counts": {},
+            "kind": "push_received",
+            "push_kind": "diagnostics_request",
+            "reason": "none"
+          }
+        ],
+        "generated_at": "2026-11-03T12:00:00Z",
+        "ledger_counts": {
+          "status": "unavailable"
+        },
+        "pairing": {
+          "status": "unavailable"
+        },
+        "relay_summary": {
+          "agent_activity": [],
+          "as_of": "2026-11-03T12:00:00Z",
+          "history_since": "2026-11-01T12:00:00Z",
+          "http_status": null,
+          "is_stale": false,
+          "local_last_relay_exchange_at": null,
+          "local_last_run_as_of": "2026-11-03T12:00:00Z",
+          "local_last_run_at": null,
+          "local_last_run_source": "unknown",
+          "pending": null,
+          "phone_last_contact_at": "2026-11-03T10:00:00Z",
+          "phone_last_contact_source": "relay_push_tokens",
+          "push_sends": [
+            {
+              "apns_status": 200,
+              "kind": "diagnostics_request",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:00:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "diagnostics_request",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:01:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "diagnostics_request",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:02:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "diagnostics_request",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:03:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "diagnostics_request",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:04:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "unlock_to_apply",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:05:00Z"
+            }
+          ],
+          "reason": null,
+          "status": "available"
+        },
+        "request_ref": null,
+        "truncation": {
+          "archive_events": 0,
+          "archive_expired": 0,
+          "available_history_start": "2026-11-03T12:00:00Z",
+          "connections": 0,
+          "findings": 0,
+          "history_status": "available",
+          "push_sends": 0,
+          "store_evicted": 0,
+          "store_expired": 0
+        },
+        "type": "diagnostics",
+        "v": 1,
+        "window_end": "2026-11-03T12:00:00Z",
+        "window_start": "2026-11-01T12:00:00Z"
+      },
+      "dropped": []
+    },
+    {
+      "name": "access_request_push_history",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"1.0\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[{\"at\":\"2026-11-03T11:00:00Z\",\"kind\":\"push_received\",\"reason\":\"none\",\"counts\":{},\"push_kind\":\"access_request\"}],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":\"2026-11-03T12:00:00Z\",\"history_since\":\"2026-11-01T12:00:00Z\",\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":\"2026-11-03T10:00:00Z\",\"phone_last_contact_source\":\"relay_push_tokens\",\"push_sends\":[{\"kind\":\"access_request\",\"sent_at\":\"2026-11-03T11:00:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"access_request\",\"sent_at\":\"2026-11-03T11:01:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"access_request\",\"sent_at\":\"2026-11-03T11:02:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"access_request\",\"sent_at\":\"2026-11-03T11:03:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"access_request\",\"sent_at\":\"2026-11-03T11:04:00Z\",\"apns_status\":200,\"outcome\":\"response\"},{\"kind\":\"unlock_to_apply\",\"sent_at\":\"2026-11-03T11:05:00Z\",\"apns_status\":200,\"outcome\":\"response\"}],\"reason\":null,\"status\":\"available\"},\"request_ref\":null,\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-11-01T12:00:00Z\"}",
+      "expect": "ok",
+      "normalized": {
+        "app": {
+          "build": "1",
+          "channel": "dev",
+          "os": "26.0",
+          "version": "1.0"
+        },
+        "archive_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "checks": {
+          "checked_at": "2026-11-03T12:00:00Z",
+          "findings": [],
+          "relay_state": "missing"
+        },
+        "connections": [],
+        "events": [
+          {
+            "at": "2026-11-03T11:00:00Z",
+            "counts": {},
+            "kind": "push_received",
+            "push_kind": "access_request",
+            "reason": "none"
+          }
+        ],
+        "generated_at": "2026-11-03T12:00:00Z",
+        "ledger_counts": {
+          "status": "unavailable"
+        },
+        "pairing": {
+          "status": "unavailable"
+        },
+        "relay_summary": {
+          "agent_activity": [],
+          "as_of": "2026-11-03T12:00:00Z",
+          "history_since": "2026-11-01T12:00:00Z",
+          "http_status": null,
+          "is_stale": false,
+          "local_last_relay_exchange_at": null,
+          "local_last_run_as_of": "2026-11-03T12:00:00Z",
+          "local_last_run_at": null,
+          "local_last_run_source": "unknown",
+          "pending": null,
+          "phone_last_contact_at": "2026-11-03T10:00:00Z",
+          "phone_last_contact_source": "relay_push_tokens",
+          "push_sends": [
+            {
+              "apns_status": 200,
+              "kind": "access_request",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:00:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "access_request",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:01:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "access_request",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:02:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "access_request",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:03:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "access_request",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:04:00Z"
+            },
+            {
+              "apns_status": 200,
+              "kind": "unlock_to_apply",
+              "outcome": "response",
+              "sent_at": "2026-11-03T11:05:00Z"
+            }
+          ],
+          "reason": null,
+          "status": "available"
+        },
+        "request_ref": null,
+        "truncation": {
+          "archive_events": 0,
+          "archive_expired": 0,
+          "available_history_start": "2026-11-03T12:00:00Z",
+          "connections": 0,
+          "findings": 0,
+          "history_status": "available",
+          "push_sends": 0,
+          "store_evicted": 0,
+          "store_expired": 0
+        },
+        "type": "diagnostics",
+        "v": 1,
+        "window_end": "2026-11-03T12:00:00Z",
+        "window_start": "2026-11-01T12:00:00Z"
+      },
+      "dropped": []
+    },
+    {
+      "name": "diagnostics_complete",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"1.0\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":null,\"history_since\":null,\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":null,\"phone_last_contact_source\":\"unknown\",\"push_sends\":null,\"reason\":null,\"status\":\"not_collected\"},\"request_ref\":null,\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-11-01T12:00:00Z\"}",
+      "expect": "ok",
+      "normalized": {
+        "app": {
+          "build": "1",
+          "channel": "dev",
+          "os": "26.0",
+          "version": "1.0"
+        },
+        "archive_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "checks": {
+          "checked_at": "2026-11-03T12:00:00Z",
+          "findings": [],
+          "relay_state": "missing"
+        },
+        "connections": [],
+        "events": [],
+        "generated_at": "2026-11-03T12:00:00Z",
+        "ledger_counts": {
+          "status": "unavailable"
+        },
+        "pairing": {
+          "status": "unavailable"
+        },
+        "relay_summary": {
+          "agent_activity": [],
+          "as_of": null,
+          "history_since": null,
+          "http_status": null,
+          "is_stale": false,
+          "local_last_relay_exchange_at": null,
+          "local_last_run_as_of": "2026-11-03T12:00:00Z",
+          "local_last_run_at": null,
+          "local_last_run_source": "unknown",
+          "pending": null,
+          "phone_last_contact_at": null,
+          "phone_last_contact_source": "unknown",
+          "push_sends": null,
+          "reason": null,
+          "status": "not_collected"
+        },
+        "request_ref": null,
+        "truncation": {
+          "archive_events": 0,
+          "archive_expired": 0,
+          "available_history_start": "2026-11-03T12:00:00Z",
+          "connections": 0,
+          "findings": 0,
+          "history_status": "available",
+          "push_sends": 0,
+          "store_evicted": 0,
+          "store_expired": 0
+        },
+        "type": "diagnostics",
+        "v": 1,
+        "window_end": "2026-11-03T12:00:00Z",
+        "window_start": "2026-11-01T12:00:00Z"
+      },
+      "dropped": []
+    },
+    {
+      "name": "diagnostics_timestamp_normalized",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"1.0\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03t14:00:00.000000+02:00\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[],\"generated_at\":\"2026-11-03t14:00:00.000000+02:00\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":null,\"history_since\":null,\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03t14:00:00.000000+02:00\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":null,\"phone_last_contact_source\":\"unknown\",\"push_sends\":null,\"reason\":null,\"status\":\"not_collected\"},\"request_ref\":null,\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03t14:00:00.000000+02:00\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03t14:00:00.000000+02:00\",\"window_start\":\"2026-11-01T12:00:00Z\"}",
+      "expect": "ok",
+      "normalized": {
+        "app": {
+          "build": "1",
+          "channel": "dev",
+          "os": "26.0",
+          "version": "1.0"
+        },
+        "archive_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "checks": {
+          "checked_at": "2026-11-03T12:00:00Z",
+          "findings": [],
+          "relay_state": "missing"
+        },
+        "connections": [],
+        "events": [],
+        "generated_at": "2026-11-03T12:00:00Z",
+        "ledger_counts": {
+          "status": "unavailable"
+        },
+        "pairing": {
+          "status": "unavailable"
+        },
+        "relay_summary": {
+          "agent_activity": [],
+          "as_of": null,
+          "history_since": null,
+          "http_status": null,
+          "is_stale": false,
+          "local_last_relay_exchange_at": null,
+          "local_last_run_as_of": "2026-11-03T12:00:00Z",
+          "local_last_run_at": null,
+          "local_last_run_source": "unknown",
+          "pending": null,
+          "phone_last_contact_at": null,
+          "phone_last_contact_source": "unknown",
+          "push_sends": null,
+          "reason": null,
+          "status": "not_collected"
+        },
+        "request_ref": null,
+        "truncation": {
+          "archive_events": 0,
+          "archive_expired": 0,
+          "available_history_start": "2026-11-03T12:00:00Z",
+          "connections": 0,
+          "findings": 0,
+          "history_status": "available",
+          "push_sends": 0,
+          "store_evicted": 0,
+          "store_expired": 0
+        },
+        "type": "diagnostics",
+        "v": 1,
+        "window_end": "2026-11-03T12:00:00Z",
+        "window_start": "2026-11-01T12:00:00Z"
+      },
+      "dropped": []
+    },
+    {
+      "name": "diagnostics_request_reference",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"1.0\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":null,\"history_since\":null,\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":null,\"phone_last_contact_source\":\"unknown\",\"push_sends\":null,\"reason\":null,\"status\":\"not_collected\"},\"request_ref\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-11-01T12:00:00Z\"}",
+      "expect": "ok",
+      "normalized": {
+        "app": {
+          "build": "1",
+          "channel": "dev",
+          "os": "26.0",
+          "version": "1.0"
+        },
+        "archive_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "checks": {
+          "checked_at": "2026-11-03T12:00:00Z",
+          "findings": [],
+          "relay_state": "missing"
+        },
+        "connections": [],
+        "events": [],
+        "generated_at": "2026-11-03T12:00:00Z",
+        "ledger_counts": {
+          "status": "unavailable"
+        },
+        "pairing": {
+          "status": "unavailable"
+        },
+        "relay_summary": {
+          "agent_activity": [],
+          "as_of": null,
+          "history_since": null,
+          "http_status": null,
+          "is_stale": false,
+          "local_last_relay_exchange_at": null,
+          "local_last_run_as_of": "2026-11-03T12:00:00Z",
+          "local_last_run_at": null,
+          "local_last_run_source": "unknown",
+          "pending": null,
+          "phone_last_contact_at": null,
+          "phone_last_contact_source": "unknown",
+          "push_sends": null,
+          "reason": null,
+          "status": "not_collected"
+        },
+        "request_ref": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "truncation": {
+          "archive_events": 0,
+          "archive_expired": 0,
+          "available_history_start": "2026-11-03T12:00:00Z",
+          "connections": 0,
+          "findings": 0,
+          "history_status": "available",
+          "push_sends": 0,
+          "store_evicted": 0,
+          "store_expired": 0
+        },
+        "type": "diagnostics",
+        "v": 1,
+        "window_end": "2026-11-03T12:00:00Z",
+        "window_start": "2026-11-01T12:00:00Z"
+      },
+      "dropped": []
+    },
+    {
+      "name": "diagnostics_extra_root",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"1.0\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":null,\"history_since\":null,\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":null,\"phone_last_contact_source\":\"unknown\",\"push_sends\":null,\"reason\":null,\"status\":\"not_collected\"},\"request_ref\":null,\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-11-01T12:00:00Z\",\"private\":true}",
+      "expect": "invalid"
+    },
+    {
+      "name": "diagnostics_metadata_text",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"private-marker\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":null,\"history_since\":null,\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":null,\"phone_last_contact_source\":\"unknown\",\"push_sends\":null,\"reason\":null,\"status\":\"not_collected\"},\"request_ref\":null,\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-11-01T12:00:00Z\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "diagnostics_multibyte_metadata",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"éé\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":null,\"history_since\":null,\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":null,\"phone_last_contact_source\":\"unknown\",\"push_sends\":null,\"reason\":null,\"status\":\"not_collected\"},\"request_ref\":null,\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-11-01T12:00:00Z\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "diagnostics_bad_reference",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"1.0\"},\"archive_ref\":\"raw-member\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":null,\"history_since\":null,\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":null,\"phone_last_contact_source\":\"unknown\",\"push_sends\":null,\"reason\":null,\"status\":\"not_collected\"},\"request_ref\":null,\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-11-01T12:00:00Z\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "diagnostics_negative_count",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"1.0\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":null,\"history_since\":null,\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":null,\"phone_last_contact_source\":\"unknown\",\"push_sends\":null,\"reason\":null,\"status\":\"not_collected\"},\"request_ref\":null,\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":-1},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-11-01T12:00:00Z\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "diagnostics_unknown_nested",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"private\":true,\"os\":\"26.0\",\"version\":\"1.0\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":null,\"history_since\":null,\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":null,\"phone_last_contact_source\":\"unknown\",\"push_sends\":null,\"reason\":null,\"status\":\"not_collected\"},\"request_ref\":null,\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-11-01T12:00:00Z\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "diagnostics_window_over_48h",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"1.0\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":null,\"history_since\":null,\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":null,\"phone_last_contact_source\":\"unknown\",\"push_sends\":null,\"reason\":null,\"status\":\"not_collected\"},\"request_ref\":null,\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-10-30T12:00:00Z\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "diagnostics_missing_request_ref",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"1.0\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":null,\"history_since\":null,\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":null,\"phone_last_contact_source\":\"unknown\",\"push_sends\":null,\"reason\":null,\"status\":\"not_collected\"},\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-11-01T12:00:00Z\"}",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_diagnostics_in_control_envelope",
+      "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"1.0\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":null,\"history_since\":null,\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":null,\"phone_last_contact_source\":\"unknown\",\"push_sends\":null,\"reason\":null,\"status\":\"not_collected\"},\"request_ref\":null,\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-11-01T12:00:00Z\"}",
+      "kind": "control",
+      "expect": "invalid"
+    }
+  ]
+}

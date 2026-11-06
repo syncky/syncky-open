@@ -1,0 +1,418 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://syncky.app/protocol/schemas/inner-sync.schema.json",
+  "title": "Inner protocol v1, phone to agent: the canonical emitted sync message. Unknown fields are allowed",
+  "$defs": {
+    "sync": {
+      "type": "object",
+      "required": ["v", "type", "device", "samples", "deleted", "acks", "more"],
+      "properties": {
+        "v": { "type": "integer", "const": 1 },
+        "type": { "type": "string", "const": "sync" },
+        "device": { "anyOf": [{ "$ref": "#/$defs/member_id" }, { "$ref": "#/$defs/webhook_device" }] },
+        "samples": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/sample_quantity" },
+              { "$ref": "#/$defs/sample_category" },
+              { "$ref": "#/$defs/sample_workout" },
+              { "$ref": "#/$defs/sample_characteristic" },
+              { "$ref": "#/$defs/sample_state_of_mind" },
+              { "$ref": "#/$defs/sample_activity_summary" },
+              { "$ref": "#/$defs/sample_scored_assessment" },
+              { "$ref": "#/$defs/sample_audiogram" },
+              { "$ref": "#/$defs/sample_workout_route" },
+              { "$ref": "#/$defs/sample_heartbeat_series" }
+            ]
+          }
+        },
+        "deleted": { "type": "array", "items": { "$ref": "#/$defs/deleted" } },
+        "acks": { "type": "array", "items": { "$ref": "#/$defs/ack" } },
+        "more": { "type": "boolean" },
+        "scope": { "$ref": "#/$defs/scope" }
+      }
+    },
+    "scope": {
+      "description": "what the owner shares with the receiving agent (read) and lets it write (write); the phone emits it in every relay sync message, a direct webhook body has none",
+      "type": "object",
+      "required": ["read", "write"],
+      "properties": {
+        "read": { "$ref": "#/$defs/scope_selection" },
+        "write": { "$ref": "#/$defs/scope_selection" }
+      }
+    },
+    "scope_selection": {
+      "description": "\"all\" (every entry of the catalog, now or later), \"none\" (nothing) or a sorted list of distinct catalog entry names; a receiver keeps names it does not know",
+      "anyOf": [
+        { "type": "string", "const": "all" },
+        { "type": "string", "const": "none" },
+        { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/type_name" } }
+      ]
+    },
+    "sample_quantity": {
+      "type": "object",
+      "required": ["uuid", "type", "value", "unit", "start", "end", "source"],
+      "properties": {
+        "uuid": { "$ref": "#/$defs/sample_uuid" },
+        "type": { "$ref": "#/$defs/catalog_type" },
+        "value": { "type": "number" },
+        "unit": { "type": "string", "minLength": 1 },
+        "start": { "$ref": "#/$defs/timestamp" },
+        "end": { "$ref": "#/$defs/timestamp" },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "sample_category": {
+      "type": "object",
+      "required": ["uuid", "type", "value", "start", "end", "source"],
+      "properties": {
+        "uuid": { "$ref": "#/$defs/sample_uuid" },
+        "type": { "$ref": "#/$defs/catalog_type" },
+        "value": { "$ref": "#/$defs/name" },
+        "start": { "$ref": "#/$defs/timestamp" },
+        "end": { "$ref": "#/$defs/timestamp" },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "sample_workout": {
+      "description": "older emitters omit location, metadata, events, activities and statistics; parsers default them",
+      "type": "object",
+      "required": ["uuid", "type", "activity", "start", "end", "duration_s", "source"],
+      "properties": {
+        "uuid": { "$ref": "#/$defs/sample_uuid" },
+        "type": { "type": "string", "const": "workout" },
+        "activity": { "$ref": "#/$defs/name" },
+        "start": { "$ref": "#/$defs/timestamp" },
+        "end": { "$ref": "#/$defs/timestamp" },
+        "duration_s": { "type": "number", "minimum": 0 },
+        "energy_kcal": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+        "distance_m": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+        "location": { "$ref": "#/$defs/name" },
+        "metadata": { "$ref": "#/$defs/workout_metadata" },
+        "events": { "type": "array", "items": { "$ref": "#/$defs/workout_event" } },
+        "activities": { "type": "array", "items": { "$ref": "#/$defs/workout_activity" } },
+        "statistics": { "type": "array", "items": { "$ref": "#/$defs/workout_statistic" } },
+        "truncated": { "type": "array", "items": { "type": "string", "enum": ["activity_statistics", "events", "activities"] } },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "sample_characteristic": {
+      "type": "object",
+      "required": ["uuid", "type", "name", "value"],
+      "properties": {
+        "uuid": { "type": "string", "pattern": "^characteristic:[a-z][a-z0-9_]{1,48}$" },
+        "type": { "type": "string", "const": "characteristic" },
+        "name": { "$ref": "#/$defs/type_name" },
+        "value": { "type": "string", "minLength": 1 }
+      }
+    },
+    "sample_state_of_mind": {
+      "type": "object",
+      "required": ["uuid", "type", "start", "end", "kind", "valence", "valence_class", "labels", "associations", "source"],
+      "properties": {
+        "uuid": { "$ref": "#/$defs/sample_uuid" },
+        "type": { "type": "string", "const": "state_of_mind" },
+        "start": { "$ref": "#/$defs/timestamp" },
+        "end": { "$ref": "#/$defs/timestamp" },
+        "kind": { "$ref": "#/$defs/name" },
+        "valence": { "type": "number", "minimum": -1, "maximum": 1 },
+        "valence_class": { "$ref": "#/$defs/name" },
+        "labels": { "type": "array", "items": { "$ref": "#/$defs/name" } },
+        "associations": { "type": "array", "items": { "$ref": "#/$defs/name" } },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "sample_activity_summary": {
+      "description": "mutable: a later value of the same uuid replaces the earlier one; never deleted",
+      "type": "object",
+      "required": [
+        "uuid",
+        "type",
+        "date",
+        "move_mode",
+        "active_energy_kcal",
+        "active_energy_goal_kcal",
+        "move_time_min",
+        "move_time_goal_min",
+        "exercise_time_min",
+        "exercise_time_goal_min",
+        "stand_hours",
+        "stand_hours_goal",
+        "paused"
+      ],
+      "properties": {
+        "uuid": { "type": "string", "pattern": "^activity_summary:[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "type": { "type": "string", "const": "activity_summary" },
+        "date": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$" },
+        "move_mode": { "$ref": "#/$defs/name" },
+        "active_energy_kcal": { "type": "number" },
+        "active_energy_goal_kcal": { "type": "number" },
+        "move_time_min": { "type": "number" },
+        "move_time_goal_min": { "type": "number" },
+        "exercise_time_min": { "type": "number" },
+        "exercise_time_goal_min": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+        "stand_hours": { "type": "number" },
+        "stand_hours_goal": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+        "paused": { "type": "boolean" }
+      }
+    },
+    "sample_scored_assessment": {
+      "type": "object",
+      "required": ["uuid", "type", "start", "end", "score", "risk", "answers", "source"],
+      "properties": {
+        "uuid": { "$ref": "#/$defs/sample_uuid" },
+        "type": { "type": "string", "enum": ["gad7_assessment", "phq9_assessment"] },
+        "start": { "$ref": "#/$defs/timestamp" },
+        "end": { "$ref": "#/$defs/timestamp" },
+        "score": { "type": "integer", "minimum": 0 },
+        "risk": { "$ref": "#/$defs/name" },
+        "answers": { "type": "array", "minItems": 7, "maxItems": 9, "items": { "$ref": "#/$defs/name" } },
+        "source": { "$ref": "#/$defs/source" }
+      },
+      "if": { "type": "object", "properties": { "type": { "type": "string", "const": "gad7_assessment" } } },
+      "then": { "type": "object", "properties": { "answers": { "type": "array", "minItems": 7, "maxItems": 7 } } },
+      "else": { "type": "object", "properties": { "answers": { "type": "array", "minItems": 9, "maxItems": 9 } } }
+    },
+    "sample_audiogram": {
+      "description": "1 to 30 points with ascending, unique frequencies",
+      "type": "object",
+      "required": ["uuid", "type", "start", "end", "points", "source"],
+      "properties": {
+        "uuid": { "$ref": "#/$defs/sample_uuid" },
+        "type": { "type": "string", "const": "audiogram" },
+        "start": { "$ref": "#/$defs/timestamp" },
+        "end": { "$ref": "#/$defs/timestamp" },
+        "points": { "type": "array", "minItems": 1, "maxItems": 30, "items": { "$ref": "#/$defs/audiogram_point" } },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "sample_workout_route": {
+      "description": "one part of a series: part < parts, points [t_ms, lat, lon, alt_m, h_acc_m, v_acc_m, speed_mps, speed_acc_mps, course_deg, course_acc_deg]",
+      "type": "object",
+      "required": ["uuid", "type", "start", "end", "workout_uuid", "count", "part", "parts", "points", "source"],
+      "properties": {
+        "uuid": { "$ref": "#/$defs/sample_uuid" },
+        "type": { "type": "string", "const": "workout_route" },
+        "start": { "$ref": "#/$defs/timestamp" },
+        "end": { "$ref": "#/$defs/timestamp" },
+        "workout_uuid": { "anyOf": [{ "$ref": "#/$defs/sample_uuid" }, { "type": "null" }] },
+        "count": { "type": "integer", "minimum": 0, "maximum": 10000000 },
+        "part": { "type": "integer", "minimum": 0, "maximum": 99999 },
+        "parts": { "type": "integer", "minimum": 1, "maximum": 100000 },
+        "points": { "type": "array", "items": { "$ref": "#/$defs/route_point" } },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "sample_heartbeat_series": {
+      "description": "one part of a series: part < parts, beats [t_ms, gap]",
+      "type": "object",
+      "required": ["uuid", "type", "start", "end", "count", "part", "parts", "beats", "source"],
+      "properties": {
+        "uuid": { "$ref": "#/$defs/sample_uuid" },
+        "type": { "type": "string", "const": "heartbeat_series" },
+        "start": { "$ref": "#/$defs/timestamp" },
+        "end": { "$ref": "#/$defs/timestamp" },
+        "count": { "type": "integer", "minimum": 0, "maximum": 10000000 },
+        "part": { "type": "integer", "minimum": 0, "maximum": 99999 },
+        "parts": { "type": "integer", "minimum": 1, "maximum": 100000 },
+        "beats": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "prefixItems": [{ "$ref": "#/$defs/offset_ms" }, { "type": "integer", "enum": [0, 1] }]
+          }
+        },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "route_point": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "prefixItems": [
+        { "$ref": "#/$defs/offset_ms" },
+        { "type": "number", "minimum": -90, "maximum": 90 },
+        { "type": "number", "minimum": -180, "maximum": 180 },
+        { "type": "number" },
+        { "anyOf": [{ "type": "number", "minimum": 0 }, { "type": "null" }] },
+        { "anyOf": [{ "type": "number", "minimum": 0 }, { "type": "null" }] },
+        { "anyOf": [{ "type": "number", "minimum": 0 }, { "type": "null" }] },
+        { "anyOf": [{ "type": "number", "minimum": 0 }, { "type": "null" }] },
+        { "anyOf": [{ "type": "number", "minimum": 0 }, { "type": "null" }] },
+        { "anyOf": [{ "type": "number", "minimum": 0 }, { "type": "null" }] }
+      ]
+    },
+    "offset_ms": {
+      "description": "milliseconds after start, non-decreasing within a part",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "audiogram_point": {
+      "type": "object",
+      "required": ["frequency_hz", "tests"],
+      "properties": {
+        "frequency_hz": { "type": "number", "exclusiveMinimum": 0 },
+        "tests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["side", "conduction", "masked", "sensitivity_dbhl", "clamp_low_dbhl", "clamp_high_dbhl"],
+            "properties": {
+              "side": { "$ref": "#/$defs/name" },
+              "conduction": { "$ref": "#/$defs/name" },
+              "masked": { "type": "boolean" },
+              "sensitivity_dbhl": { "type": "number" },
+              "clamp_low_dbhl": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+              "clamp_high_dbhl": { "anyOf": [{ "type": "number" }, { "type": "null" }] }
+            }
+          }
+        }
+      }
+    },
+    "workout_metadata": {
+      "type": "object",
+      "properties": {
+        "average_mets": { "type": "number" },
+        "elevation_ascended_m": { "type": "number" },
+        "elevation_descended_m": { "type": "number" },
+        "weather_temperature_degc": { "type": "number" },
+        "weather_humidity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "lap_length_m": { "type": "number" },
+        "swimming_location": { "$ref": "#/$defs/name" },
+        "brand_name": { "type": "string" },
+        "time_zone": { "type": "string" },
+        "user_entered": { "type": "boolean" }
+      }
+    },
+    "workout_event": {
+      "type": "object",
+      "required": ["type", "start", "end"],
+      "properties": {
+        "type": { "$ref": "#/$defs/name" },
+        "start": { "$ref": "#/$defs/timestamp" },
+        "end": { "$ref": "#/$defs/timestamp" },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "lap_length_m": { "type": "number" },
+            "user_entered": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "workout_activity": {
+      "type": "object",
+      "required": ["uuid", "activity", "start", "end", "duration_s", "location", "statistics"],
+      "properties": {
+        "uuid": { "$ref": "#/$defs/sample_uuid" },
+        "activity": { "$ref": "#/$defs/name" },
+        "start": { "$ref": "#/$defs/timestamp" },
+        "end": { "anyOf": [{ "$ref": "#/$defs/timestamp" }, { "type": "null" }] },
+        "duration_s": { "type": "number", "minimum": 0 },
+        "location": { "$ref": "#/$defs/name" },
+        "statistics": { "type": "array", "items": { "$ref": "#/$defs/workout_statistic" } }
+      }
+    },
+    "workout_statistic": {
+      "type": "object",
+      "required": ["type", "unit", "sum", "min", "max", "avg", "most_recent"],
+      "properties": {
+        "type": { "$ref": "#/$defs/catalog_type" },
+        "unit": { "type": "string", "minLength": 1 },
+        "sum": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+        "min": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+        "max": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+        "avg": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+        "most_recent": { "anyOf": [{ "type": "number" }, { "type": "null" }] }
+      }
+    },
+    "deleted": {
+      "type": "object",
+      "required": ["uuid", "type"],
+      "properties": {
+        "uuid": { "$ref": "#/$defs/sample_uuid" },
+        "type": { "$ref": "#/$defs/type_name" }
+      }
+    },
+    "ack": {
+      "type": "object",
+      "required": ["command_id", "status"],
+      "properties": {
+        "command_id": { "$ref": "#/$defs/command_id" },
+        "version": { "$ref": "#/$defs/version" },
+        "status": { "type": "string", "enum": ["applied", "rejected", "deleted_by_user"] },
+        "reason": { "type": "string", "enum": ["type_not_allowed", "type_not_in_scope", "value_out_of_range", "healthkit_denied", "invalid"] }
+      },
+      "if": { "type": "object", "properties": { "status": { "type": "string", "const": "rejected" } } },
+      "then": { "type": "object", "properties": { "reason": { "type": "string" } }, "required": ["reason"] },
+      "else": { "type": "object", "not": { "type": "object", "properties": { "reason": true }, "required": ["reason"] } }
+    },
+    "source": {
+      "type": "object",
+      "required": ["app", "device"],
+      "properties": {
+        "app": { "type": "string", "minLength": 1 },
+        "device": { "anyOf": [{ "type": "string" }, { "type": "null" }] }
+      }
+    },
+    "catalog_type": {
+      "description": "a quantity or category name from types.json",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,63}$",
+      "not": {
+        "type": "string",
+        "enum": [
+          "workout",
+          "characteristic",
+          "state_of_mind",
+          "activity_summary",
+          "gad7_assessment",
+          "phq9_assessment",
+          "audiogram",
+          "workout_route",
+          "heartbeat_series"
+        ]
+      }
+    },
+    "type_name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,63}$"
+    },
+    "name": {
+      "description": "a category value, workout activity, enum characteristic value or object-kind enum value name from types.json",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "sample_uuid": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9:_-]{1,64}$"
+    },
+    "command_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:-]{1,64}$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "member_id": {
+      "type": "string",
+      "pattern": "^m_(agent|dev)_[1-9][0-9]{0,5}$"
+    },
+    "webhook_device": {
+      "description": "the per-install device id of direct webhook deliveries",
+      "type": "string",
+      "pattern": "^d_[A-Za-z0-9_-]{22}$"
+    },
+    "timestamp": {
+      "description": "RFC 3339 emit form: UTC, uppercase T and Z, no fraction when the milliseconds are 0, otherwise exactly 3 digits",
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.([1-9][0-9]{2}|0[1-9][0-9]|00[1-9]))?Z$"
+    }
+  }
+}

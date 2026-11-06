@@ -1,0 +1,97 @@
+{
+  "format": 1,
+  "generated_by": "syncky-core GenerateProtocolArtifacts",
+  "cases": [
+    {
+      "name": "agent_dev1",
+      "pair_secret": "VMUvVIMrBxccF-1pC7ctRQ",
+      "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+      "device_public_key": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE",
+      "code": "876 711 327",
+      "choices": [
+        "327",
+        "360",
+        "636"
+      ],
+      "proof": "NvwYUGvJIbi53pDQZ_YcaJ_pGfABVP3-vJkhcSiKvgU"
+    },
+    {
+      "name": "agent_dev2_same_secret",
+      "pair_secret": "VMUvVIMrBxccF-1pC7ctRQ",
+      "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+      "device_public_key": "mSU2LGwPMZR69ovQe_jHThxABD-gmADwUntaTzIvmFc",
+      "code": "876 711 327",
+      "choices": [
+        "327",
+        "360",
+        "636"
+      ],
+      "proof": "w_Zyb2nayBNgG0SaAK5PXDHUk7hfQVCMKwEGA_WyTFI"
+    },
+    {
+      "name": "agent_mallory_same_secret",
+      "pair_secret": "VMUvVIMrBxccF-1pC7ctRQ",
+      "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+      "device_public_key": "q2BRwBCZ0ZqG5l5mQ-GjjaKkZQHPDta-Uq667T5y3Ek",
+      "code": "876 711 327",
+      "choices": [
+        "327",
+        "360",
+        "636"
+      ],
+      "proof": "KqJqvw7vGBV2IT4Myyk7RaLkSVC47yYE306MvcHpxPw"
+    },
+    {
+      "name": "extra_leading_zero_group",
+      "pair_secret": "FHW3IcJdg95elzTMWVHoHA",
+      "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+      "device_public_key": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE",
+      "code": "759 930 078",
+      "choices": [
+        "078",
+        "260",
+        "910"
+      ],
+      "proof": "DFTZ1TvM1ViaDx3ih5THX5R_CM302ryv2UQ0OHpmk7w"
+    },
+    {
+      "name": "extra_second_offset_at_or_above_first",
+      "pair_secret": "5uT5Qhi2bKSuMGx6DNjohA",
+      "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+      "device_public_key": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE",
+      "code": "433 331 392",
+      "choices": [
+        "392",
+        "469",
+        "631"
+      ],
+      "proof": "8KKWCVh3Rpq6-9mkdnnbtJUXaKROEt9BwRICcBVVrXI"
+    },
+    {
+      "name": "extra_second_offset_below_first",
+      "pair_secret": "dEUMgjLwFl89qiLPlJj6-A",
+      "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+      "device_public_key": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE",
+      "code": "728 835 870",
+      "choices": [
+        "364",
+        "432",
+        "870"
+      ],
+      "proof": "wL0_V4C2hi5RsW2h6_RIcGoVNMnefXJmPDp8BVlrq14"
+    },
+    {
+      "name": "extra_decoy_wraps_past_999",
+      "pair_secret": "SY1CmONsDDiAcci7Y_CPEg",
+      "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+      "device_public_key": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE",
+      "code": "804 018 943",
+      "choices": [
+        "522",
+        "785",
+        "943"
+      ],
+      "proof": "0V4g8Fz2rWfO1kC66zjIWiAuil3A7D6nIiytgJsV5Qc"
+    }
+  ]
+}

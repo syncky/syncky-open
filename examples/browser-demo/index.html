@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Pair the Syncky app with an agent that runs only in this browser tab: end-to-end encrypted Health data arrives here, nothing is stored.">
+<title>Syncky demo agent</title>
+<link rel="stylesheet" href="demo.css">
+<script type="module" src="demo.js"></script>
+</head>
+<body>
+<header>
+  <p class="brand"><a href="https://syncky.app">Syncky</a> demo agent</p>
+</header>
+<main>
+  <h1>Pair Syncky with an agent in your browser</h1>
+  <p class="notice"><strong>Your browser keeps nothing: close or reload the tab and everything is gone.</strong> The keys, the pairing and the Health data it receives live only in this tab's memory while the demo runs. Relay holds the demo hub for about 1 hour from the start (see below).</p>
+  <p id="unsupported" class="warning" hidden>This browser cannot run the demo. Open it in Safari 17 or later, or in a current Chrome, on a computer.</p>
+
+  <section id="start">
+    <p>Open this page on a computer, start the demo and scan the code with the Syncky app on your iPhone. Tested in Safari 17+ and current Chrome.</p>
+    <button id="start-button" type="button">Start demo</button>
+  </section>
+
+  <section id="live" hidden>
+    <p id="countdown"></p>
+    <dl class="state">
+      <dt>Status</dt><dd id="phase">Not started</dd>
+      <dt>Hub</dt><dd id="hub">none yet</dd>
+      <dt>Hub state</dt><dd id="hub-state" aria-live="polite">not yet available</dd>
+      <dt>iPhone</dt><dd id="phone">none</dd>
+    </dl>
+    <p id="notice" class="notice" aria-live="polite"></p>
+    <p id="error" class="warning" aria-live="polite"></p>
+
+    <div id="pair" hidden>
+      <h2 id="pair-title">Scan with the Syncky app</h2>
+      <div id="qr" class="qr"></div>
+      <p>Pick this code on the iPhone: <strong id="code" class="code"></strong></p>
+      <p id="pair-link" class="small">On the iPhone itself, open this link instead: <a id="link" class="link" href="#">pairing link</a></p>
+    </div>
+
+    <p id="again" hidden><button id="again-button" type="button">New pairing code</button></p>
+
+    <div id="writes" hidden>
+      <h2>Write to Apple Health</h2>
+      <p>Each button sends one encrypted write command. The iPhone applies it on its next sync and answers <em>applied</em> or <em>rejected</em>. The entries are demo values, not measurements; remove them in Syncky with <em>Remove everything it wrote to Health</em> on the agent's screen.</p>
+      <p class="buttons">
+        <button id="write-water" type="button">Add 250 mL water</button>
+        <button id="write-mindful" type="button">Add a 10-minute mindful session</button>
+      </p>
+      <ul id="commands"></ul>
+    </div>
+
+    <h2>Received Health samples (<span id="count">0</span>)</h2>
+    <div class="table">
+      <table>
+        <thead><tr><th scope="col">Type</th><th scope="col">Time</th><th scope="col">Value</th></tr></thead>
+        <tbody id="samples"></tbody>
+      </table>
+    </div>
+
+    <p><button id="end-button" type="button" class="end">End demo</button></p>
+  </section>
+
+  <section>
+    <h2>How the demo works</h2>
+    <p>This page is the whole agent. When you start it, it makes a key pair in the browser and registers a demo hub with the Syncky relay. The iPhone joins that hub with the code and proves it by picking the code you see here.</p>
+    <p>The iPhone seals each Health message for this tab's key and your browser decrypts it; the relay cannot read them. The relay's own notices about the hub (who joined or left, the hub's state) are plain. The relay deletes a sealed message once this tab has fetched and acknowledged it; data from a phone that has not yet picked the code is held unread until it does.</p>
+    <p>What Relay keeps: the demo hub with its sealed messages, the names and public keys of this tab and your iPhone, and the pairing, for about 1 hour from the start (a few seconds more while the iPhone is still joined); then it deletes the hub and the iPhone shows that the agent left. End demo removes this tab's agent at once; if the iPhone is still joined, the hub itself lasts until that hour ends. Like every Relay hub it leaves request logs for up to 7 days, keyed statistics hashes for 90 days and Cloudflare's 30-day recovery copy, as the <a href="https://syncky.app/privacy">privacy policy</a> describes. A reload starts over with new keys.</p>
+    <p>The page loads no analytics and makes no request except to the Syncky relay.</p>
+  </section>
+</main>
+<footer>
+  <p><a href="https://syncky.app">syncky.app</a> · <a href="https://syncky.app/privacy">Privacy</a> · <a href="https://github.com/syncky/syncky-open/tree/main/examples/browser-demo">Source</a></p>
+</footer>
+</body>
+</html>

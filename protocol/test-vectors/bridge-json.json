@@ -1,0 +1,566 @@
+{
+  "format": 1,
+  "generated_by": "syncky-core GenerateProtocolArtifacts",
+  "cases": [
+    {
+      "name": "collected_with_sync_identifier",
+      "kind": "collected",
+      "json": "{\"samples\":[{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E60\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"source\":{\"app\":\"app.syncky.poc\",\"device\":\"iPhone\"},\"sync_identifier\":\"syncky:hub_AAAAAAAAAAAAAAAAAAAAAA:m_agent_1:c_5\"},{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E51\",\"type\":\"steps\",\"value\":813,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"},\"sync_identifier\":null}],\"deleted\":[{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E50\",\"type\":\"steps\",\"sync_identifier\":\"syncky:hub_AAAAAAAAAAAAAAAAAAAAAA:m_agent_1:c_4\"}]}"
+    },
+    {
+      "name": "collected_without_sync_identifier",
+      "kind": "collected",
+      "json": "{\"samples\":[{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E52\",\"type\":\"steps\",\"value\":814,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E53\",\"type\":\"steps\",\"value\":815,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"deleted\":[{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E50\",\"type\":\"steps\"}]}"
+    },
+    {
+      "name": "collected_with_sync_version",
+      "kind": "collected",
+      "json": "{\"samples\":[{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E54\",\"type\":\"steps\",\"value\":816,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"deleted\":[{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E50\",\"type\":\"steps\",\"sync_identifier\":\"syncky:hub_AAAAAAAAAAAAAAAAAAAAAA:m_agent_1:c_5\",\"sync_version\":1},{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E50\",\"type\":\"steps\",\"sync_identifier\":null,\"sync_version\":null}]}"
+    },
+    {
+      "name": "collected_empty",
+      "kind": "collected",
+      "json": "{\"samples\":[],\"deleted\":[]}"
+    },
+    {
+      "name": "collected_every_object_kind",
+      "kind": "collected",
+      "json": "{\"samples\":[{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E80\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"duration_s\":1800,\"energy_kcal\":312.5,\"distance_m\":5012.25,\"location\":\"outdoor\",\"metadata\":{\"average_mets\":9.75,\"elevation_ascended_m\":42.5,\"weather_temperature_degc\":14.2,\"weather_humidity\":0.62,\"brand_name\":\"Brand\",\"time_zone\":\"Europe/Berlin\",\"user_entered\":false},\"events\":[{\"type\":\"pause\",\"start\":\"2026-10-11T08:10:00Z\",\"end\":\"2026-10-11T08:10:00Z\"},{\"type\":\"lap\",\"start\":\"2026-10-11T08:12:00Z\",\"end\":\"2026-10-11T08:12:00Z\",\"metadata\":{\"lap_length_m\":400,\"user_entered\":true}}],\"activities\":[{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E89\",\"activity\":\"running\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":null,\"duration_s\":1800,\"location\":\"outdoor\",\"statistics\":[{\"type\":\"heart_rate\",\"unit\":\"count/min\",\"sum\":null,\"min\":98,\"max\":171,\"avg\":142.5,\"most_recent\":150}]}],\"statistics\":[{\"type\":\"active_energy_burned\",\"unit\":\"kcal\",\"sum\":312.5,\"min\":null,\"max\":null,\"avg\":null,\"most_recent\":null},{\"type\":\"heart_rate\",\"unit\":\"count/min\",\"sum\":null,\"min\":98,\"max\":171,\"avg\":142.5,\"most_recent\":150}],\"source\":{\"app\":\"com.apple.health.7A1B\",\"device\":\"Apple Watch\"},\"sync_identifier\":null,\"local_offset_s\":7200,\"user_entered\":false},{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E81\",\"type\":\"state_of_mind\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"kind\":\"momentary_emotion\",\"valence\":-0.35,\"valence_class\":\"slightly_unpleasant\",\"labels\":[\"anxious\",\"stressed\"],\"associations\":[\"work\"],\"source\":{\"app\":\"com.apple.Mindfulness\",\"device\":null},\"sync_identifier\":\"syncky:hub_AAAAAAAAAAAAAAAAAAAAAA:m_agent_1:c_11\",\"local_offset_s\":7200,\"user_entered\":true},{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E82\",\"type\":\"gad7_assessment\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"score\":5,\"risk\":\"mild\",\"answers\":[\"several_days\",\"several_days\",\"several_days\",\"several_days\",\"several_days\",\"not_at_all\",\"not_at_all\"],\"source\":{\"app\":\"com.apple.Mindfulness\",\"device\":null},\"sync_identifier\":null,\"local_offset_s\":7200,\"user_entered\":false},{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E83\",\"type\":\"phq9_assessment\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"score\":4,\"risk\":\"none_to_minimal\",\"answers\":[\"several_days\",\"several_days\",\"several_days\",\"several_days\",\"prefer_not_to_answer\",\"prefer_not_to_answer\",\"prefer_not_to_answer\",\"prefer_not_to_answer\",\"prefer_not_to_answer\"],\"source\":{\"app\":\"com.apple.Mindfulness\",\"device\":null},\"sync_identifier\":null,\"local_offset_s\":7200,\"user_entered\":false},{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E84\",\"type\":\"audiogram\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:05:00Z\",\"points\":[{\"frequency_hz\":500,\"tests\":[{\"side\":\"left\",\"conduction\":\"air\",\"masked\":false,\"sensitivity_dbhl\":15,\"clamp_low_dbhl\":null,\"clamp_high_dbhl\":null},{\"side\":\"right\",\"conduction\":\"air\",\"masked\":true,\"sensitivity_dbhl\":20.5,\"clamp_low_dbhl\":-10,\"clamp_high_dbhl\":120}]},{\"frequency_hz\":1000,\"tests\":[]}],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"},\"sync_identifier\":null,\"local_offset_s\":7200,\"user_entered\":true},{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E85\",\"type\":\"workout_route\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"workout_uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E80\",\"count\":2,\"points\":[[0,52.520008,13.404954,34.5,4.2,3.1,2.75,0.5,181.25,12],[1000,52.520108,13.405054,34.75,null,null,null,null,null,null]],\"source\":{\"app\":\"com.apple.health.7A1B\",\"device\":\"Apple Watch\"},\"sync_identifier\":null,\"local_offset_s\":7200,\"user_entered\":false},{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E86\",\"type\":\"heartbeat_series\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:01:00Z\",\"count\":3,\"beats\":[[0,0],[812,0],[1650,1]],\"source\":{\"app\":\"com.apple.health.7A1B\",\"device\":\"Apple Watch\"},\"sync_identifier\":null,\"local_offset_s\":7200,\"user_entered\":false},{\"uuid\":\"activity_summary:2026-10-11\",\"type\":\"activity_summary\",\"date\":\"2026-10-11\",\"move_mode\":\"active_energy\",\"active_energy_kcal\":412.5,\"active_energy_goal_kcal\":600,\"move_time_min\":0,\"move_time_goal_min\":30,\"exercise_time_min\":24,\"exercise_time_goal_min\":null,\"stand_hours\":9,\"stand_hours_goal\":12,\"paused\":false,\"sync_identifier\":null}],\"deleted\":[{\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E87\",\"type\":\"state_of_mind\",\"sync_identifier\":null}]}"
+    },
+    {
+      "name": "pair_result",
+      "kind": "pair_result",
+      "json": "{\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\"},\"fingerprint\":\"0527 9677 0460 5550\"}"
+    },
+    {
+      "name": "pair_result_code_check",
+      "kind": "pair_result",
+      "json": "{\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\"},\"fingerprint\":\"0527 9677 0460 5550\",\"code_check\":{\"shown\":\"523 963\",\"choices\":[\"045\",\"426\",\"780\"]}}"
+    },
+    {
+      "name": "status_unpaired",
+      "kind": "status",
+      "json": "{\"paired\":false,\"cursor\":0,\"pending_acks\":0,\"pending_apply\":0}"
+    },
+    {
+      "name": "status_unpaired_orphan_secrets",
+      "kind": "status",
+      "json": "{\"paired\":false,\"cursor\":0,\"pending_acks\":0,\"pending_apply\":0,\"storage_issue\":\"orphan_secrets\"}"
+    },
+    {
+      "name": "status_paired",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"}},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":42,\"pending_acks\":0,\"pending_apply\":1}"
+    },
+    {
+      "name": "status_unpairing",
+      "kind": "status",
+      "json": "{\"paired\":false,\"cursor\":0,\"pending_acks\":0,\"pending_apply\":0,\"unpairing\":{\"reason\":\"delete_relay_data\",\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"pairing_generation\":\"XBi3bl9peX594r9NptTdpBCtAuyeFOcJdAteTMeuXKs\",\"agent_member_id\":\"m_agent_1\",\"agent_name\":\"Home Agent\",\"relay_confirmed\":false}}"
+    },
+    {
+      "name": "status_unpairing_confirmed",
+      "kind": "status",
+      "json": "{\"paired\":false,\"cursor\":0,\"pending_acks\":0,\"pending_apply\":0,\"unpairing\":{\"reason\":\"delete_relay_data\",\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"pairing_generation\":\"XBi3bl9peX594r9NptTdpBCtAuyeFOcJdAteTMeuXKs\",\"agent_member_id\":\"m_agent_1\",\"agent_name\":\"Home Agent\",\"relay_confirmed\":true}}"
+    },
+    {
+      "name": "status_unpairing_blocked",
+      "kind": "status",
+      "json": "{\"paired\":false,\"cursor\":0,\"pending_acks\":0,\"pending_apply\":0,\"unpairing\":{\"reason\":\"delete_relay_data\",\"relay_confirmed\":false,\"code\":\"no_token\"}}"
+    },
+    {
+      "name": "status_agent_revoked",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":true,\"scope\":{\"read\":\"all\",\"write\":\"all\"}},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":57,\"pending_acks\":2,\"pending_apply\":0}"
+    },
+    {
+      "name": "status_scope_selected",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":[\"dietary_water\",\"steps\"],\"write\":[\"dietary_water\"]},\"last_upload_at\":\"2026-10-11T08:30:00Z\"},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":64,\"pending_acks\":0,\"pending_apply\":0}"
+    },
+    {
+      "name": "status_consent",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"consent_at\":\"2026-10-11T07:57:30.123Z\",\"consent_version\":\"1\",\"consent_locale\":\"en\"},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":0,\"pending_acks\":0,\"pending_apply\":0}"
+    },
+    {
+      "name": "status_scope_none",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"none\",\"write\":\"none\"}},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":65,\"pending_acks\":0,\"pending_apply\":0}"
+    },
+    {
+      "name": "status_hub_suspended_with_messages",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"last_upload_at\":\"2026-10-11T08:30:00Z\",\"confirmed_at\":\"2026-10-11T07:58:00Z\",\"version\":\"0.14.0\",\"paused\":true},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":71,\"pending_acks\":0,\"pending_apply\":1,\"hub_state\":{\"state\":\"suspended\",\"reason\":\"subscription_expired\",\"expires_at\":\"2026-10-11T00:00:00Z\",\"at\":\"2026-10-11T00:00:05Z\"},\"system_messages\":[{\"direction\":\"out\",\"type\":\"paused\",\"reason\":\"user_paused\",\"at\":\"2026-10-11T08:40:00Z\"},{\"direction\":\"in\",\"type\":\"resync_request\",\"at\":\"2026-10-11T08:35:00Z\"},{\"direction\":\"in\",\"type\":\"agent_info\",\"at\":\"2026-10-11T07:58:01Z\"},{\"direction\":\"in\",\"type\":\"confirmed\",\"at\":\"2026-10-11T07:58:00Z\"}],\"resync_from\":\"2026-10-04T08:35:00Z\"}"
+    },
+    {
+      "name": "status_code_check",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"}},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":3,\"pending_acks\":0,\"pending_apply\":0,\"code_check\":{\"shown\":\"523 963\",\"choices\":[\"045\",\"426\",\"780\"],\"failed\":false}}"
+    },
+    {
+      "name": "status_code_check_failed",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"}},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":3,\"pending_acks\":0,\"pending_apply\":0,\"code_check\":{\"shown\":\"523 963\",\"choices\":[\"045\",\"426\",\"780\"],\"failed\":true}}"
+    },
+    {
+      "name": "status_pair_proof_pending",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"}},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":3,\"pending_acks\":0,\"pending_apply\":0,\"pair_proof_pending\":true}"
+    },
+    {
+      "name": "status_relay_untrusted",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"}},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":3,\"pending_acks\":0,\"pending_apply\":0,\"relay_untrusted\":true}"
+    },
+    {
+      "name": "status_agent_not_collecting_with_expired_uploads",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"last_upload_at\":\"2026-10-14T08:30:00Z\",\"confirmed_at\":\"2026-10-11T07:58:00Z\",\"undelivered_count\":41,\"undelivered_since\":\"2026-10-11T08:30:00Z\",\"undelivered_as_of\":\"2026-10-14T08:31:00Z\"},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":90,\"pending_acks\":0,\"pending_apply\":0,\"expired_uploads\":{\"count\":3,\"last_at\":\"2026-10-18T08:31:00Z\"}}"
+    },
+    {
+      "name": "status_agent_took_everything",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"last_upload_at\":\"2026-10-14T08:30:00Z\",\"confirmed_at\":\"2026-10-11T07:58:00Z\",\"undelivered_count\":0,\"undelivered_as_of\":\"2026-10-14T08:31:00Z\"},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":91,\"pending_acks\":0,\"pending_apply\":0}"
+    },
+    {
+      "name": "status_agent_pending_no_ack",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"confirmed_at\":\"2026-10-28T13:11:00Z\",\"undelivered_count\":215,\"undelivered_since\":\"2026-10-28T19:28:00Z\",\"undelivered_as_of\":\"2026-10-28T19:37:00Z\",\"joined_at\":\"2026-10-28T13:11:00Z\",\"delivery_mode\":\"poll\",\"last_poll_at\":\"2026-10-28T19:32:00Z\",\"last_ack_at\":\"2026-10-28T17:00:00Z\",\"ack_wait_since\":\"2026-10-28T17:00:00Z\",\"live_waiting_count\":215,\"poll_interval_s\":1800,\"activity_as_of\":\"2026-10-28T19:37:00Z\"},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":0,\"pending_acks\":0,\"pending_apply\":0}"
+    },
+    {
+      "name": "status_agent_idle_stale",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"confirmed_at\":\"2026-10-28T13:11:00Z\",\"undelivered_count\":0,\"undelivered_as_of\":\"2026-10-28T19:37:00Z\",\"joined_at\":\"2026-10-28T13:11:00Z\",\"delivery_mode\":\"poll\",\"live_waiting_count\":0,\"poll_interval_s\":1800,\"activity_as_of\":\"2026-10-28T19:37:00Z\"},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":0,\"pending_acks\":0,\"pending_apply\":0}"
+    },
+    {
+      "name": "status_agent_recovered",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"confirmed_at\":\"2026-10-28T13:11:00Z\",\"undelivered_count\":0,\"undelivered_as_of\":\"2026-10-28T19:37:00Z\",\"joined_at\":\"2026-10-28T13:11:00Z\",\"delivery_mode\":\"poll\",\"last_poll_at\":\"2026-10-28T19:37:00Z\",\"last_ack_at\":\"2026-10-28T19:37:00Z\",\"live_waiting_count\":0,\"poll_interval_s\":1800,\"activity_as_of\":\"2026-10-28T19:37:00Z\"},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":0,\"pending_acks\":0,\"pending_apply\":0}"
+    },
+    {
+      "name": "status_agent_webhook_delivered",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"confirmed_at\":\"2026-10-28T13:11:00Z\",\"undelivered_count\":215,\"undelivered_since\":\"2026-10-28T19:28:00Z\",\"undelivered_as_of\":\"2026-10-28T19:37:00Z\",\"joined_at\":\"2026-10-28T13:11:00Z\",\"delivery_mode\":\"webhook\",\"last_webhook_at\":\"2026-10-28T19:32:00Z\",\"live_waiting_count\":0,\"poll_interval_s\":1800,\"activity_as_of\":\"2026-10-28T19:37:00Z\"},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":0,\"pending_acks\":0,\"pending_apply\":0}"
+    },
+    {
+      "name": "status_agent_webhook_mixed",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"confirmed_at\":\"2026-10-28T13:11:00Z\",\"undelivered_count\":215,\"undelivered_since\":\"2026-10-28T19:28:00Z\",\"undelivered_as_of\":\"2026-10-28T19:37:00Z\",\"joined_at\":\"2026-10-28T13:11:00Z\",\"delivery_mode\":\"webhook\",\"last_webhook_at\":\"2026-10-28T19:32:00Z\",\"ack_wait_since\":\"2026-10-28T19:32:00Z\",\"live_waiting_count\":1,\"poll_interval_s\":1800,\"activity_as_of\":\"2026-10-28T19:37:00Z\"},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":0,\"pending_acks\":0,\"pending_apply\":0}"
+    },
+    {
+      "name": "status_agent_poll_mode_started",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"confirmed_at\":\"2026-10-28T13:11:00Z\",\"undelivered_count\":215,\"undelivered_since\":\"2026-10-28T19:28:00Z\",\"undelivered_as_of\":\"2026-10-28T19:37:00Z\",\"joined_at\":\"2026-10-28T13:11:00Z\",\"delivery_mode\":\"poll\",\"poll_mode_since\":\"2026-10-28T19:37:00Z\",\"last_ack_at\":\"2026-10-28T17:00:00Z\",\"ack_wait_since\":\"2026-10-28T19:37:00Z\",\"live_waiting_count\":215,\"poll_interval_s\":1800,\"activity_as_of\":\"2026-10-28T19:37:00Z\"},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":0,\"pending_acks\":0,\"pending_apply\":0}"
+    },
+    {
+      "name": "status_agent_activity_legacy",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"confirmed_at\":\"2026-10-28T13:11:00Z\",\"undelivered_count\":215,\"undelivered_since\":\"2026-10-28T19:28:00Z\",\"undelivered_as_of\":\"2026-10-28T19:37:00Z\",\"joined_at\":\"2026-10-28T13:11:00Z\",\"last_poll_at\":\"2026-10-28T19:32:00Z\",\"last_ack_at\":\"2026-10-28T17:00:00Z\",\"ack_wait_since\":\"2026-10-28T17:00:00Z\",\"poll_interval_s\":1800,\"activity_as_of\":\"2026-10-28T19:37:00Z\"},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":0,\"pending_acks\":0,\"pending_apply\":0}"
+    },
+    {
+      "name": "status_agent_relay_e11_no_ack_reopened",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_CUPyIS7f22uqVyvgqJ9Oew\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.fake.test\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Kitchen Mac\",\"public_key\":\"BoPeUkM7YCxzOS_CdCkYeJRskvBF8snDszvyFnlAB8o\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"confirmed_at\":\"2026-10-28T13:11:00Z\",\"undelivered_count\":215,\"undelivered_since\":\"2026-10-28T19:28:00Z\",\"undelivered_as_of\":\"2026-10-28T19:37:00Z\",\"consent_at\":\"2026-10-28T13:11:00Z\",\"consent_version\":\"1\",\"consent_locale\":\"en\",\"joined_at\":\"2026-10-28T13:11:00Z\",\"delivery_mode\":\"poll\",\"last_poll_at\":\"2026-10-28T19:32:00Z\",\"last_ack_at\":\"2026-10-28T17:00:00Z\",\"ack_wait_since\":\"2026-10-28T17:00:00Z\",\"live_waiting_count\":215,\"poll_interval_s\":1800,\"activity_as_of\":\"2026-10-28T19:37:00Z\",\"queue\":{\"sender_rows\":215,\"max_sender_rows\":10000,\"hub_bytes\":77615,\"max_hub_bytes\":67108864,\"as_of\":\"2026-10-28T19:37:00Z\",\"source\":\"queue\"}},\"fingerprint\":\"7984 6680 8284 5933\",\"cursor\":2,\"pending_acks\":0,\"pending_apply\":0,\"system_messages\":[{\"direction\":\"in\",\"type\":\"confirmed\",\"at\":\"2026-10-28T13:11:00Z\"}],\"pairing_generation\":\"M7p0nsaTrdBkuDNMWrMQQhYFg-0tq-boLitbl95L5Gw\"}"
+    },
+    {
+      "name": "unpair_result_revoked",
+      "kind": "unpair_result",
+      "json": "{\"relay\":\"revoked\",\"member_id\":\"m_dev_1\",\"agent_told\":true}"
+    },
+    {
+      "name": "unpair_result_already_revoked",
+      "kind": "unpair_result",
+      "json": "{\"relay\":\"already_revoked\",\"member_id\":\"m_dev_1\",\"agent_told\":false}"
+    },
+    {
+      "name": "unpair_result_not_told",
+      "kind": "unpair_result",
+      "json": "{\"relay\":\"not_told\",\"code\":\"network\",\"agent_told\":false}"
+    },
+    {
+      "name": "sync_outcome_empty",
+      "kind": "sync_outcome",
+      "json": "{\"uploaded\":{\"samples\":0,\"deleted\":0,\"envelopes\":0},\"echo_filtered\":0,\"scope_filtered\":0,\"deleted_by_user\":0,\"received\":{\"messages\":0,\"commands\":0},\"to_apply\":[],\"auto_rejected\":[],\"errors\":[],\"journal_id\":\"01a129f9-d000-76e4-a94f-b9ee974bc971\"}"
+    },
+    {
+      "name": "sync_outcome_to_apply",
+      "kind": "sync_outcome",
+      "json": "{\"uploaded\":{\"samples\":10,\"deleted\":1,\"envelopes\":1},\"echo_filtered\":2,\"scope_filtered\":0,\"deleted_by_user\":0,\"received\":{\"messages\":3,\"commands\":3},\"to_apply\":[{\"from\":\"m_agent_1\",\"sync_identifier\":\"syncky:hub_AAAAAAAAAAAAAAAAAAAAAA:m_agent_1:c_5\",\"command_id\":\"c_5\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"},{\"from\":\"m_agent_1\",\"sync_identifier\":\"syncky:hub_AAAAAAAAAAAAAAAAAAAAAA:m_agent_1:c_8\",\"command_id\":\"c_8\",\"version\":1,\"op\":\"write\",\"type\":\"mindful_session\",\"value\":\"not_applicable\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:10:00Z\"},{\"from\":\"m_agent_1\",\"sync_identifier\":\"syncky:hub_AAAAAAAAAAAAAAAAAAAAAA:m_agent_1:c_4\",\"command_id\":\"c_4\",\"version\":2,\"op\":\"delete\",\"type\":\"dietary_water\"}],\"auto_rejected\":[],\"errors\":[],\"journal_id\":\"01a129f9-d000-75dd-b3dd-58fb39cc99d8\"}"
+    },
+    {
+      "name": "sync_outcome_auto_rejected",
+      "kind": "sync_outcome",
+      "json": "{\"uploaded\":{\"samples\":0,\"deleted\":0,\"envelopes\":0},\"echo_filtered\":0,\"scope_filtered\":0,\"deleted_by_user\":0,\"received\":{\"messages\":1,\"commands\":3},\"to_apply\":[],\"auto_rejected\":[{\"from\":\"m_agent_1\",\"command_id\":\"c_6\",\"version\":1,\"status\":\"rejected\",\"reason\":\"type_not_allowed\",\"type\":\"blood_glucose\",\"op\":\"write\"},{\"from\":\"m_agent_1\",\"command_id\":\"c_9\",\"version\":3,\"status\":\"rejected\",\"reason\":\"value_out_of_range\",\"type\":\"dietary_water\",\"op\":\"write\"},{\"from\":\"m_agent_1\",\"command_id\":\"c_10\",\"version\":1,\"status\":\"rejected\",\"reason\":\"invalid\"}],\"errors\":[],\"journal_id\":\"01a129f9-d000-7cfd-a2c8-c25a410a1aa6\"}"
+    },
+    {
+      "name": "sync_outcome_errors",
+      "kind": "sync_outcome",
+      "json": "{\"uploaded\":{\"samples\":4,\"deleted\":0,\"envelopes\":1},\"echo_filtered\":0,\"scope_filtered\":0,\"deleted_by_user\":0,\"received\":{\"messages\":2,\"commands\":0},\"to_apply\":[],\"auto_rejected\":[],\"errors\":[{\"code\":\"hpke_open_failed\",\"message\":\"inbound message dropped\",\"msg_id\":\"01a129f9-d000-76ca-ae0e-990257caa4e7\",\"seq\":17},{\"code\":\"invalid_sample\",\"message\":\"unknown_type\",\"uuid\":\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E61\"},{\"code\":\"fetch_capped\",\"message\":\"fetch page cap reached\"}],\"journal_id\":\"01a129f9-d000-7466-bb95-f8e519ad5d5e\"}"
+    },
+    {
+      "name": "sync_outcome_full",
+      "kind": "sync_outcome",
+      "json": "{\"uploaded\":{\"samples\":10,\"deleted\":1,\"envelopes\":1},\"echo_filtered\":2,\"scope_filtered\":0,\"deleted_by_user\":1,\"received\":{\"messages\":3,\"commands\":2},\"to_apply\":[{\"from\":\"m_agent_1\",\"sync_identifier\":\"syncky:hub_AAAAAAAAAAAAAAAAAAAAAA:m_agent_1:c_5\",\"command_id\":\"c_5\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"}],\"auto_rejected\":[{\"from\":\"m_agent_1\",\"command_id\":\"c_6\",\"version\":1,\"status\":\"rejected\",\"reason\":\"type_not_allowed\",\"type\":\"blood_glucose\",\"op\":\"write\"}],\"errors\":[{\"code\":\"hpke_open_failed\",\"message\":\"inbound message dropped\",\"msg_id\":\"01a129f9-d000-76ca-ae0e-990257caa4e7\",\"seq\":17}],\"journal_id\":\"01a129f9-d000-7c1c-bd63-3b765e9ea90d\"}"
+    },
+    {
+      "name": "sync_outcome_scope_filtered",
+      "kind": "sync_outcome",
+      "json": "{\"uploaded\":{\"samples\":6,\"deleted\":0,\"envelopes\":1},\"echo_filtered\":0,\"scope_filtered\":4,\"deleted_by_user\":0,\"received\":{\"messages\":0,\"commands\":0},\"to_apply\":[],\"auto_rejected\":[],\"errors\":[],\"journal_id\":\"01a129f9-d000-7f42-ba2c-1bb7687a57d6\"}"
+    },
+    {
+      "name": "sync_outcome_deferred",
+      "kind": "sync_outcome",
+      "json": "{\"uploaded\":{\"samples\":0,\"deleted\":0,\"envelopes\":0},\"echo_filtered\":0,\"scope_filtered\":0,\"deleted_by_user\":0,\"received\":{\"messages\":2,\"commands\":1},\"to_apply\":[],\"auto_rejected\":[],\"errors\":[{\"code\":\"hub_unpaid\",\"message\":\"upload deferred until the hub plan is active\"}],\"journal_id\":\"01a129f9-d000-774b-81d9-ce73bd3a3a1b\",\"deferred\":\"hub_unpaid\"}"
+    },
+    {
+      "name": "sync_outcome_agent_paused",
+      "kind": "sync_outcome",
+      "json": "{\"uploaded\":{\"samples\":0,\"deleted\":0,\"envelopes\":0},\"echo_filtered\":0,\"scope_filtered\":0,\"deleted_by_user\":0,\"received\":{\"messages\":1,\"commands\":1},\"to_apply\":[],\"auto_rejected\":[],\"errors\":[],\"journal_id\":\"01a129f9-d000-7d2b-b5a9-fe9a8c94ee62\",\"deferred\":\"agent_paused\"}"
+    },
+    {
+      "name": "sync_outcome_resync_requested",
+      "kind": "sync_outcome",
+      "json": "{\"uploaded\":{\"samples\":0,\"deleted\":0,\"envelopes\":0},\"echo_filtered\":0,\"scope_filtered\":0,\"deleted_by_user\":0,\"received\":{\"messages\":1,\"commands\":0},\"to_apply\":[],\"auto_rejected\":[],\"errors\":[],\"journal_id\":\"01a129f9-d000-7a59-894e-b83a11a0a2bc\",\"resync_from\":\"2026-10-04T08:00:00Z\"}"
+    },
+    {
+      "name": "results_applied_and_rejected",
+      "kind": "results",
+      "json": "{\"results\":[{\"from\":\"m_agent_1\",\"command_id\":\"c_5\",\"version\":1,\"status\":\"applied\"},{\"from\":\"m_agent_1\",\"command_id\":\"c_7\",\"version\":2,\"status\":\"rejected\",\"reason\":\"healthkit_denied\"},{\"from\":\"m_agent_1\",\"command_id\":\"c_8\",\"version\":1,\"status\":\"rejected\",\"reason\":\"invalid\"}]}"
+    },
+    {
+      "name": "results_empty",
+      "kind": "results",
+      "json": "{\"results\":[]}"
+    },
+    {
+      "name": "journal_empty",
+      "kind": "journal",
+      "json": "{\"entries\":[]}"
+    },
+    {
+      "name": "journal_entries",
+      "kind": "journal",
+      "json": "{\"entries\":[{\"id\":\"01a129f9-eb58-7829-a29e-63529230b62c\",\"at\":\"2026-10-11T08:00:07Z\",\"kind\":\"system\",\"summary\":\"system member_revoked\",\"code\":\"member_revoked\",\"seq\":18},{\"id\":\"01a129f9-e770-7464-8082-fb8f787aa782\",\"at\":\"2026-10-11T08:00:06Z\",\"kind\":\"error\",\"summary\":\"error hpke_open_failed\",\"code\":\"hpke_open_failed\",\"msg_id\":\"01a129f9-e770-77d7-ad6b-48796060e33d\",\"seq\":17},{\"id\":\"01a129f9-e388-760f-b378-4ab4642637d4\",\"at\":\"2026-10-11T08:00:05Z\",\"kind\":\"sync\",\"summary\":\"sync uploaded_samples=3 uploaded_deleted=1 envelopes=1\",\"counts\":{\"uploaded_samples\":3,\"uploaded_deleted\":1,\"envelopes\":1}},{\"id\":\"01a129f9-d000-7d2c-ad59-c4b3cd3f67ab\",\"at\":\"2026-10-11T08:00:00Z\",\"kind\":\"pair\",\"summary\":\"pair\"}]}"
+    },
+    {
+      "name": "journal_limited",
+      "kind": "journal",
+      "json": "{\"entries\":[{\"id\":\"01a129f9-eb58-7829-a29e-63529230b62c\",\"at\":\"2026-10-11T08:00:07Z\",\"kind\":\"system\",\"summary\":\"system member_revoked\",\"code\":\"member_revoked\",\"seq\":18},{\"id\":\"01a129f9-e770-7464-8082-fb8f787aa782\",\"at\":\"2026-10-11T08:00:06Z\",\"kind\":\"error\",\"summary\":\"error hpke_open_failed\",\"code\":\"hpke_open_failed\",\"msg_id\":\"01a129f9-e770-77d7-ad6b-48796060e33d\",\"seq\":17}]}"
+    },
+    {
+      "name": "hub_state_unpaid_deleting",
+      "kind": "hub_state",
+      "json": "{\"state\":\"unpaid\",\"deleting_at\":\"2026-10-18T08:00:00Z\",\"at\":\"2026-10-11T08:00:00Z\"}"
+    },
+    {
+      "name": "hub_state_active",
+      "kind": "hub_state",
+      "json": "{\"state\":\"active\",\"expires_at\":\"2026-11-11T08:00:00Z\",\"at\":\"2026-10-11T08:05:00Z\"}"
+    },
+    {
+      "name": "hub_state_suspended",
+      "kind": "hub_state",
+      "json": "{\"state\":\"suspended\",\"reason\":\"subscription_expired\",\"expires_at\":\"2026-11-11T08:00:00Z\",\"at\":\"2026-11-11T08:00:01Z\"}"
+    },
+    {
+      "name": "notice_result_told",
+      "kind": "notice_result",
+      "json": "{\"agent_told\":true}"
+    },
+    {
+      "name": "notice_result_not_told",
+      "kind": "notice_result",
+      "json": "{\"agent_told\":false,\"code\":\"network\"}"
+    },
+    {
+      "name": "push_registration_relay_reminds",
+      "kind": "push_registration",
+      "json": "{\"no_sync\":true}"
+    },
+    {
+      "name": "push_registration_local_reminder",
+      "kind": "push_registration",
+      "json": "{\"no_sync\":false}"
+    },
+    {
+      "name": "pair_code_result_sent",
+      "kind": "pair_code_result",
+      "json": "{\"result\":\"sent\"}"
+    },
+    {
+      "name": "pair_code_result_queued",
+      "kind": "pair_code_result",
+      "json": "{\"result\":\"queued\"}"
+    },
+    {
+      "name": "pair_code_result_wrong_code_unpaired",
+      "kind": "pair_code_result",
+      "json": "{\"result\":\"wrong_code\",\"unpaired\":true}"
+    },
+    {
+      "name": "pair_code_result_wrong_code_kept",
+      "kind": "pair_code_result",
+      "json": "{\"result\":\"wrong_code\",\"unpaired\":false}"
+    },
+    {
+      "name": "core_tools_fingerprint_ok",
+      "kind": "core_tools_fingerprint",
+      "json": "{\"ok\":true,\"fingerprint\":\"0527 9677 0460 5550\"}"
+    },
+    {
+      "name": "core_tools_fingerprint_invalid_key",
+      "kind": "core_tools_fingerprint",
+      "json": "{\"ok\":false,\"error\":\"invalid_key\"}"
+    },
+    {
+      "name": "core_tools_parse_pair_uri_ok",
+      "kind": "core_tools_parse_pair_uri",
+      "json": "{\"ok\":true,\"relay_base\":\"https://relay.syncky.app\",\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"pairing_token\":\"pt_oDET0Gk2XImspN6LjV0XQvmYRoHSoRWHjyTM2F0ex_E\",\"agent_public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"agent_name\":\"Home Agent\"}"
+    },
+    {
+      "name": "core_tools_parse_pair_uri_invalid_uri",
+      "kind": "core_tools_parse_pair_uri",
+      "json": "{\"ok\":false,\"error\":\"invalid_uri\",\"param\":\"h\"}"
+    },
+    {
+      "name": "core_tools_parse_pair_uri_unsupported_version",
+      "kind": "core_tools_parse_pair_uri",
+      "json": "{\"ok\":false,\"error\":\"unsupported_version\"}"
+    },
+    {
+      "name": "core_tools_parse_pair_uri_v2_ok",
+      "kind": "core_tools_parse_pair_uri",
+      "json": "{\"ok\":true,\"relay_base\":\"https://relay.syncky.app\",\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"pairing_token\":\"pt_oDET0Gk2XImspN6LjV0XQvmYRoHSoRWHjyTM2F0ex_E\",\"agent_public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"agent_name\":\"Home Agent\",\"pair_secret\":\"rP6IwmdM7FLANW24ciOsmw\"}"
+    },
+    {
+      "name": "core_tools_pair_code_ok",
+      "kind": "core_tools_pair_code",
+      "json": "{\"ok\":true,\"code\":\"523 963 780\",\"shown\":\"523 963\",\"choices\":[\"045\",\"426\",\"780\"],\"proof\":\"JGLVdXE8sNZMpS-JjLkRJzkxR_tGEXnb4WY9lUKm6Gk\"}"
+    },
+    {
+      "name": "core_tools_pair_code_invalid_key",
+      "kind": "core_tools_pair_code",
+      "json": "{\"ok\":false,\"error\":\"invalid_key\"}"
+    },
+    {
+      "name": "core_tools_parse_pair_uri_insecure_relay",
+      "kind": "core_tools_parse_pair_uri",
+      "json": "{\"ok\":false,\"error\":\"insecure_relay\"}"
+    },
+    {
+      "name": "core_tools_seal_envelope_ok",
+      "kind": "core_tools_seal_envelope",
+      "json": "{\"v\":1,\"msg_id\":\"01a129f9-eb58-77dd-a3d0-ae292a8ed941\",\"kind\":\"data\",\"from\":\"m_agent_1\",\"created_at\":\"2026-10-11T08:00:07Z\",\"recipients\":[{\"member_id\":\"m_dev_1\",\"enc\":\"9S_qG-M3JFANAcn04nI7jmMknIsdNe2Qx36YsShbbvg\",\"wrapped_key\":\"IYr70waX2xYb4DiLv-K82-B9P4Q85vdXsBnVcuMBE-EKmCU8XEw2egBJLAxI9tkL\"}],\"nonce\":\"d_7-iCvkxuSpT7nu\",\"ciphertext\":\"h0rcWP8y6qL8wy5NfU9MVOkwAn8iiX1C4MLeaTrFxyV1Kk2iZkpCHg9OU-kW9C7MigILtk7bpU8Fz-_krSUiymNnumgSkvUmp_VvH4mYhBC-m2c4P1se2oNc2btkJnfFMXG6XYJrrXXYRmU2sR04e3BcmW4L9xUgqfkteFUvT55PDMGwA03MQ2KsMRIMYQUBWKZmyqZq396JO-KnRJQtmdjvwndIRvgBLim4K4amolsmMVaTg__wA5y96fLOSLk9dqX6arSZNA41JWKNq5Ov\"}"
+    },
+    {
+      "name": "core_tools_open_envelope_ok",
+      "kind": "core_tools_open_envelope",
+      "json": "{\"ok\":true,\"plaintext\":\"{\\\"v\\\":1,\\\"type\\\":\\\"commands\\\",\\\"commands\\\":[{\\\"command_id\\\":\\\"c_5\\\",\\\"version\\\":1,\\\"op\\\":\\\"write\\\",\\\"type\\\":\\\"dietary_water\\\",\\\"value\\\":0.25,\\\"unit\\\":\\\"L\\\",\\\"start\\\":\\\"2026-10-11T08:00:00Z\\\",\\\"end\\\":\\\"2026-10-11T08:00:00Z\\\"}]}\"}"
+    },
+    {
+      "name": "core_tools_open_envelope_aead_failed",
+      "kind": "core_tools_open_envelope",
+      "json": "{\"ok\":false,\"error\":\"aead_failed\"}"
+    },
+    {
+      "name": "core_tools_open_envelope_not_a_recipient",
+      "kind": "core_tools_open_envelope",
+      "json": "{\"ok\":false,\"error\":\"not_a_recipient\"}"
+    },
+    {
+      "name": "core_tools_evaluate_command_converted",
+      "kind": "core_tools_evaluate_command",
+      "json": "{\"ok\":true,\"apply\":{\"from\":\"m_agent_1\",\"sync_identifier\":\"syncky:hub_AAAAAAAAAAAAAAAAAAAAAA:m_agent_1:c_9\",\"command_id\":\"c_9\",\"version\":2,\"op\":\"write\",\"type\":\"dietary_cholesterol\",\"value\":0.3,\"unit\":\"g\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\"}}"
+    },
+    {
+      "name": "core_tools_evaluate_command_category",
+      "kind": "core_tools_evaluate_command",
+      "json": "{\"ok\":true,\"apply\":{\"from\":\"m_agent_1\",\"sync_identifier\":\"syncky:hub_AAAAAAAAAAAAAAAAAAAAAA:m_agent_1:c_9\",\"command_id\":\"c_9\",\"version\":2,\"op\":\"write\",\"type\":\"sleep_analysis\",\"value\":\"asleep_core\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\"}}"
+    },
+    {
+      "name": "core_tools_evaluate_command_rejected",
+      "kind": "core_tools_evaluate_command",
+      "json": "{\"ok\":false,\"error\":\"type_not_allowed\"}"
+    },
+    {
+      "name": "core_tools_validate_envelope_shape_created",
+      "kind": "core_tools_validate_envelope_shape",
+      "json": "{\"status\":201}"
+    },
+    {
+      "name": "core_tools_validate_envelope_shape_invalid_envelope",
+      "kind": "core_tools_validate_envelope_shape",
+      "json": "{\"status\":400,\"error\":\"invalid_envelope\",\"field\":\"/from\"}"
+    },
+    {
+      "name": "core_tools_validate_envelope_shape_unknown_recipient",
+      "kind": "core_tools_validate_envelope_shape",
+      "json": "{\"status\":404,\"error\":\"unknown_recipient\",\"member_ids\":[\"m_dev_1\"]}"
+    },
+    {
+      "name": "webhook_url_policy_loopback",
+      "kind": "webhook_url_policy",
+      "json": "{\"host_kind\":\"loopback\",\"requires_http_confirmation\":false,\"requires_local_network_probe\":false}"
+    },
+    {
+      "name": "webhook_url_policy_overlay",
+      "kind": "webhook_url_policy",
+      "json": "{\"host_kind\":\"overlay\",\"requires_http_confirmation\":false,\"requires_local_network_probe\":false}"
+    },
+    {
+      "name": "webhook_url_policy_lan",
+      "kind": "webhook_url_policy",
+      "json": "{\"host_kind\":\"lan\",\"requires_http_confirmation\":false,\"requires_local_network_probe\":true}"
+    },
+    {
+      "name": "webhook_url_policy_public_http",
+      "kind": "webhook_url_policy",
+      "json": "{\"host_kind\":\"public\",\"requires_http_confirmation\":true,\"requires_local_network_probe\":false}"
+    },
+    {
+      "name": "webhook_url_policy_public_https",
+      "kind": "webhook_url_policy",
+      "json": "{\"host_kind\":\"public\",\"requires_http_confirmation\":false,\"requires_local_network_probe\":false}"
+    },
+    {
+      "name": "webhook_url_policy_lan_https",
+      "kind": "webhook_url_policy",
+      "json": "{\"host_kind\":\"lan\",\"requires_http_confirmation\":false,\"requires_local_network_probe\":true}"
+    },
+    {
+      "name": "webhook_link_preview_loopback",
+      "kind": "webhook_link_preview",
+      "json": "{\"name\":\"Receiver\",\"url\":\"http://localhost:8799/hook\",\"format\":\"native\",\"policy\":{\"host_kind\":\"loopback\",\"requires_http_confirmation\":false,\"requires_local_network_probe\":false}}"
+    },
+    {
+      "name": "webhook_link_preview_overlay",
+      "kind": "webhook_link_preview",
+      "json": "{\"name\":\"Receiver\",\"url\":\"http://host.tailnet.ts.net/hook\",\"format\":\"hae\",\"policy\":{\"host_kind\":\"overlay\",\"requires_http_confirmation\":false,\"requires_local_network_probe\":false}}"
+    },
+    {
+      "name": "webhook_link_preview_lan",
+      "kind": "webhook_link_preview",
+      "json": "{\"name\":\"Receiver\",\"url\":\"http://192.168.1.1:8123/hook\",\"format\":\"csv\",\"policy\":{\"host_kind\":\"lan\",\"requires_http_confirmation\":false,\"requires_local_network_probe\":true}}"
+    },
+    {
+      "name": "webhook_link_preview_public_http",
+      "kind": "webhook_link_preview",
+      "json": "{\"name\":\"Receiver\",\"url\":\"http://example.org/hook\",\"format\":\"influx\",\"policy\":{\"host_kind\":\"public\",\"requires_http_confirmation\":true,\"requires_local_network_probe\":false}}"
+    },
+    {
+      "name": "webhook_save_result_signing",
+      "kind": "webhook_save_result",
+      "json": "{\"destination\":{\"id\":\"wh_7yonbAB_1VXaQo2XW2JH_A\",\"name\":\"Saved\",\"url\":\"https://example.org/hook\",\"format\":\"native\",\"auth\":{\"kind\":\"none\"},\"signing\":true,\"enabled\":true,\"created_at\":\"2026-10-14T07:00:00Z\",\"send_deletions\":true,\"accept_writes\":false,\"revision\":\"1\",\"has_token\":false,\"has_header_value\":false,\"has_hmac\":true,\"status\":{\"consecutive_failures\":0,\"max_request_bytes\":1000000,\"totals\":{\"requests\":0,\"samples\":0,\"deleted\":0,\"dropped\":0,\"bytes\":0}},\"writes\":{\"pending_apply\":0,\"pending_results\":0,\"results_failures\":0}},\"signing_secret\":\"whsec_XGXZzCKuPm8VSuke8LatT_XRTiREpo6mgBzzdbH5_44\"}"
+    },
+    {
+      "name": "webhook_save_result_existing",
+      "kind": "webhook_save_result",
+      "json": "{\"destination\":{\"id\":\"wh_7yonbAB_1VXaQo2XW2JH_A\",\"name\":\"Saved\",\"url\":\"https://example.org/hook\",\"format\":\"native\",\"auth\":{\"kind\":\"none\"},\"signing\":true,\"enabled\":true,\"created_at\":\"2026-10-14T07:00:00Z\",\"send_deletions\":true,\"accept_writes\":false,\"revision\":\"1\",\"has_token\":false,\"has_header_value\":false,\"has_hmac\":true,\"status\":{\"consecutive_failures\":0,\"max_request_bytes\":1000000,\"totals\":{\"requests\":0,\"samples\":0,\"deleted\":0,\"dropped\":0,\"bytes\":0}},\"writes\":{\"pending_apply\":0,\"pending_results\":0,\"results_failures\":0}},\"signing_secret\":null}"
+    },
+    {
+      "name": "status_upload_paused_initial",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"confirmed_at\":\"2026-10-11T07:58:00Z\",\"queue\":{\"sender_rows\":9000,\"max_sender_rows\":10000,\"hub_bytes\":12000000,\"max_hub_bytes\":67108864,\"as_of\":\"2026-10-30T09:00:00Z\",\"source\":\"queue\"},\"upload_pause\":{\"reason\":\"queue_full\",\"source\":\"queue\",\"at\":\"2026-10-30T09:00:00Z\",\"as_of\":\"2026-10-30T09:00:00Z\",\"next_envelope_bytes\":900}},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":42,\"pending_acks\":0,\"pending_apply\":1,\"pairing_generation\":\"XBi3bl9peX594r9NptTdpBCtAuyeFOcJdAteTMeuXKs\"}"
+    },
+    {
+      "name": "status_upload_paused_steady",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"confirmed_at\":\"2026-10-11T07:58:00Z\",\"initial_sync_completed_at\":\"2026-10-29T09:00:00Z\",\"queue\":{\"sender_rows\":206,\"max_sender_rows\":10000,\"hub_bytes\":16777216,\"max_hub_bytes\":67108864,\"as_of\":\"2026-10-30T09:00:00Z\",\"source\":\"queue\"},\"upload_pause\":{\"reason\":\"queue_full\",\"source\":\"queue\",\"at\":\"2026-10-30T09:00:00Z\",\"as_of\":\"2026-10-30T09:00:00Z\",\"next_envelope_bytes\":900}},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":42,\"pending_acks\":0,\"pending_apply\":1,\"pairing_generation\":\"XBi3bl9peX594r9NptTdpBCtAuyeFOcJdAteTMeuXKs\"}"
+    },
+    {
+      "name": "status_upload_paused_fallback",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"confirmed_at\":\"2026-10-11T07:58:00Z\",\"queue\":{\"sender_rows\":9000,\"max_sender_rows\":10000,\"as_of\":\"2026-10-30T09:00:00Z\",\"source\":\"undelivered\"},\"upload_pause\":{\"reason\":\"queue_full\",\"source\":\"undelivered\",\"at\":\"2026-10-30T09:00:00Z\",\"as_of\":\"2026-10-30T09:00:00Z\",\"next_envelope_bytes\":900}},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":42,\"pending_acks\":0,\"pending_apply\":1,\"pairing_generation\":\"XBi3bl9peX594r9NptTdpBCtAuyeFOcJdAteTMeuXKs\"}"
+    },
+    {
+      "name": "status_initial_sync_eligible",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"confirmed_at\":\"2026-10-11T07:58:00Z\",\"initial_sync_eligible_run\":\"01a129f9-eb58-766c-af47-854bdd960acf\",\"queue\":{\"sender_rows\":0,\"max_sender_rows\":10000,\"hub_bytes\":0,\"max_hub_bytes\":67108864,\"as_of\":\"2026-10-30T09:00:00Z\",\"source\":\"queue\"}},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":42,\"pending_acks\":0,\"pending_apply\":1,\"pairing_generation\":\"XBi3bl9peX594r9NptTdpBCtAuyeFOcJdAteTMeuXKs\"}"
+    },
+    {
+      "name": "status_upload_paused_hard_cap",
+      "kind": "status",
+      "json": "{\"paired\":true,\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"relay\":\"https://relay.syncky.app\",\"agent\":{\"member_id\":\"m_agent_1\",\"name\":\"Home Agent\",\"public_key\":\"nLGVETaQbjyMeecUfvAFmYjGjPbI0bBkIKAe_h4J-yc\",\"revoked\":false,\"scope\":{\"read\":\"all\",\"write\":\"all\"},\"confirmed_at\":\"2026-10-11T07:58:00Z\",\"upload_pause\":{\"reason\":\"queue_full\",\"source\":\"queue_full\",\"at\":\"2026-10-30T09:00:00Z\"}},\"fingerprint\":\"0527 9677 0460 5550\",\"cursor\":42,\"pending_acks\":0,\"pending_apply\":1,\"pairing_generation\":\"XBi3bl9peX594r9NptTdpBCtAuyeFOcJdAteTMeuXKs\"}"
+    },
+    {
+      "name": "collected_history_complete",
+      "kind": "collected",
+      "json": "{\"samples\":[],\"deleted\":[],\"collection_completion\":{\"hub_id\":\"hub_AAAAAAAAAAAAAAAAAAAAAA\",\"member_id\":\"m_dev_1\",\"agent_member_id\":\"m_agent_1\",\"pairing_generation\":\"XBi3bl9peX594r9NptTdpBCtAuyeFOcJdAteTMeuXKs\",\"history_exhausted\":true,\"collection_succeeded\":true}}"
+    },
+    {
+      "name": "sync_outcome_queue_full",
+      "kind": "sync_outcome",
+      "json": "{\"uploaded\":{\"samples\":2,\"deleted\":0,\"envelopes\":1},\"echo_filtered\":0,\"scope_filtered\":0,\"deleted_by_user\":0,\"received\":{\"messages\":1,\"commands\":1},\"to_apply\":[{\"from\":\"m_agent_1\",\"sync_identifier\":\"syncky:hub_AAAAAAAAAAAAAAAAAAAAAA:m_agent_1:c_5\",\"command_id\":\"c_5\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"}],\"auto_rejected\":[],\"errors\":[],\"journal_id\":\"01a129f9-eb58-7e43-8844-5caf2e0361fc\",\"deferred\":\"queue_full\"}"
+    },
+    {
+      "name": "sync_outcome_initial_eligible",
+      "kind": "sync_outcome",
+      "json": "{\"uploaded\":{\"samples\":0,\"deleted\":0,\"envelopes\":0},\"echo_filtered\":0,\"scope_filtered\":0,\"deleted_by_user\":0,\"received\":{\"messages\":0,\"commands\":0},\"to_apply\":[],\"auto_rejected\":[],\"errors\":[],\"journal_id\":\"01a129f9-eb58-766c-af47-854bdd960acf\",\"initial_sync_eligible_run\":\"01a129f9-eb58-766c-af47-854bdd960acf\"}"
+    },
+    {
+      "name": "sync_outcome_checkpoint_paused",
+      "kind": "sync_outcome",
+      "json": "{\"uploaded\":{\"samples\":0,\"deleted\":0,\"envelopes\":0},\"echo_filtered\":0,\"scope_filtered\":0,\"deleted_by_user\":0,\"received\":{\"messages\":0,\"commands\":0},\"to_apply\":[],\"auto_rejected\":[],\"errors\":[],\"journal_id\":\"01a129f9-eb58-766c-af47-854bdd960acf\",\"deferred\":\"queue_full\",\"accepted_parts\":[\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\"]}"
+    },
+    {
+      "name": "collected_checkpoint_resume",
+      "kind": "collected",
+      "json": "{\"samples\":[],\"deleted\":[],\"accepted_parts\":[\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\"]}"
+    },
+    {
+      "name": "collected_checkpoint_probe",
+      "kind": "collected",
+      "json": "{\"samples\":[],\"deleted\":[],\"accepted_parts\":[],\"collection_probe\":true}"
+    },
+    {
+      "name": "core_tools_export_fragment_native_summary_only",
+      "kind": "core_tools_export_fragment",
+      "json": "{\"ok\":true,\"format\":\"native\",\"content_type\":\"application/json\",\"file_extension\":\"json\",\"envelope\":{\"prefix\":\"{\\\"v\\\":1,\\\"type\\\":\\\"sync\\\",\",\"suffix\":\",\\\"deleted\\\":[],\\\"acks\\\":[],\\\"more\\\":false}\",\"separator\":\",\",\"required\":true,\"children\":[{\"prefix\":\"\\\"samples\\\":[\",\"suffix\":\"]\",\"separator\":\",\",\"stream\":\"samples\",\"required\":true,\"children\":[]},{\"prefix\":\"\\\"summaries\\\":[\",\"suffix\":\"]\",\"separator\":\",\",\"stream\":\"summaries\",\"required\":false,\"children\":[]}]},\"streams\":{\"samples\":[],\"summaries\":[\"{\\\"type\\\":\\\"steps\\\",\\\"unit\\\":\\\"count\\\",\\\"start\\\":\\\"2024-01-01T00:00:00Z\\\",\\\"end\\\":\\\"2024-01-02T00:00:00Z\\\",\\\"stat\\\":\\\"sum\\\",\\\"value\\\":123}\"]},\"samples\":0,\"summaries\":1,\"dropped\":0,\"invalid\":0,\"skipped_kinds\":0,\"expected_format_omissions\":0}"
+    },
+    {
+      "name": "core_tools_export_fragment_native",
+      "kind": "core_tools_export_fragment",
+      "json": "{\"ok\":true,\"format\":\"native\",\"content_type\":\"application/json\",\"file_extension\":\"json\",\"envelope\":{\"prefix\":\"{\\\"v\\\":1,\\\"type\\\":\\\"sync\\\",\",\"suffix\":\",\\\"deleted\\\":[],\\\"acks\\\":[],\\\"more\\\":false}\",\"separator\":\",\",\"required\":true,\"children\":[{\"prefix\":\"\\\"samples\\\":[\",\"suffix\":\"]\",\"separator\":\",\",\"stream\":\"samples\",\"required\":true,\"children\":[]},{\"prefix\":\"\\\"summaries\\\":[\",\"suffix\":\"]\",\"separator\":\",\",\"stream\":\"summaries\",\"required\":false,\"children\":[]}]},\"streams\":{\"samples\":[\"{\\\"uuid\\\":\\\"6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E51\\\",\\\"type\\\":\\\"steps\\\",\\\"value\\\":812,\\\"unit\\\":\\\"count\\\",\\\"start\\\":\\\"2026-10-11T08:00:00Z\\\",\\\"end\\\":\\\"2026-10-11T08:30:00Z\\\",\\\"source\\\":{\\\"app\\\":\\\"com.apple.Health\\\",\\\"device\\\":\\\"iPhone\\\"}}\"],\"summaries\":[\"{\\\"type\\\":\\\"steps\\\",\\\"unit\\\":\\\"count\\\",\\\"start\\\":\\\"2024-01-01T00:00:00Z\\\",\\\"end\\\":\\\"2024-01-02T00:00:00Z\\\",\\\"stat\\\":\\\"sum\\\",\\\"value\\\":123}\"]},\"samples\":1,\"summaries\":1,\"dropped\":0,\"invalid\":0,\"skipped_kinds\":0,\"expected_format_omissions\":0}"
+    },
+    {
+      "name": "core_tools_export_fragment_hae",
+      "kind": "core_tools_export_fragment",
+      "json": "{\"ok\":true,\"format\":\"hae\",\"content_type\":\"application/json\",\"file_extension\":\"json\",\"envelope\":{\"prefix\":\"{\\\"data\\\":{\",\"suffix\":\"}}\",\"separator\":\",\",\"required\":true,\"children\":[{\"prefix\":\"\\\"metrics\\\":[\",\"suffix\":\"]\",\"separator\":\",\",\"required\":true,\"children\":[{\"prefix\":\"{\\\"name\\\":\\\"active_energy\\\",\\\"units\\\":\\\"kcal\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"active_energy\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"apple_exercise_time\\\",\\\"units\\\":\\\"min\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"apple_exercise_time\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"apple_move_time\\\",\\\"units\\\":\\\"min\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"apple_move_time\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"breathing_disturbances\\\",\\\"units\\\":\\\"count\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"breathing_disturbances\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"apple_sleeping_wrist_temperature\\\",\\\"units\\\":\\\"degC\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"apple_sleeping_wrist_temperature\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"apple_stand_hour\\\",\\\"units\\\":\\\"count\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"apple_stand_hour\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"apple_stand_time\\\",\\\"units\\\":\\\"min\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"apple_stand_time\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"atrial_fibrillation_burden\\\",\\\"units\\\":\\\"%\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"atrial_fibrillation_burden\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"basal_body_temperature\\\",\\\"units\\\":\\\"degC\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"basal_body_temperature\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"basal_energy_burned\\\",\\\"units\\\":\\\"kcal\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"basal_energy_burned\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"blood_alcohol_content\\\",\\\"units\\\":\\\"%\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"blood_alcohol_content\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"blood_glucose\\\",\\\"units\\\":\\\"mg/dL\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"blood_glucose\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"blood_pressure\\\",\\\"units\\\":\\\"mmHg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"blood_pressure\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"body_fat_percentage\\\",\\\"units\\\":\\\"%\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"body_fat_percentage\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"weight_body_mass\\\",\\\"units\\\":\\\"kg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"weight_body_mass\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"body_mass_index\\\",\\\"units\\\":\\\"count\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"body_mass_index\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"body_temperature\\\",\\\"units\\\":\\\"degC\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"body_temperature\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"cycling_cadence\\\",\\\"units\\\":\\\"count/min\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"cycling_cadence\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"cycling_functional_threshold_power\\\",\\\"units\\\":\\\"W\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"cycling_functional_threshold_power\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"cycling_power\\\",\\\"units\\\":\\\"W\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"cycling_power\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"cycling_speed\\\",\\\"units\\\":\\\"km/hr\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"cycling_speed\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"biotin\\\",\\\"units\\\":\\\"mcg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"biotin\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"caffeine\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"caffeine\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"calcium\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"calcium\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"carbohydrates\\\",\\\"units\\\":\\\"g\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"carbohydrates\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"chloride\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"chloride\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"cholesterol\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"cholesterol\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"chromium\\\",\\\"units\\\":\\\"mcg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"chromium\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"copper\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"copper\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"dietary_energy\\\",\\\"units\\\":\\\"kcal\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"dietary_energy\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"monosaturated_fat\\\",\\\"units\\\":\\\"g\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"monosaturated_fat\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"polyunsaturated_fat\\\",\\\"units\\\":\\\"g\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"polyunsaturated_fat\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"saturated_fat\\\",\\\"units\\\":\\\"g\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"saturated_fat\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"total_fat\\\",\\\"units\\\":\\\"g\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"total_fat\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"fiber\\\",\\\"units\\\":\\\"g\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"fiber\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"folate\\\",\\\"units\\\":\\\"mcg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"folate\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"iodine\\\",\\\"units\\\":\\\"mcg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"iodine\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"iron\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"iron\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"magnesium\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"magnesium\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"manganese\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"manganese\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"molybdenum\\\",\\\"units\\\":\\\"mcg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"molybdenum\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"niacin\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"niacin\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"pantothenic_acid\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"pantothenic_acid\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"potassium\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"potassium\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"protein\\\",\\\"units\\\":\\\"g\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"protein\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"riboflavin\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"riboflavin\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"selenium\\\",\\\"units\\\":\\\"mcg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"selenium\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"sodium\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"sodium\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"dietary_sugar\\\",\\\"units\\\":\\\"g\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"dietary_sugar\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"thiamin\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"thiamin\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"vitamin_a\\\",\\\"units\\\":\\\"mcg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"vitamin_a\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"vitamin_b12\\\",\\\"units\\\":\\\"mcg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"vitamin_b12\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"vitamin_b6\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"vitamin_b6\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"vitamin_c\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"vitamin_c\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"vitamin_d\\\",\\\"units\\\":\\\"mcg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"vitamin_d\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"vitamin_e\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"vitamin_e\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"vitamin_k\\\",\\\"units\\\":\\\"mcg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"vitamin_k\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"dietary_water\\\",\\\"units\\\":\\\"mL\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"dietary_water\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"zinc\\\",\\\"units\\\":\\\"mg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"zinc\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"cycling_distance\\\",\\\"units\\\":\\\"km\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"cycling_distance\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"downhill_snow_sports\\\",\\\"units\\\":\\\"km\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"downhill_snow_sports\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"swimming_distance\\\",\\\"units\\\":\\\"m\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"swimming_distance\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"walking_running_distance\\\",\\\"units\\\":\\\"km\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"walking_running_distance\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"wheelchair_distance\\\",\\\"units\\\":\\\"km\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"wheelchair_distance\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"electrodermal_activity\\\",\\\"units\\\":\\\"S\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"electrodermal_activity\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"environmental_audio\\\",\\\"units\\\":\\\"dBASPL\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"environmental_audio\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"flights_climbed\\\",\\\"units\\\":\\\"count\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"flights_climbed\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"forced_expiratory_volume\\\",\\\"units\\\":\\\"L\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"forced_expiratory_volume\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"forced_vital_capacity\\\",\\\"units\\\":\\\"L\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"forced_vital_capacity\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"handwashing\\\",\\\"units\\\":\\\"count\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"handwashing\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"headphone_audio\\\",\\\"units\\\":\\\"dBASPL\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"headphone_audio\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"heart_rate\\\",\\\"units\\\":\\\"count/min\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"heart_rate\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"cardio_recovery\\\",\\\"units\\\":\\\"count/min\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"cardio_recovery\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"heart_rate_variability\\\",\\\"units\\\":\\\"ms\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"heart_rate_variability\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"height\\\",\\\"units\\\":\\\"cm\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"height\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"inhaler_usage\\\",\\\"units\\\":\\\"count\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"inhaler_usage\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"insulin_delivery\\\",\\\"units\\\":\\\"IU\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"insulin_delivery\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"lean_body_mass\\\",\\\"units\\\":\\\"kg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"lean_body_mass\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"mindful_minutes\\\",\\\"units\\\":\\\"min\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"mindful_minutes\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"number_of_alcoholic_beverages\\\",\\\"units\\\":\\\"count\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"number_of_alcoholic_beverages\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"number_of_time_fallen\\\",\\\"units\\\":\\\"count\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"number_of_time_fallen\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"blood_oxygen_saturation\\\",\\\"units\\\":\\\"%\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"blood_oxygen_saturation\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"peak_expiratory_flow_rate\\\",\\\"units\\\":\\\"L/min\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"peak_expiratory_flow_rate\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"peripheral_perfusion_index\\\",\\\"units\\\":\\\"%\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"peripheral_perfusion_index\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"physical_effort\\\",\\\"units\\\":\\\"kcal/hr·kg\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"physical_effort\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"wheelchair_push_count\\\",\\\"units\\\":\\\"count\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"wheelchair_push_count\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"respiratory_rate\\\",\\\"units\\\":\\\"count/min\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"respiratory_rate\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"resting_heart_rate\\\",\\\"units\\\":\\\"count/min\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"resting_heart_rate\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"running_ground_contact_time\\\",\\\"units\\\":\\\"ms\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"running_ground_contact_time\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"running_power\\\",\\\"units\\\":\\\"W\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"running_power\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"running_speed\\\",\\\"units\\\":\\\"km/hr\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"running_speed\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"running_stride_length\\\",\\\"units\\\":\\\"m\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"running_stride_length\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"running_vertical_oscillation\\\",\\\"units\\\":\\\"cm\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"running_vertical_oscillation\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"six_minute_walking_test_distance\\\",\\\"units\\\":\\\"m\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"six_minute_walking_test_distance\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"sleep_analysis\\\",\\\"units\\\":\\\"hr\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"sleep_analysis\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"stair_speed_up\\\",\\\"units\\\":\\\"m/s\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"stair_speed_up\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"stair_speed_down\\\",\\\"units\\\":\\\"m/s\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"stair_speed_down\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"step_count\\\",\\\"units\\\":\\\"count\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"step_count\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"swim_stroke_count\\\",\\\"units\\\":\\\"count\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"swim_stroke_count\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"time_in_daylight\\\",\\\"units\\\":\\\"min\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"time_in_daylight\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"toothbrushing\\\",\\\"units\\\":\\\"count\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"toothbrushing\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"under_water_depth\\\",\\\"units\\\":\\\"m\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"under_water_depth\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"uv_exposure\\\",\\\"units\\\":\\\"count\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"uv_exposure\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"vo2max\\\",\\\"units\\\":\\\"ml/(kg·min)\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"vo2max\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"waist_circumference\\\",\\\"units\\\":\\\"cm\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"waist_circumference\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"walking_asymmetry_percentage\\\",\\\"units\\\":\\\"%\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"walking_asymmetry_percentage\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"walking_double_support_percentage\\\",\\\"units\\\":\\\"%\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"walking_double_support_percentage\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"walking_heart_rate\\\",\\\"units\\\":\\\"count/min\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"walking_heart_rate\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"walking_speed\\\",\\\"units\\\":\\\"km/hr\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"walking_speed\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"walking_step_length\\\",\\\"units\\\":\\\"cm\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"walking_step_length\",\"required\":false,\"children\":[]},{\"prefix\":\"{\\\"name\\\":\\\"under_water_temperature\\\",\\\"units\\\":\\\"degC\\\",\\\"data\\\":[\",\"suffix\":\"]}\",\"separator\":\",\",\"stream\":\"under_water_temperature\",\"required\":false,\"children\":[]}]},{\"prefix\":\"\\\"workouts\\\":[\",\"suffix\":\"]\",\"separator\":\",\",\"stream\":\"workouts\",\"required\":true,\"children\":[]},{\"prefix\":\"\\\"stateOfMind\\\":[\",\"suffix\":\"]\",\"separator\":\",\",\"stream\":\"stateOfMind\",\"required\":false,\"children\":[]},{\"prefix\":\"\\\"symptoms\\\":[\",\"suffix\":\"]\",\"separator\":\",\",\"stream\":\"symptoms\",\"required\":false,\"children\":[]}]},\"streams\":{\"step_count\":[\"{\\\"date\\\":\\\"2026-10-11 08:00:00 +0000\\\",\\\"qty\\\":812,\\\"source\\\":\\\"iPhone\\\"}\"]},\"samples\":1,\"summaries\":0,\"dropped\":0,\"invalid\":0,\"skipped_kinds\":0,\"expected_format_omissions\":0}"
+    },
+    {
+      "name": "core_tools_export_fragment_csv",
+      "kind": "core_tools_export_fragment",
+      "json": "{\"ok\":true,\"format\":\"csv\",\"content_type\":\"text/csv; charset=utf-8\",\"file_extension\":\"csv\",\"envelope\":{\"prefix\":\"type,uuid,start,end,value,unit,value_name,source,device,user_entered\\r\\n\",\"suffix\":\"\",\"separator\":\"\",\"stream\":\"rows\",\"required\":true,\"children\":[]},\"streams\":{\"rows\":[\"steps,6F1C2A4E-8B1D-4C3A-9E2F-0A1B2C3D4E51,2026-10-11T08:00:00Z,2026-10-11T08:30:00Z,812,count,,com.apple.Health,iPhone,false\\r\\n\"]},\"samples\":1,\"summaries\":0,\"dropped\":0,\"invalid\":0,\"skipped_kinds\":0,\"expected_format_omissions\":0}"
+    },
+    {
+      "name": "webhook_history_summary_report",
+      "kind": "webhook_delivery_report",
+      "json": "{\"destination\":\"wh_7yonbAB_1VXaQo2XW2JH_A\",\"revision\":\"1\",\"result\":\"ok\",\"code\":null,\"http_status\":200,\"requests\":1,\"samples\":0,\"summaries\":1,\"deleted\":0,\"dropped\":0,\"invalid\":0,\"skipped_kinds\":0,\"delivered_groups\":[],\"bytes\":403,\"next_attempt_at\":null,\"to_apply\":[],\"auto_rejected\":[],\"reply_note\":null,\"results_sent\":0,\"results_pending\":0,\"results_code\":null}"
+    },
+    {
+      "name": "diagnostics_requests_pending",
+      "kind": "diagnostics_requests",
+      "json": "{\"requests\":[{\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"outcome\":\"pending\",\"request_msg_id\":\"01a129f9-d000-7761-8d30-13af6adb2ec0\"}],\"replies_pending\":false}"
+    },
+    {
+      "name": "diagnostics_requests_declined",
+      "kind": "diagnostics_requests",
+      "json": "{\"requests\":[{\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"outcome\":\"declined\",\"reason\":\"user\",\"reply_delivery\":\"pending\",\"retry_deadline\":\"2026-10-13T08:00:00Z\",\"request_msg_id\":\"01a129f9-d000-7761-8d30-13af6adb2ec0\"}],\"replies_pending\":true}"
+    },
+    {
+      "name": "access_requests_pending",
+      "kind": "access_requests",
+      "json": "{\"requests\":[{\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"request_msg_id\":\"01a129f9-d000-7761-8d30-13af6adb2ec0\",\"agent_id\":\"m_agent_1\",\"agent_name\":\"Kitchen Mac\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"read\":[\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\",\"outcome\":\"pending\",\"read_results\":[],\"write_results\":[]}],\"replies_pending\":false}"
+    },
+    {
+      "name": "access_requests_applying",
+      "kind": "access_requests",
+      "json": "{\"requests\":[{\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"request_msg_id\":\"01a129f9-d000-7761-8d30-13af6adb2ec0\",\"agent_id\":\"m_agent_1\",\"agent_name\":\"Kitchen Mac\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"read\":[\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\",\"outcome\":\"pending\",\"read_results\":[],\"write_results\":[],\"intent_id\":\"01a129f9-d000-7529-a445-fbfdacb64f46\",\"intent_read\":[{\"type\":\"dietary_water\",\"outcome\":\"allowed\"},{\"type\":\"workout\",\"outcome\":\"declined\"}],\"intent_write\":[{\"type\":\"dietary_water\",\"outcome\":\"allowed\"}]}],\"replies_pending\":false}"
+    },
+    {
+      "name": "access_requests_resolved",
+      "kind": "access_requests",
+      "json": "{\"requests\":[{\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"request_msg_id\":\"01a129f9-d000-7761-8d30-13af6adb2ec0\",\"agent_id\":\"m_agent_1\",\"agent_name\":\"Kitchen Mac\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"read\":[\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\",\"outcome\":\"resolved\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"read_results\":[{\"type\":\"dietary_water\",\"outcome\":\"allowed\"},{\"type\":\"workout\",\"outcome\":\"declined\"}],\"write_results\":[{\"type\":\"dietary_water\",\"outcome\":\"allowed\"}],\"reply_delivery\":\"pending\",\"retry_deadline\":\"2026-10-12T08:00:00Z\"}],\"replies_pending\":true}"
+    }
+  ]
+}

@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "protocol_version": 1,
+  "generated_by": "syncky-core MessageTable (do not edit)",
+  "kinds": [
+    "data",
+    "control"
+  ],
+  "default": {
+    "kind": "control",
+    "max_envelope_bytes": 4096
+  },
+  "messages": {
+    "access_reply": {
+      "kind": "control",
+      "marker": {
+        "field": "access",
+        "value": "reply"
+      },
+      "max_envelope_bytes": 4096
+    },
+    "access_request": {
+      "kind": "control",
+      "marker": {
+        "field": "access",
+        "value": "request"
+      },
+      "max_envelope_bytes": 4096
+    },
+    "agent_info": {
+      "kind": "control",
+      "max_envelope_bytes": 4096
+    },
+    "commands": {
+      "kind": "data",
+      "max_envelope_bytes": 262144
+    },
+    "confirmed": {
+      "kind": "control",
+      "max_envelope_bytes": 4096
+    },
+    "diagnostics": {
+      "kind": "data",
+      "marker": {
+        "field": "diagnostics",
+        "value": "archive"
+      },
+      "max_envelope_bytes": 262144,
+      "max_inner_bytes": 180000
+    },
+    "diagnostics_reply": {
+      "kind": "control",
+      "marker": {
+        "field": "diagnostics",
+        "value": "reply"
+      },
+      "max_envelope_bytes": 4096
+    },
+    "diagnostics_request": {
+      "kind": "control",
+      "marker": {
+        "field": "diagnostics",
+        "value": "request"
+      },
+      "max_envelope_bytes": 4096
+    },
+    "pair_proof": {
+      "kind": "control",
+      "max_envelope_bytes": 4096
+    },
+    "paused": {
+      "kind": "control",
+      "max_envelope_bytes": 4096
+    },
+    "resumed": {
+      "kind": "control",
+      "max_envelope_bytes": 4096
+    },
+    "resync_request": {
+      "kind": "control",
+      "max_envelope_bytes": 4096
+    },
+    "sync": {
+      "kind": "data",
+      "max_envelope_bytes": 262144,
+      "target_inner_bytes": 180000
+    },
+    "unpair": {
+      "kind": "control",
+      "max_envelope_bytes": 4096
+    },
+    "unpaired": {
+      "kind": "control",
+      "max_envelope_bytes": 4096
+    }
+  },
+  "markers": {
+    "diagnostics": [
+      "request",
+      "reply",
+      "archive"
+    ],
+    "access": [
+      "request",
+      "reply"
+    ]
+  },
+  "limits": {
+    "max_envelope_bytes": 262144,
+    "max_control_envelope_bytes": 4096,
+    "max_recipients": 7,
+    "max_member_id_length": 64,
+    "max_markers": 1,
+    "cek_bytes": 32,
+    "nonce_bytes": 12,
+    "enc_bytes": 32,
+    "wrapped_key_bytes": 48,
+    "tag_bytes": 16
+  },
+  "aad": {
+    "base": "syncky-v1|<hub_id>|<msg_id>|<from>",
+    "kind_suffixes": {
+      "data": "",
+      "control": "|control"
+    },
+    "marker_order": [
+      "diagnostics",
+      "access"
+    ],
+    "marker_template": "|<field>=<value>",
+    "uses": [
+      "hpke_auth",
+      "payload_aead"
+    ]
+  },
+  "canonical": {
+    "envelope_fields": [
+      "v",
+      "msg_id",
+      "kind",
+      "access",
+      "diagnostics",
+      "from",
+      "created_at",
+      "recipients",
+      "nonce",
+      "ciphertext"
+    ],
+    "recipient_fields": [
+      "member_id",
+      "enc",
+      "wrapped_key"
+    ]
+  }
+}

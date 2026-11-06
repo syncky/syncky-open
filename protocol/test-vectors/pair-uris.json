@@ -1,0 +1,1175 @@
+{
+  "format": 1,
+  "generated_by": "syncky-core GenerateProtocolArtifacts",
+  "cases": [
+    {
+      "name": "valid_basic",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      }
+    },
+    {
+      "name": "valid_with_port",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app:8443&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app:8443",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      }
+    },
+    {
+      "name": "valid_port_65535",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app:65535&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app:65535",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      }
+    },
+    {
+      "name": "valid_ipv4_host",
+      "uri": "syncky://pair?v=1&r=127.0.0.1&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://127.0.0.1",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      }
+    },
+    {
+      "name": "valid_ipv6_host_encoded",
+      "uri": "syncky://pair?v=1&r=%5B%3A%3A1%5D%3A8787&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://[::1]:8787",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      }
+    },
+    {
+      "name": "valid_unicode_name_percent_encoded",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=%E5%81%A5%E5%BA%B7%20Mac%20%F0%9F%93%B1",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "健康 Mac 📱"
+      }
+    },
+    {
+      "name": "valid_raw_unicode_name",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Küche",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Küche"
+      }
+    },
+    {
+      "name": "valid_name_with_bidi_controls_kept_raw",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=%E2%80%AEcaM%E2%80%AC",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "‮caM‬"
+      }
+    },
+    {
+      "name": "valid_name_with_zero_width_space_kept_raw",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kit%E2%80%8Bchen",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kit​chen"
+      }
+    },
+    {
+      "name": "valid_plus_is_a_literal_plus",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=A+B",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "A+B"
+      }
+    },
+    {
+      "name": "valid_lowercase_hex_escapes",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=K%c3%bcche",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Küche"
+      }
+    },
+    {
+      "name": "valid_reserved_characters_unencoded",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Sam's(Mac)!*~",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Sam's(Mac)!*~"
+      }
+    },
+    {
+      "name": "valid_params_in_any_order",
+      "uri": "syncky://pair?n=Kitchen%20Mac&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&h=hub_AAAAAAAAAAAAAAAAAAAAAA&r=relay.syncky.app&v=1",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      }
+    },
+    {
+      "name": "valid_unknown_params_ignored",
+      "uri": "syncky://pair?x=1&flag&V=2&n2=%ZZ&v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&zz=%",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      }
+    },
+    {
+      "name": "valid_empty_segments_ignored",
+      "uri": "syncky://pair?&&v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      }
+    },
+    {
+      "name": "valid_name_64_utf16_units",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱📱"
+      }
+    },
+    {
+      "name": "valid_insecure_allowed",
+      "uri": "syncky://pair?v=1&r=127.0.0.1%3A8787&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&s=http",
+      "allow_insecure": true,
+      "expect": {
+        "ok": true,
+        "relay_base": "http://127.0.0.1:8787",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      }
+    },
+    {
+      "name": "valid_secure_with_insecure_allowed",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": true,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      }
+    },
+    {
+      "name": "scheme_https",
+      "uri": "https://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "scheme"
+      }
+    },
+    {
+      "name": "scheme_uppercase",
+      "uri": "SYNCKY://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "scheme"
+      }
+    },
+    {
+      "name": "scheme_without_slashes",
+      "uri": "syncky:pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "scheme"
+      }
+    },
+    {
+      "name": "scheme_unsupported",
+      "uri": "syncky-test://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "scheme"
+      }
+    },
+    {
+      "name": "scheme_dev_lookalike",
+      "uri": "syncky-dev-extra://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "scheme"
+      }
+    },
+    {
+      "name": "scheme_staging_lookalike",
+      "uri": "syncky-staging-extra://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "scheme"
+      }
+    },
+    {
+      "name": "scheme_dev_uppercase",
+      "uri": "SYNCKY-DEV://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "scheme"
+      }
+    },
+    {
+      "name": "host_other",
+      "uri": "syncky://pairing?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "host"
+      }
+    },
+    {
+      "name": "host_with_path",
+      "uri": "syncky://pair/?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "host"
+      }
+    },
+    {
+      "name": "host_empty",
+      "uri": "syncky://?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "host"
+      }
+    },
+    {
+      "name": "host_uppercase",
+      "uri": "syncky://PAIR?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "host"
+      }
+    },
+    {
+      "name": "fragment_present",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac#x",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "fragment"
+      }
+    },
+    {
+      "name": "fragment_empty",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac#",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "fragment"
+      }
+    },
+    {
+      "name": "duplicate_v",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&v=1",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "v"
+      }
+    },
+    {
+      "name": "duplicate_n",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&n=Other",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "n"
+      }
+    },
+    {
+      "name": "duplicate_s",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&s=http&s=http",
+      "allow_insecure": true,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "s"
+      }
+    },
+    {
+      "name": "encoding_bad_hex",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=%ZZ",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "encoding"
+      }
+    },
+    {
+      "name": "encoding_truncated_escape",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Mac%2",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "encoding"
+      }
+    },
+    {
+      "name": "encoding_invalid_utf8",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=%C3%28",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "encoding"
+      }
+    },
+    {
+      "name": "encoding_encoded_surrogate",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=%ED%A0%80",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "encoding"
+      }
+    },
+    {
+      "name": "encoding_in_relay",
+      "uri": "syncky://pair?v=1&r=%G1&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "encoding"
+      }
+    },
+    {
+      "name": "v_missing",
+      "uri": "syncky://pair?r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "v"
+      }
+    },
+    {
+      "name": "unsupported_version_3",
+      "uri": "syncky://pair?v=3&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "unsupported_version"
+      }
+    },
+    {
+      "name": "unsupported_version_empty",
+      "uri": "syncky://pair?v=&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "unsupported_version"
+      }
+    },
+    {
+      "name": "unsupported_version_1_0",
+      "uri": "syncky://pair?v=1.0&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "unsupported_version"
+      }
+    },
+    {
+      "name": "unsupported_version_01",
+      "uri": "syncky://pair?v=01&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "unsupported_version"
+      }
+    },
+    {
+      "name": "unsupported_version_before_missing_params",
+      "uri": "syncky://pair?v=3",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "unsupported_version"
+      }
+    },
+    {
+      "name": "r_missing",
+      "uri": "syncky://pair?v=1&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "r"
+      }
+    },
+    {
+      "name": "h_missing",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "h"
+      }
+    },
+    {
+      "name": "t_missing",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "t"
+      }
+    },
+    {
+      "name": "k_missing",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "k"
+      }
+    },
+    {
+      "name": "n_missing",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "n"
+      }
+    },
+    {
+      "name": "missing_params_reported_in_order",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "h"
+      }
+    },
+    {
+      "name": "r_with_scheme",
+      "uri": "syncky://pair?v=1&r=https://relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "r"
+      }
+    },
+    {
+      "name": "r_with_path",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app/v1&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "r"
+      }
+    },
+    {
+      "name": "r_with_userinfo",
+      "uri": "syncky://pair?v=1&r=user@relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "r"
+      }
+    },
+    {
+      "name": "r_empty",
+      "uri": "syncky://pair?v=1&r=&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "r"
+      }
+    },
+    {
+      "name": "r_port_zero",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app:0&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "r"
+      }
+    },
+    {
+      "name": "r_port_65536",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app:65536&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "r"
+      }
+    },
+    {
+      "name": "r_port_leading_zero",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app:08443&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "r"
+      }
+    },
+    {
+      "name": "r_port_empty",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app:&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "r"
+      }
+    },
+    {
+      "name": "h_malformed",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_short&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "h"
+      }
+    },
+    {
+      "name": "t_malformed",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB5&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "t"
+      }
+    },
+    {
+      "name": "k_31_bytes",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNA&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "k"
+      }
+    },
+    {
+      "name": "k_padded",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU=&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "k"
+      }
+    },
+    {
+      "name": "n_empty",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "n"
+      }
+    },
+    {
+      "name": "n_65_utf16_units",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "n"
+      }
+    },
+    {
+      "name": "n_33_emoji_is_66_utf16_units",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1%F0%9F%93%B1",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "n"
+      }
+    },
+    {
+      "name": "s_https",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&s=https",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "s"
+      }
+    },
+    {
+      "name": "s_empty",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&s=",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "s"
+      }
+    },
+    {
+      "name": "s_uppercase",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&s=HTTP",
+      "allow_insecure": true,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "s"
+      }
+    },
+    {
+      "name": "insecure_relay_refused",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&s=http",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "insecure_relay"
+      }
+    },
+    {
+      "name": "value_checks_before_insecure_relay",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=&s=http",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "n"
+      }
+    },
+    {
+      "name": "valid_v2",
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac",
+        "pair_secret": "xDNCXlrg0ZFTMxtF17uicg"
+      }
+    },
+    {
+      "name": "valid_v2_params_in_any_order",
+      "uri": "syncky://pair?c=xDNCXlrg0ZFTMxtF17uicg&n=Kitchen%20Mac&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&h=hub_AAAAAAAAAAAAAAAAAAAAAA&r=relay.syncky.app&v=2",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac",
+        "pair_secret": "xDNCXlrg0ZFTMxtF17uicg"
+      }
+    },
+    {
+      "name": "valid_v2_insecure_allowed",
+      "uri": "syncky://pair?v=2&r=127.0.0.1%3A8787&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg&s=http",
+      "allow_insecure": true,
+      "expect": {
+        "ok": true,
+        "relay_base": "http://127.0.0.1:8787",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac",
+        "pair_secret": "xDNCXlrg0ZFTMxtF17uicg"
+      }
+    },
+    {
+      "name": "valid_v1_ignores_c",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      }
+    },
+    {
+      "name": "valid_v1_ignores_malformed_c",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=short",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      }
+    },
+    {
+      "name": "v2_c_missing",
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "c"
+      }
+    },
+    {
+      "name": "v2_c_empty",
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "c"
+      }
+    },
+    {
+      "name": "v2_c_15_bytes",
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17ui",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "c"
+      }
+    },
+    {
+      "name": "v2_c_17_bytes",
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicgA",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "c"
+      }
+    },
+    {
+      "name": "v2_c_padded",
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg==",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "c"
+      }
+    },
+    {
+      "name": "v2_c_non_canonical_tail",
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uich",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "c"
+      }
+    },
+    {
+      "name": "v2_c_standard_base64_alphabet",
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=%2BDNCXlrg0ZFTMxtF17uicg",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "c"
+      }
+    },
+    {
+      "name": "duplicate_c",
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg&c=xDNCXlrg0ZFTMxtF17uicg",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "c"
+      }
+    },
+    {
+      "name": "v1_duplicate_c",
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg&c=xDNCXlrg0ZFTMxtF17uicg",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "c"
+      }
+    },
+    {
+      "name": "v2_missing_params_before_missing_c",
+      "uri": "syncky://pair?v=2",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "r"
+      }
+    },
+    {
+      "name": "v2_missing_c_before_value_checks",
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_short&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "c"
+      }
+    },
+    {
+      "name": "v2_value_checks_before_c",
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=&c=short",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "n"
+      }
+    },
+    {
+      "name": "v2_c_before_s",
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=short&s=https",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "c"
+      }
+    },
+    {
+      "name": "v2_c_before_insecure_relay",
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=short&s=http",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "invalid_uri",
+        "param": "c"
+      }
+    },
+    {
+      "name": "v2_insecure_relay_refused",
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg&s=http",
+      "allow_insecure": false,
+      "expect": {
+        "ok": false,
+        "error": "insecure_relay"
+      }
+    },
+    {
+      "name": "valid_dev_v1",
+      "uri": "syncky-dev://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      }
+    },
+    {
+      "name": "valid_dev_v2",
+      "uri": "syncky-dev://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac",
+        "pair_secret": "xDNCXlrg0ZFTMxtF17uicg"
+      }
+    },
+    {
+      "name": "valid_staging_v1",
+      "uri": "syncky-staging://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      }
+    },
+    {
+      "name": "valid_staging_v2",
+      "uri": "syncky-staging://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg",
+      "allow_insecure": false,
+      "expect": {
+        "ok": true,
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac",
+        "pair_secret": "xDNCXlrg0ZFTMxtF17uicg"
+      }
+    },
+    {
+      "name": "build_basic",
+      "input": {
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac"
+      },
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac"
+    },
+    {
+      "name": "build_reserved_characters",
+      "input": {
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Sam's (home) Mac!*"
+      },
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Sam%27s%20%28home%29%20Mac%21%2A"
+    },
+    {
+      "name": "build_unicode_name",
+      "input": {
+        "relay_base": "https://relay.syncky.app:8443",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "健康 Küche 📱"
+      },
+      "uri": "syncky://pair?v=1&r=relay.syncky.app%3A8443&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=%E5%81%A5%E5%BA%B7%20K%C3%BCche%20%F0%9F%93%B1"
+    },
+    {
+      "name": "build_insecure_with_port",
+      "input": {
+        "relay_base": "http://127.0.0.1:8787",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "e2e agent"
+      },
+      "uri": "syncky://pair?v=1&r=127.0.0.1%3A8787&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=e2e%20agent&s=http"
+    },
+    {
+      "name": "build_ipv6_host",
+      "input": {
+        "relay_base": "https://[::1]:8443",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "v6"
+      },
+      "uri": "syncky://pair?v=1&r=%5B%3A%3A1%5D%3A8443&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=v6"
+    },
+    {
+      "name": "build_ascii_specials",
+      "input": {
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "a+b&c=d?e#f/g~h_i.j-k %"
+      },
+      "uri": "syncky://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=a%2Bb%26c%3Dd%3Fe%23f%2Fg~h_i.j-k%20%25"
+    },
+    {
+      "name": "build_v2_basic",
+      "input": {
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac",
+        "pair_secret": "xDNCXlrg0ZFTMxtF17uicg"
+      },
+      "uri": "syncky://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg"
+    },
+    {
+      "name": "build_v2_insecure_with_port",
+      "input": {
+        "relay_base": "http://127.0.0.1:8787",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "e2e agent",
+        "pair_secret": "xDNCXlrg0ZFTMxtF17uicg"
+      },
+      "uri": "syncky://pair?v=2&r=127.0.0.1%3A8787&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=e2e%20agent&c=xDNCXlrg0ZFTMxtF17uicg&s=http"
+    },
+    {
+      "name": "build_dev_v1",
+      "input": {
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac",
+        "url_scheme": "syncky-dev"
+      },
+      "uri": "syncky-dev://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac"
+    },
+    {
+      "name": "build_dev_v2",
+      "input": {
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac",
+        "pair_secret": "xDNCXlrg0ZFTMxtF17uicg",
+        "url_scheme": "syncky-dev"
+      },
+      "uri": "syncky-dev://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg"
+    },
+    {
+      "name": "build_staging_v1",
+      "input": {
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac",
+        "url_scheme": "syncky-staging"
+      },
+      "uri": "syncky-staging://pair?v=1&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac"
+    },
+    {
+      "name": "build_staging_v2",
+      "input": {
+        "relay_base": "https://relay.syncky.app",
+        "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+        "pairing_token": "pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54",
+        "agent_public_key": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+        "agent_name": "Kitchen Mac",
+        "pair_secret": "xDNCXlrg0ZFTMxtF17uicg",
+        "url_scheme": "syncky-staging"
+      },
+      "uri": "syncky-staging://pair?v=2&r=relay.syncky.app&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg"
+    }
+  ]
+}

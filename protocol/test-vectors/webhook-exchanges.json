@@ -1,0 +1,412 @@
+{
+  "format": 1,
+  "generated_by": "syncky-core GenerateProtocolArtifacts",
+  "cases": [
+    {
+      "name": "signed_http",
+      "kind": "reply",
+      "url": "http://receiver.local/hook/every-kind",
+      "signing": true,
+      "secret": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c",
+      "delivery": "01a13940-fe30-7630-9d7f-9da6e6de1e3d",
+      "t": "1791961923",
+      "now": 1791961924,
+      "content_type": "application/json",
+      "body": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"},{\"command_id\":\"c_2\",\"version\":1,\"op\":\"write\",\"type\":\"apple_exercise_time\",\"value\":30,\"unit\":\"min\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"}]}",
+      "signature": "t=1791961923,v1=73d9d986299402060d48ffe640a17e657067e1a9e853ccdd3136c5e74a5163f5",
+      "signature_valid": true,
+      "expect": {
+        "verdict": "commands",
+        "count": 2
+      }
+    },
+    {
+      "name": "signed_http_delete",
+      "kind": "reply",
+      "url": "http://receiver.local/hook/every-kind",
+      "signing": true,
+      "secret": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c",
+      "delivery": "01a13977-ecb0-7fbd-bd2a-03d2ebe40d71",
+      "t": "1791965523",
+      "now": 1791965524,
+      "content_type": "application/json",
+      "body": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":2,\"op\":\"delete\",\"type\":\"dietary_water\"}]}",
+      "signature": "t=1791965523,v1=42e6daf6d840b6ffbbb1b9e81c2f94c525743082b26f4eca1a7cec1034e68c40",
+      "signature_valid": true,
+      "expect": {
+        "verdict": "commands",
+        "count": 1
+      }
+    },
+    {
+      "name": "https_unsigned",
+      "kind": "reply",
+      "url": "https://receiver.example/hook/every-kind",
+      "signing": true,
+      "secret": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c",
+      "delivery": "01a13940-fe30-7630-9d7f-9da6e6de1e3d",
+      "t": "1791961923",
+      "now": 1791961924,
+      "content_type": "application/json",
+      "body": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"},{\"command_id\":\"c_2\",\"version\":1,\"op\":\"write\",\"type\":\"apple_exercise_time\",\"value\":30,\"unit\":\"min\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"}]}",
+      "signature": null,
+      "signature_valid": false,
+      "expect": {
+        "verdict": "commands",
+        "count": 2
+      }
+    },
+    {
+      "name": "http_unsigned",
+      "kind": "reply",
+      "url": "http://receiver.local/hook/every-kind",
+      "signing": true,
+      "secret": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c",
+      "delivery": "01a13940-fe30-7630-9d7f-9da6e6de1e3d",
+      "t": "1791961923",
+      "now": 1791961924,
+      "content_type": "application/json",
+      "body": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"},{\"command_id\":\"c_2\",\"version\":1,\"op\":\"write\",\"type\":\"apple_exercise_time\",\"value\":30,\"unit\":\"min\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"}]}",
+      "signature": null,
+      "signature_valid": false,
+      "expect": {
+        "verdict": "ignored",
+        "reason": "unsigned"
+      }
+    },
+    {
+      "name": "stale_301_s",
+      "kind": "reply",
+      "url": "http://receiver.local/hook/every-kind",
+      "signing": true,
+      "secret": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c",
+      "delivery": "01a13940-fe30-7630-9d7f-9da6e6de1e3d",
+      "t": "1791961923",
+      "now": 1791962224,
+      "content_type": "application/json",
+      "body": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"},{\"command_id\":\"c_2\",\"version\":1,\"op\":\"write\",\"type\":\"apple_exercise_time\",\"value\":30,\"unit\":\"min\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"}]}",
+      "signature": "t=1791961923,v1=73d9d986299402060d48ffe640a17e657067e1a9e853ccdd3136c5e74a5163f5",
+      "signature_valid": true,
+      "expect": {
+        "verdict": "ignored",
+        "reason": "bad_signature"
+      }
+    },
+    {
+      "name": "tampered_body",
+      "kind": "reply",
+      "url": "http://receiver.local/hook/every-kind",
+      "signing": true,
+      "secret": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c",
+      "delivery": "01a13940-fe30-7630-9d7f-9da6e6de1e3d",
+      "t": "1791961923",
+      "now": 1791961924,
+      "content_type": "application/json",
+      "body": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":2.5,\"unit\":\"L\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"},{\"command_id\":\"c_2\",\"version\":1,\"op\":\"write\",\"type\":\"apple_exercise_time\",\"value\":30,\"unit\":\"min\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"}]}",
+      "signature": "t=1791961923,v1=73d9d986299402060d48ffe640a17e657067e1a9e853ccdd3136c5e74a5163f5",
+      "signature_valid": false,
+      "expect": {
+        "verdict": "ignored",
+        "reason": "bad_signature"
+      }
+    },
+    {
+      "name": "wrong_delivery",
+      "kind": "reply",
+      "url": "http://receiver.local/hook/every-kind",
+      "signing": true,
+      "secret": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c",
+      "delivery": "01a13940-fe30-7630-9d7f-9da6e6de1e3d",
+      "t": "1791961923",
+      "now": 1791961924,
+      "content_type": "application/json",
+      "body": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"},{\"command_id\":\"c_2\",\"version\":1,\"op\":\"write\",\"type\":\"apple_exercise_time\",\"value\":30,\"unit\":\"min\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"}]}",
+      "signature": "t=1791961923,v1=03e4828d824ac79f81742f8fae5d14f1da5a4d0f7c991afa3e0eb97a0c01692d",
+      "signature_valid": false,
+      "expect": {
+        "verdict": "ignored",
+        "reason": "bad_signature"
+      }
+    },
+    {
+      "name": "uppercase_hex",
+      "kind": "reply",
+      "url": "http://receiver.local/hook/every-kind",
+      "signing": true,
+      "secret": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c",
+      "delivery": "01a13940-fe30-7630-9d7f-9da6e6de1e3d",
+      "t": "1791961923",
+      "now": 1791961924,
+      "content_type": "application/json",
+      "body": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"},{\"command_id\":\"c_2\",\"version\":1,\"op\":\"write\",\"type\":\"apple_exercise_time\",\"value\":30,\"unit\":\"min\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"}]}",
+      "signature": "t=1791961923,v1=73D9D986299402060D48FFE640A17E657067E1A9E853CCDD3136C5E74A5163F5",
+      "signature_valid": false,
+      "expect": {
+        "verdict": "ignored",
+        "reason": "bad_signature"
+      }
+    },
+    {
+      "name": "text_plain",
+      "kind": "reply",
+      "url": "http://receiver.local/hook/every-kind",
+      "signing": true,
+      "secret": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c",
+      "delivery": "01a13940-fe30-7630-9d7f-9da6e6de1e3d",
+      "t": "1791961923",
+      "now": 1791961924,
+      "content_type": "text/plain; charset=utf-8",
+      "body": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_1\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"},{\"command_id\":\"c_2\",\"version\":1,\"op\":\"write\",\"type\":\"apple_exercise_time\",\"value\":30,\"unit\":\"min\",\"start\":\"2026-10-14T07:00:00Z\",\"end\":\"2026-10-14T07:00:00Z\"}]}",
+      "signature": "t=1791961923,v1=73d9d986299402060d48ffe640a17e657067e1a9e853ccdd3136c5e74a5163f5",
+      "signature_valid": true,
+      "expect": {
+        "verdict": "ignored",
+        "reason": "not_json"
+      }
+    },
+    {
+      "name": "sync_not_commands",
+      "kind": "reply",
+      "url": "http://receiver.local/hook/every-kind",
+      "signing": true,
+      "secret": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c",
+      "delivery": "01a13940-fe30-7630-9d7f-9da6e6de1e3d",
+      "t": "1791961923",
+      "now": 1791961924,
+      "content_type": "application/json",
+      "body": "{\"v\":1,\"type\":\"sync\",\"samples\":[],\"deleted\":[]}",
+      "signature": "t=1791961923,v1=c0e76e2f01d2cbc39e631f255435a32c0a834d7fea696b2bd88c3404d3ac9ea7",
+      "signature_valid": true,
+      "expect": {
+        "verdict": "ignored",
+        "reason": "not_commands"
+      }
+    },
+    {
+      "name": "empty_body",
+      "kind": "reply",
+      "url": "http://receiver.local/hook/every-kind",
+      "signing": true,
+      "secret": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c",
+      "delivery": "01a13940-fe30-7630-9d7f-9da6e6de1e3d",
+      "t": "1791961923",
+      "now": 1791961924,
+      "content_type": null,
+      "body": "",
+      "signature": null,
+      "signature_valid": false,
+      "expect": {
+        "verdict": "empty"
+      }
+    },
+    {
+      "name": "results_after_signed_http",
+      "kind": "results_request",
+      "destination": {
+        "id": "wh_hmf4Hk2wv-D-TUbXkl-UCA",
+        "name": "Vector every-kind",
+        "url": "http://receiver.local/hook/every-kind",
+        "format": "native",
+        "auth": {
+          "kind": "bearer"
+        },
+        "signing": true,
+        "types": null,
+        "enabled": true,
+        "created_at": "2026-10-14T07:00:00Z",
+        "send_deletions": true,
+        "accept_writes": true,
+        "write_types": null
+      },
+      "secrets": {
+        "token": "vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0",
+        "hmac": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      },
+      "user_agent": "Syncky/1.0",
+      "delivery": "01a13941-7360-7ee0-91c5-e3ae2be0fb4e",
+      "timestamp": "1791961953",
+      "headers": {
+        "Content-Type": "application/json",
+        "User-Agent": "Syncky/1.0",
+        "X-Syncky-Kind": "results",
+        "X-Syncky-Delivery": "01a13941-7360-7ee0-91c5-e3ae2be0fb4e",
+        "X-Syncky-Destination": "wh_hmf4Hk2wv-D-TUbXkl-UCA",
+        "X-Syncky-Timestamp": "1791961953",
+        "X-Syncky-Signature": "v1=faf090fb6106803f7435919ab1383d8b52256a0d4b86e99d22b110a9d6e32132",
+        "Authorization": "Bearer vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0"
+      },
+      "body": "{\"v\":1,\"type\":\"results\",\"results\":[{\"command_id\":\"c_1\",\"version\":1,\"status\":\"applied\"},{\"command_id\":\"c_2\",\"version\":1,\"status\":\"rejected\",\"reason\":\"type_not_allowed\"}]}"
+    },
+    {
+      "name": "test_native",
+      "kind": "test_request",
+      "format": "native",
+      "destination": {
+        "id": "wh_hmf4Hk2wv-D-TUbXkl-UCA",
+        "name": "Vector every-kind",
+        "url": "https://receiver.example/hook/every-kind",
+        "format": "native",
+        "auth": {
+          "kind": "bearer"
+        },
+        "signing": true,
+        "types": null,
+        "enabled": true,
+        "created_at": "2026-10-14T07:00:00Z",
+        "send_deletions": true,
+        "accept_writes": false,
+        "write_types": null
+      },
+      "secrets": {
+        "token": "vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0",
+        "hmac": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      },
+      "device": "d_zsOZnTQUz_juWFVljuOOBQ",
+      "user_agent": "Syncky/1.0",
+      "sent_at": "2026-10-14T07:05:00Z",
+      "delivery": "01a1393a-8960-7b26-8ec7-5d0493cc3337",
+      "timestamp": "1791961500",
+      "headers": {
+        "Content-Type": "application/json",
+        "User-Agent": "Syncky/1.0",
+        "X-Syncky-Format": "native",
+        "X-Syncky-Delivery": "01a1393a-8960-7b26-8ec7-5d0493cc3337",
+        "X-Syncky-Destination": "wh_hmf4Hk2wv-D-TUbXkl-UCA",
+        "X-Syncky-Timestamp": "1791961500",
+        "X-Syncky-Signature": "v1=b5d4f350a4455a39d6e89cfb3e24d4b96fa4a47b7437b985fd8e8ad26c1baf3c",
+        "Authorization": "Bearer vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0"
+      },
+      "body": "{\"v\":1,\"type\":\"sync\",\"device\":\"d_zsOZnTQUz_juWFVljuOOBQ\",\"samples\":[],\"deleted\":[],\"acks\":[],\"more\":false,\"delivery\":{\"destination\":\"wh_hmf4Hk2wv-D-TUbXkl-UCA\",\"id\":\"01a1393a-8960-7b26-8ec7-5d0493cc3337\",\"index\":0,\"count\":1,\"sent_at\":\"2026-10-14T07:05:00Z\",\"test\":true}}"
+    },
+    {
+      "name": "test_hae",
+      "kind": "test_request",
+      "format": "hae",
+      "destination": {
+        "id": "wh_xG_XgGsxv7V7zu5FlJxMVQ",
+        "name": "Vector hae-every-shape",
+        "url": "https://receiver.example/hook/hae-every-shape",
+        "format": "hae",
+        "auth": {
+          "kind": "bearer"
+        },
+        "signing": true,
+        "types": null,
+        "enabled": true,
+        "created_at": "2026-10-14T07:00:00Z",
+        "send_deletions": true,
+        "accept_writes": false,
+        "write_types": null
+      },
+      "secrets": {
+        "token": "vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0",
+        "hmac": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      },
+      "device": "d_zsOZnTQUz_juWFVljuOOBQ",
+      "user_agent": "Syncky/1.0",
+      "sent_at": "2026-10-14T07:05:00Z",
+      "session_id": "01a1393a-8960-7943-a1d8-d2e35af98ac5",
+      "delivery": "01a1393a-8960-7028-aa76-e00d4b870713",
+      "timestamp": "1791961500",
+      "headers": {
+        "Content-Type": "application/json",
+        "User-Agent": "Syncky/1.0",
+        "X-Syncky-Format": "hae",
+        "X-Syncky-Delivery": "01a1393a-8960-7028-aa76-e00d4b870713",
+        "X-Syncky-Destination": "wh_xG_XgGsxv7V7zu5FlJxMVQ",
+        "automation-name": "Vector hae-every-shape",
+        "automation-id": "wh_xG_XgGsxv7V7zu5FlJxMVQ",
+        "automation-aggregation": "false",
+        "automation-period": "Since Last Sync",
+        "session-id": "01a1393a-8960-7943-a1d8-d2e35af98ac5",
+        "X-Syncky-Timestamp": "1791961500",
+        "X-Syncky-Signature": "v1=56cb9d189b14460c553998419a7a78d1ac58b87802122daebcc8ef1b41be8511",
+        "Authorization": "Bearer vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0"
+      },
+      "body": "{\"data\":{\"metrics\":[],\"workouts\":[]}}"
+    },
+    {
+      "name": "test_csv",
+      "kind": "test_request",
+      "format": "csv",
+      "destination": {
+        "id": "wh_CmKI22E8bZm7USxBYq43GQ",
+        "name": "Vector csv-every-kind",
+        "url": "https://receiver.example/hook/csv-every-kind",
+        "format": "csv",
+        "auth": {
+          "kind": "basic",
+          "user": "sheet"
+        },
+        "signing": true,
+        "types": null,
+        "enabled": true,
+        "created_at": "2026-10-14T07:00:00Z",
+        "send_deletions": true,
+        "accept_writes": false,
+        "write_types": null
+      },
+      "secrets": {
+        "token": "vec_password_Zf_q46OtVTxtLD_V",
+        "hmac": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      },
+      "device": "d_zsOZnTQUz_juWFVljuOOBQ",
+      "user_agent": "Syncky/1.0",
+      "sent_at": "2026-10-14T07:05:00Z",
+      "delivery": "01a1393a-8960-76bf-a283-474c99130781",
+      "timestamp": "1791961500",
+      "headers": {
+        "Content-Type": "text/csv; charset=utf-8",
+        "User-Agent": "Syncky/1.0",
+        "X-Syncky-Format": "csv",
+        "X-Syncky-Delivery": "01a1393a-8960-76bf-a283-474c99130781",
+        "X-Syncky-Destination": "wh_CmKI22E8bZm7USxBYq43GQ",
+        "X-Syncky-Timestamp": "1791961500",
+        "X-Syncky-Signature": "v1=1850e587d269e7aa573dc8c613429c23ecfe3b10fb7bbd8505ada80fec8835f4",
+        "Authorization": "Basic c2hlZXQ6dmVjX3Bhc3N3b3JkX1pmX3E0Nk90VlR4dExEX1Y="
+      },
+      "body": "type,uuid,start,end,value,unit,value_name,source,device,user_entered\r\n"
+    },
+    {
+      "name": "test_influx",
+      "kind": "test_request",
+      "format": "influx",
+      "destination": {
+        "id": "wh_VSfwHx3UorwPeEYxQghyCQ",
+        "name": "Vector influx-every-kind",
+        "url": "https://receiver.example/hook/influx-every-kind",
+        "format": "influx",
+        "auth": {
+          "kind": "bearer"
+        },
+        "signing": true,
+        "types": null,
+        "enabled": true,
+        "created_at": "2026-10-14T07:00:00Z",
+        "send_deletions": true,
+        "accept_writes": false,
+        "write_types": null
+      },
+      "secrets": {
+        "token": "vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0",
+        "hmac": "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      },
+      "device": "d_zsOZnTQUz_juWFVljuOOBQ",
+      "user_agent": "Syncky/1.0",
+      "sent_at": "2026-10-14T07:05:00Z",
+      "delivery": "01a1393a-8960-7b2b-88ff-f9604c2599fe",
+      "timestamp": "1791961500",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8",
+        "User-Agent": "Syncky/1.0",
+        "X-Syncky-Format": "influx",
+        "X-Syncky-Delivery": "01a1393a-8960-7b2b-88ff-f9604c2599fe",
+        "X-Syncky-Destination": "wh_VSfwHx3UorwPeEYxQghyCQ",
+        "X-Syncky-Timestamp": "1791961500",
+        "X-Syncky-Signature": "v1=e06b287c389b52996a4109bf93ac74f2c21aa6d64a7c2285a8a44f7b6ace2fef",
+        "Authorization": "Bearer vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0"
+      },
+      "body": ""
+    }
+  ]
+}

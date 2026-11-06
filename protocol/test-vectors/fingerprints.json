@@ -1,0 +1,41 @@
+{
+  "format": 1,
+  "generated_by": "syncky-core GenerateProtocolArtifacts",
+  "cases": [
+    {
+      "name": "agent_dev1",
+      "agent_pub": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+      "device_pub": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE",
+      "sha256_hex": "883985b1cdaf14203936a9bfe32f48d0317f338a807cda288e4ef543a2719ef3",
+      "fingerprint": "4873 4225 2655 5152"
+    },
+    {
+      "name": "agent_dev2",
+      "agent_pub": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+      "device_pub": "mSU2LGwPMZR69ovQe_jHThxABD-gmADwUntaTzIvmFc",
+      "sha256_hex": "c538e0fcc3dcdf4f1650c4c3755b2504cb161d13fa1106b60330ad6d9051847c",
+      "fingerprint": "0488 7596 0140 7167"
+    },
+    {
+      "name": "agent_mallory",
+      "agent_pub": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",
+      "device_pub": "q2BRwBCZ0ZqG5l5mQ-GjjaKkZQHPDta-Uq667T5y3Ek",
+      "sha256_hex": "05f39eaf5e597c0cdb8b7b17f724282c11934c565e242765cc6a7b194e202af0",
+      "fingerprint": "1523 0623 4153 1756"
+    },
+    {
+      "name": "extra_every_group_over_modulus",
+      "agent_pub": "Y_DQqJ4NJunqVbonxsXtAgjI4u9Px6xY_Rxtk9tfpTs",
+      "device_pub": "l5Q0KKWI-lqBYHAsETrpliRvMUvXTJBfD_VdTzdCYSE",
+      "sha256_hex": "3663553ffba551cd5e3bd557c866cc5076656f07338d54f19448c81472db1da5",
+      "fingerprint": "3923 1823 4421 0941"
+    },
+    {
+      "name": "extra_zero_padded_group",
+      "agent_pub": "VDE-v3xuGGUHhEIB2XNKq56_Yqk8HBh2_luYKX2E5AU",
+      "device_pub": "jVRGR28nycb2BZa8DCqGdDwyBzm-EORsnP5teq_npG0",
+      "sha256_hex": "6afbd18951171e248dc4f7543d1c440cfe337ec37ab5a1c39efcc726e2002695",
+      "fingerprint": "7387 3641 0759 7716"
+    }
+  ]
+}

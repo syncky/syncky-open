@@ -1,0 +1,290 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://syncky.app/protocol/schemas/messages.schema.json",
+  "description": "Versioned transport rules. The generated table, rather than this structural schema, supplies current message mappings and wire limits. target_inner_bytes is a sender chunk target, not a receiver limit. Marker mappings and field orders are checked against the protocol implementation.",
+  "$ref": "#/$defs/messages_file",
+  "$defs": {
+    "messages_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "protocol_version",
+        "generated_by",
+        "kinds",
+        "default",
+        "messages",
+        "markers",
+        "limits",
+        "aad",
+        "canonical"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "protocol_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "generated_by": {
+          "type": "string",
+          "const": "syncky-core MessageTable (do not edit)"
+        },
+        "kinds": {
+          "type": "array",
+          "const": [
+            "data",
+            "control"
+          ]
+        },
+        "default": {
+          "$ref": "#/$defs/default"
+        },
+        "messages": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/rule"
+          }
+        },
+        "markers": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[a-z][a-z_]*$"
+          },
+          "additionalProperties": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          }
+        },
+        "limits": {
+          "$ref": "#/$defs/limits"
+        },
+        "aad": {
+          "$ref": "#/$defs/aad"
+        },
+        "canonical": {
+          "$ref": "#/$defs/canonical"
+        }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "max_envelope_bytes"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "data",
+            "control"
+          ]
+        },
+        "marker": {
+          "$ref": "#/$defs/marker"
+        },
+        "max_envelope_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_inner_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_inner_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "default": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "max_envelope_bytes"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "control"
+        },
+        "max_envelope_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "marker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field",
+        "value"
+      ],
+      "properties": {
+        "field": {
+          "type": "string",
+          "pattern": "^[a-z][a-z_]*$"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_envelope_bytes",
+        "max_control_envelope_bytes",
+        "max_recipients",
+        "max_member_id_length",
+        "max_markers",
+        "cek_bytes",
+        "nonce_bytes",
+        "enc_bytes",
+        "wrapped_key_bytes",
+        "tag_bytes"
+      ],
+      "properties": {
+        "max_envelope_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_control_envelope_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_recipients": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_member_id_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_markers": {
+          "type": "integer",
+          "const": 1
+        },
+        "cek_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "nonce_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "enc_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "wrapped_key_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "tag_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "aad": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base",
+        "kind_suffixes",
+        "marker_order",
+        "marker_template",
+        "uses"
+      ],
+      "properties": {
+        "base": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind_suffixes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "data",
+            "control"
+          ],
+          "properties": {
+            "data": {
+              "type": "string"
+            },
+            "control": {
+              "type": "string"
+            }
+          }
+        },
+        "marker_order": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "marker_template": {
+          "type": "string",
+          "const": "|<field>=<value>"
+        },
+        "uses": {
+          "type": "array",
+          "const": [
+            "hpke_auth",
+            "payload_aead"
+          ]
+        }
+      }
+    },
+    "canonical": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "envelope_fields",
+        "recipient_fields"
+      ],
+      "properties": {
+        "envelope_fields": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "recipient_fields": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        }
+      }
+    }
+  }
+}

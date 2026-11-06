@@ -1,0 +1,352 @@
+{
+  "schema_version": 1,
+  "protocol_version": 1,
+  "generated_by": "syncky-core UnitConversions (do not edit)",
+  "families": [
+    {
+      "name": "blood_glucose",
+      "base": "mg/dL",
+      "units": [
+        {
+          "unit": "mg/dL",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "unit": "mmol<180.15588000005408>/L",
+          "factor": 18.01558800000541,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "conductance",
+      "base": "S",
+      "units": [
+        {
+          "unit": "S",
+          "factor": 1,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "effort_score",
+      "base": "appleEffortScore",
+      "units": [
+        {
+          "unit": "appleEffortScore",
+          "factor": 1,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "energy",
+      "base": "J",
+      "units": [
+        {
+          "unit": "Cal",
+          "factor": 4184,
+          "offset": 0
+        },
+        {
+          "unit": "kJ",
+          "factor": 1000,
+          "offset": 0
+        },
+        {
+          "unit": "kcal",
+          "factor": 4184,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "frequency",
+      "base": "count/min",
+      "units": [
+        {
+          "unit": "count/min",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "unit": "count/s",
+          "factor": 60,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "international_unit",
+      "base": "IU",
+      "units": [
+        {
+          "unit": "IU",
+          "factor": 1,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "length",
+      "base": "mcm",
+      "units": [
+        {
+          "unit": "cm",
+          "factor": 10000,
+          "offset": 0
+        },
+        {
+          "unit": "ft",
+          "factor": 304800,
+          "offset": 0
+        },
+        {
+          "unit": "in",
+          "factor": 25400,
+          "offset": 0
+        },
+        {
+          "unit": "km",
+          "factor": 1000000000,
+          "offset": 0
+        },
+        {
+          "unit": "m",
+          "factor": 1000000,
+          "offset": 0
+        },
+        {
+          "unit": "mi",
+          "factor": 1609344000,
+          "offset": 0
+        },
+        {
+          "unit": "mm",
+          "factor": 1000,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "mass",
+      "base": "mcg",
+      "units": [
+        {
+          "unit": "g",
+          "factor": 1000000,
+          "offset": 0
+        },
+        {
+          "unit": "kg",
+          "factor": 1000000000,
+          "offset": 0
+        },
+        {
+          "unit": "lb",
+          "factor": 453592370,
+          "offset": 0
+        },
+        {
+          "unit": "mcg",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "unit": "mg",
+          "factor": 1000,
+          "offset": 0
+        },
+        {
+          "unit": "oz",
+          "factor": 2.8349523125E7,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "metabolic_rate",
+      "base": "kcal/(kg*hr)",
+      "units": [
+        {
+          "unit": "kcal/(kg*hr)",
+          "factor": 1,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "oxygen_uptake",
+      "base": "ml/(kg*min)",
+      "units": [
+        {
+          "unit": "ml/(kg*min)",
+          "factor": 1,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "percent",
+      "base": "%",
+      "units": [
+        {
+          "unit": "%",
+          "factor": 1,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "power",
+      "base": "W",
+      "units": [
+        {
+          "unit": "W",
+          "factor": 1,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "pressure",
+      "base": "mmHg",
+      "units": [
+        {
+          "unit": "mmHg",
+          "factor": 1,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "scalar",
+      "base": "count",
+      "units": [
+        {
+          "unit": "count",
+          "factor": 1,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "sound_pressure_level",
+      "base": "dBASPL",
+      "units": [
+        {
+          "unit": "dBASPL",
+          "factor": 1,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "speed",
+      "base": "mm/hr",
+      "units": [
+        {
+          "unit": "km/hr",
+          "factor": 1000000,
+          "offset": 0
+        },
+        {
+          "unit": "m/s",
+          "factor": 3600000,
+          "offset": 0
+        },
+        {
+          "unit": "mi/hr",
+          "factor": 1609344,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "temperature",
+      "base": "degR",
+      "units": [
+        {
+          "unit": "K",
+          "factor": 1.8,
+          "offset": 0
+        },
+        {
+          "unit": "degC",
+          "factor": 1.8,
+          "offset": 491.67
+        },
+        {
+          "unit": "degF",
+          "factor": 1,
+          "offset": 459.67
+        }
+      ]
+    },
+    {
+      "name": "time",
+      "base": "ms",
+      "units": [
+        {
+          "unit": "hr",
+          "factor": 3600000,
+          "offset": 0
+        },
+        {
+          "unit": "min",
+          "factor": 60000,
+          "offset": 0
+        },
+        {
+          "unit": "ms",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "unit": "s",
+          "factor": 1000,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "volume",
+      "base": "pL",
+      "units": [
+        {
+          "unit": "L",
+          "factor": 1000000000000,
+          "offset": 0
+        },
+        {
+          "unit": "cup_us",
+          "factor": 236588236500,
+          "offset": 0
+        },
+        {
+          "unit": "fl_oz_us",
+          "factor": 2.95735295625E10,
+          "offset": 0
+        },
+        {
+          "unit": "mL",
+          "factor": 1000000000,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "name": "volume_flow",
+      "base": "L/min",
+      "units": [
+        {
+          "unit": "L/min",
+          "factor": 1,
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}

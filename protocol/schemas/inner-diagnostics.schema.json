@@ -1,0 +1,1143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://syncky.app/protocol/schemas/inner-diagnostics.schema.json",
+  "title": "Diagnostics data inner message",
+  "description": "Closed safe archive. UTF-8 input and normalized JSON at most 180000 bytes. Window at most 48 hours; events inside the window. Data envelopes only.",
+  "$ref": "#/$defs/diagnostics",
+  "$defs": {
+    "diagnostics": {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "type": {
+          "const": "diagnostics"
+        },
+        "archive_ref": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+        },
+        "request_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "generated_at": {
+          "type": "string",
+          "maxLength": 40,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+        },
+        "window_start": {
+          "type": "string",
+          "maxLength": 40,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+        },
+        "window_end": {
+          "type": "string",
+          "maxLength": 40,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+        },
+        "checks": {
+          "type": "object",
+          "properties": {
+            "checked_at": {
+              "type": "string",
+              "maxLength": 40,
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+            },
+            "relay_state": {
+              "type": "string",
+              "enum": [
+                "notApplicable",
+                "missing",
+                "stale",
+                "incomplete",
+                "current"
+              ]
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "healthUnavailable",
+                      "healthSelection",
+                      "healthNotRequested",
+                      "healthPartial",
+                      "reviewHealthAccess",
+                      "lowPowerMode",
+                      "backgroundRefreshOff",
+                      "backgroundRefreshRestricted",
+                      "notificationsDenied",
+                      "settingsUnknown",
+                      "lockedRun",
+                      "relayUnreachable",
+                      "relayEvidenceUnknown",
+                      "statusUnknown",
+                      "planPaused",
+                      "connectionPaused",
+                      "connectionNeedsAttention",
+                      "serverRetrying",
+                      "agentNotPolling",
+                      "agentNotAcking",
+                      "agentQueueBacklog",
+                      "agentEvidenceUnknown",
+                      "wakesNotAnswered",
+                      "noRecentSuccess",
+                      "neverSuccessful"
+                    ]
+                  },
+                  "fixes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "healthAccess",
+                        "healthSelection",
+                        "appSettings",
+                        "notificationSettings",
+                        "sync",
+                        "plans",
+                        "refreshRelay",
+                        "connection"
+                      ]
+                    },
+                    "maxItems": 180000
+                  },
+                  "observed_at": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 40,
+                        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "since": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 40,
+                        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "count": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 2147483647
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "connection": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "baseline_source": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "relayContact",
+                          "localRun"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "possible_causes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "backgroundBudget",
+                        "forceQuit",
+                        "lowPowerMode"
+                      ]
+                    },
+                    "maxItems": 180000
+                  }
+                },
+                "required": [
+                  "kind",
+                  "fixes",
+                  "possible_causes"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 180000
+            }
+          },
+          "required": [
+            "checked_at",
+            "relay_state",
+            "findings"
+          ],
+          "additionalProperties": false
+        },
+        "app": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^(unknown|[0-9]+(\\.[0-9]+)*)(?![\\s\\S])",
+              "maxLength": 32
+            },
+            "build": {
+              "type": "string",
+              "pattern": "^(unknown|[0-9]+(\\.[0-9]+)*)(?![\\s\\S])",
+              "maxLength": 32
+            },
+            "os": {
+              "type": "string",
+              "pattern": "^(unknown|[0-9]+(\\.[0-9]+)*)(?![\\s\\S])",
+              "maxLength": 32
+            },
+            "channel": {
+              "type": "string",
+              "enum": [
+                "dev",
+                "staging",
+                "release",
+                "unknown"
+              ]
+            }
+          },
+          "required": [
+            "version",
+            "build",
+            "os",
+            "channel"
+          ],
+          "additionalProperties": false
+        },
+        "pairing": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "available",
+                "unavailable"
+              ]
+            },
+            "paired": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "device": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "agent": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "confirmed": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "status"
+          ],
+          "additionalProperties": false
+        },
+        "connections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "reference": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "server",
+                  "agent"
+                ]
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "ok",
+                  "retrying",
+                  "paused",
+                  "waiting_for_plan",
+                  "awaiting_confirmation"
+                ]
+              },
+              "pause_reason": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "disabled",
+                      "plan_ended",
+                      "unpaired",
+                      "hub_suspended",
+                      "agent_left",
+                      "untrusted_relay",
+                      "pairing_unreadable"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "last_success_at": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 40,
+                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "delivery_mode": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "poll",
+                      "webhook"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "last_poll_at": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 40,
+                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "last_ack_at": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 40,
+                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "activity_as_of": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 40,
+                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "live_waiting_count": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "relay_failure": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "network",
+                  "storage",
+                  "crypto",
+                  "protocol",
+                  "other",
+                  "rate_limited",
+                  "invalid_token",
+                  "relay_error",
+                  "healthkit_database_inaccessible",
+                  "healthkit_unavailable",
+                  "healthkit_authorization_exception",
+                  "not_paired",
+                  "busy",
+                  "client_outdated",
+                  "untrusted_relay",
+                  "agent_key_mismatch",
+                  "needs_sync_relay",
+                  "agent_unconfirmed",
+                  "app_attest_failed",
+                  "attestation_repair_required"
+                ]
+              }
+            },
+            "required": [
+              "reference",
+              "kind",
+              "state",
+              "relay_failure"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 180000
+        },
+        "ledger_counts": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "available",
+                "unavailable"
+              ]
+            },
+            "pending_apply": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2147483647
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "pending_acks": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2147483647
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "status"
+          ],
+          "additionalProperties": false
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "type": "string",
+                "maxLength": 40,
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "sync_started",
+                  "sync_finished",
+                  "sync_skipped",
+                  "push_received",
+                  "push_registration",
+                  "relay_exchange"
+                ]
+              },
+              "trigger": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "manual",
+                      "foreground",
+                      "shortcut",
+                      "widget",
+                      "push",
+                      "resend",
+                      "unknown",
+                      "healthkit_observer",
+                      "bg_refresh"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "result": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "ok",
+                      "partial",
+                      "failed",
+                      "expired",
+                      "unknown",
+                      "pairing_changed",
+                      "skipped_locked",
+                      "skipped_not_paired",
+                      "skipped_not_authorized",
+                      "skipped_busy",
+                      "skipped_throttled",
+                      "skipped_outdated",
+                      "skipped_no_plan"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "network",
+                  "storage",
+                  "crypto",
+                  "protocol",
+                  "other",
+                  "rate_limited",
+                  "invalid_token",
+                  "relay_error",
+                  "healthkit_database_inaccessible",
+                  "healthkit_unavailable",
+                  "healthkit_authorization_exception",
+                  "not_paired",
+                  "busy",
+                  "client_outdated",
+                  "untrusted_relay",
+                  "agent_key_mismatch",
+                  "needs_sync_relay",
+                  "agent_unconfirmed",
+                  "app_attest_failed",
+                  "attestation_repair_required"
+                ]
+              },
+              "counts": {
+                "type": "object",
+                "properties": {
+                  "fetched": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 2147483647
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "applied": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 2147483647
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "acked": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 2147483647
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "uploaded": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 2147483647
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "queued": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 2147483647
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              },
+              "http_status": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 599
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "connection": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "push_kind": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "sync_wake",
+                      "unlock_to_apply",
+                      "remove",
+                      "no_sync",
+                      "unpaired",
+                      "hub_suspended",
+                      "hub_deleting",
+                      "update_required",
+                      "diagnostics_request",
+                      "access_request",
+                      "unknown"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "at",
+              "kind",
+              "reason",
+              "counts"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 180000
+        },
+        "relay_summary": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "not_collected",
+                "available",
+                "unavailable",
+                "unsupported_route",
+                "not_applicable"
+              ]
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "unavailable",
+                    "authentication",
+                    "rate_limited",
+                    "invalid_response"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "http_status": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 599
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "is_stale": {
+              "type": "boolean"
+            },
+            "phone_last_contact_source": {
+              "type": "string",
+              "enum": [
+                "relay_push_tokens",
+                "unknown"
+              ]
+            },
+            "agent_activity": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "reference": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+                  },
+                  "joined_at": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                  },
+                  "delivery_mode": {
+                    "type": "string",
+                    "enum": [
+                      "poll",
+                      "webhook"
+                    ]
+                  },
+                  "last_poll_at": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 40,
+                        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "poll_mode_since": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 40,
+                        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "last_ack_at": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 40,
+                        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "last_webhook_at": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 40,
+                        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ack_wait_since": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 40,
+                        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "live_waiting_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  },
+                  "poll_interval_s": {
+                    "type": "integer",
+                    "minimum": 300,
+                    "maximum": 86400
+                  }
+                },
+                "required": [
+                  "reference",
+                  "joined_at",
+                  "delivery_mode",
+                  "live_waiting_count",
+                  "poll_interval_s"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 64
+            },
+            "pending": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "phone_inbound": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "phone_to_agent": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    }
+                  },
+                  "required": [
+                    "phone_inbound",
+                    "phone_to_agent"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "as_of": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 40,
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "history_since": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 40,
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "phone_last_contact_at": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 40,
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "local_last_relay_exchange_at": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 40,
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "local_last_run_at": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 40,
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "local_last_run_source": {
+              "type": "string",
+              "enum": [
+                "local_run",
+                "unknown"
+              ]
+            },
+            "local_last_run_as_of": {
+              "type": "string",
+              "maxLength": 40,
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+            },
+            "push_sends": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "sync_wake",
+                          "unlock_to_apply",
+                          "remove",
+                          "no_sync",
+                          "unpaired",
+                          "hub_suspended",
+                          "hub_deleting",
+                          "update_required",
+                          "diagnostics_request",
+                          "access_request"
+                        ]
+                      },
+                      "sent_at": {
+                        "type": "string",
+                        "maxLength": 40,
+                        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+                      },
+                      "apns_status": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 599
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "outcome": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "response",
+                              "network",
+                              "timeout"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "sent_at",
+                      "apns_status",
+                      "outcome"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 50
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "status",
+            "reason",
+            "http_status",
+            "is_stale",
+            "phone_last_contact_source",
+            "agent_activity",
+            "pending",
+            "as_of",
+            "history_since",
+            "phone_last_contact_at",
+            "local_last_relay_exchange_at",
+            "local_last_run_at",
+            "local_last_run_source",
+            "local_last_run_as_of",
+            "push_sends"
+          ],
+          "additionalProperties": false
+        },
+        "truncation": {
+          "type": "object",
+          "properties": {
+            "store_expired": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            "store_evicted": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            "archive_events": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            "archive_expired": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            "connections": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            "findings": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            "push_sends": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            "available_history_start": {
+              "type": "string",
+              "maxLength": 40,
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z(?![\\s\\S])"
+            },
+            "history_status": {
+              "type": "string",
+              "enum": [
+                "available",
+                "unavailable"
+              ]
+            }
+          },
+          "required": [
+            "store_expired",
+            "store_evicted",
+            "archive_events",
+            "archive_expired",
+            "connections",
+            "findings",
+            "push_sends",
+            "available_history_start",
+            "history_status"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "v",
+        "type",
+        "archive_ref",
+        "request_ref",
+        "generated_at",
+        "window_start",
+        "window_end",
+        "checks",
+        "app",
+        "pairing",
+        "connections",
+        "ledger_counts",
+        "events",
+        "relay_summary",
+        "truncation"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

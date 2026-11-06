@@ -1,0 +1,10 @@
+{
+  "queued": "diagnostics request <ref> queued, expires <expires>\n",
+  "refused": "diagnostics request refused (pending_limit): One pending diagnostics request per agent; wait for its outcome or expiry.\n",
+  "pending": "<ref>  m_dev_1  pending    expires <expires>\n",
+  "empty": "no diagnostics reports\n",
+  "help_summary": "read locally received diagnostics reports",
+  "tool_help": "and syncky_diagnostics (list/show local diagnostics reports; read-only).",
+  "unavailable": "diagnostics report unavailable",
+  "rate_limited": "One diagnostics report or request per rolling 24 hours; available again at <available>."
+}

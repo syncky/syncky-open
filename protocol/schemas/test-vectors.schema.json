@@ -1,0 +1,1024 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://syncky.app/protocol/schemas/test-vectors.schema.json",
+  "title": "protocol/test-vectors/*.json: one def per vector file",
+  "$defs": {
+    "app_attest_client_data_file": {
+      "description": "Public synthetic clientData inputs, exact UTF-8 strings and SHA-256 digests; body bytes and digests use unpadded base64url. No Apple attestation or assertion objects.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "const": "syncky-core GenerateProtocolArtifacts" },
+        "cases": { "type": "array", "minItems": 1, "items": { "oneOf": [
+          { "$ref": "#/$defs/app_attest_attestation_case" },
+          { "$ref": "#/$defs/app_attest_assertion_case" }
+        ] } }
+      }
+    },
+    "app_attest_attestation_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "challenge", "hub_id", "public_key", "pairing_token", "client_data", "client_data_sha256"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$", "maxLength": 128 },
+        "kind": { "type": "string", "const": "attestation" },
+        "challenge": { "$ref": "#/$defs/b64url_32" },
+        "hub_id": { "$ref": "#/$defs/hub_id" },
+        "public_key": { "$ref": "#/$defs/b64url_32" },
+        "pairing_token": { "$ref": "#/$defs/pairing_token" },
+        "client_data": { "type": "string", "minLength": 1 },
+        "client_data_sha256": { "$ref": "#/$defs/b64url_32" }
+      }
+    },
+    "app_attest_assertion_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "method", "path", "body", "token", "timestamp_ms", "client_data", "client_data_sha256"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$", "maxLength": 128 },
+        "kind": { "type": "string", "const": "assertion" },
+        "method": { "type": "string", "enum": ["post", "put", "delete"] },
+        "path": { "type": "string", "pattern": "^/[^?#\\r\\n]*$" },
+        "body": { "type": "string", "pattern": "^(?:[A-Za-z0-9_-]{4})*(?:[A-Za-z0-9_-][AQgw]|[A-Za-z0-9_-]{2}[AEIMQUYcgkosw048])?$" },
+        "token": { "type": "string", "minLength": 1 },
+        "timestamp_ms": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "client_data": { "type": "string", "minLength": 1 },
+        "client_data_sha256": { "$ref": "#/$defs/b64url_32" }
+      }
+    },
+    "keys_file": {
+      "type": "object",
+      "required": ["agent", "dev1", "dev2", "mallory"],
+      "properties": {
+        "agent": { "$ref": "#/$defs/key_entry" },
+        "dev1": { "$ref": "#/$defs/key_entry" },
+        "dev2": { "$ref": "#/$defs/key_entry" },
+        "mallory": { "$ref": "#/$defs/key_entry" }
+      },
+      "additionalProperties": { "$ref": "#/$defs/key_entry" }
+    },
+    "key_entry": {
+      "type": "object",
+      "required": ["ikm", "sk", "pk", "member_id"],
+      "properties": {
+        "ikm": { "$ref": "#/$defs/b64url_32" },
+        "sk": { "$ref": "#/$defs/b64url_32" },
+        "pk": { "$ref": "#/$defs/b64url_32" },
+        "member_id": { "$ref": "#/$defs/member_id" }
+      }
+    },
+    "envelopes_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "minLength": 1 },
+        "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/envelope_case" } }
+      }
+    },
+    "envelope_case": {
+      "type": "object",
+      "required": ["name", "hub_id", "sender", "recipients", "cek", "nonce", "plaintext", "aad", "envelope"],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "hub_id": { "$ref": "#/$defs/hub_id" },
+        "sender": { "type": "string", "minLength": 1 },
+        "recipients": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 7,
+          "items": {
+            "type": "object",
+            "required": ["key", "member_id", "ikm_e", "sk_e", "pk_e"],
+            "properties": {
+              "key": { "type": "string", "minLength": 1 },
+              "member_id": { "$ref": "#/$defs/member_id" },
+              "ikm_e": { "$ref": "#/$defs/b64url_32" },
+              "sk_e": { "$ref": "#/$defs/b64url_32" },
+              "pk_e": { "$ref": "#/$defs/b64url_32" }
+            }
+          }
+        },
+        "cek": { "$ref": "#/$defs/b64url_32" },
+        "nonce": { "$ref": "#/$defs/b64url_12" },
+        "plaintext": { "type": "string" },
+        "aad": {
+          "type": "string",
+          "pattern": "^syncky-v1\\|hub_[A-Za-z0-9_-]{22}\\|[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\|m_(agent|dev)_[1-9][0-9]{0,5}(\\|control(\\|(diagnostics|access)=(request|reply))?|\\|diagnostics=archive)?$"
+        },
+        "envelope": { "$ref": "#/$defs/envelope" }
+      }
+    },
+    "envelopes_negative_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "minLength": 1 },
+        "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/negative_envelope_case" } }
+      }
+    },
+    "negative_envelope_case": {
+      "type": "object",
+      "required": ["name", "base", "mutation", "envelope", "receiver", "hub_id", "registry", "expect"],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "base": { "type": "string", "minLength": 1 },
+        "mutation": { "type": "string", "minLength": 1 },
+        "envelope": {},
+        "receiver": { "type": "string", "minLength": 1 },
+        "hub_id": { "type": "string", "minLength": 1 },
+        "registry": { "type": "object" },
+        "expect": {
+          "type": "string",
+          "enum": ["aead_failed", "hpke_open_failed", "not_a_recipient", "unknown_sender", "malformed", "inner_invalid"]
+        }
+      }
+    },
+    "envelope_shape_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "minLength": 1 },
+        "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/shape_case" } }
+      }
+    },
+    "shape_case": {
+      "description": "envelope is the parsed body; raw is the exact body text for malformations a parsed value cannot carry",
+      "type": "object",
+      "required": ["name", "caller", "members", "expect"],
+      "oneOf": [
+        { "type": "object", "properties": { "envelope": true }, "required": ["envelope"] },
+        { "type": "object", "properties": { "raw": true }, "required": ["raw"] }
+      ],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "envelope": {},
+        "raw": { "type": "string" },
+        "caller": { "type": "string", "minLength": 1 },
+        "members": { "type": "array", "items": { "type": "string" } },
+        "expect": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status"],
+              "properties": { "status": { "type": "integer", "const": 201 } }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status", "error", "field"],
+              "properties": {
+                "status": { "type": "integer", "const": 400 },
+                "error": { "type": "string", "const": "invalid_envelope" },
+                "field": { "type": "string", "pattern": "^(/[^/]*)*$" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status", "error", "member_ids"],
+              "properties": {
+                "status": { "type": "integer", "const": 404 },
+                "error": { "type": "string", "const": "unknown_recipient" },
+                "member_ids": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "inner_messages_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "minLength": 1 },
+        "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/inner_case" } }
+      }
+    },
+    "inner_case": {
+      "description": "json is the exact input text handed to the parser, so unparsable and non-object inputs are representable; kind is the envelope kind it arrived in (absent = data), present on the system_ cases only; /type in dropped is an unknown system type inside a control envelope",
+      "type": "object",
+      "required": ["name", "json", "expect"],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "json": { "type": "string" },
+        "kind": { "type": "string", "enum": ["data", "control"] },
+        "expect": { "type": "string", "enum": ["ok", "invalid", "unsupported_version"] },
+        "normalized": { "type": "object" },
+        "dropped": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^(/(samples|deleted|acks|commands)/(0|[1-9][0-9]*)|/scope|/type)$" }
+        }
+      },
+      "if": { "type": "object", "properties": { "expect": { "type": "string", "const": "ok" } } },
+      "then": { "type": "object", "properties": { "normalized": { "type": "object" } }, "required": ["normalized"] },
+      "else": {
+        "type": "object",
+        "not": {
+          "type": "object",
+          "anyOf": [
+            { "type": "object", "properties": { "normalized": true }, "required": ["normalized"] },
+            { "type": "object", "properties": { "dropped": true }, "required": ["dropped"] }
+          ]
+        }
+      }
+    },
+    "series_parts_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "minLength": 1 },
+        "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/series_parts_case" } }
+      }
+    },
+    "series_parts_case": {
+      "description": "series is the whole boundary sample, parts the exact wire parts SeriesParts.split cuts at max_part_bytes, reassembled the whole sample the parts give back; arrival replays parts and conflicts in order and expect is the outcome",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "max_part_bytes", "series", "parts", "reassembled", "conflicts", "arrival", "expect"],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "kind": { "type": "string", "enum": ["workout_route", "heartbeat_series"] },
+        "max_part_bytes": { "type": "integer", "minimum": 1 },
+        "series": { "$ref": "#/$defs/whole_series" },
+        "parts": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/series_part" } },
+        "reassembled": { "$ref": "#/$defs/whole_series" },
+        "conflicts": { "type": "array", "items": { "$ref": "#/$defs/series_part" } },
+        "arrival": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["part"],
+                "properties": { "part": { "type": "integer", "minimum": 0 } }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["conflict"],
+                "properties": { "conflict": { "type": "integer", "minimum": 0 } }
+              }
+            ]
+          }
+        },
+        "expect": { "type": "string", "enum": ["ok", "incomplete", "inconsistent"] }
+      }
+    },
+    "whole_series": {
+      "type": "object",
+      "required": ["uuid", "type", "count"],
+      "properties": {
+        "uuid": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "enum": ["workout_route", "heartbeat_series"] },
+        "count": { "type": "integer", "minimum": 0 }
+      },
+      "not": {
+        "type": "object",
+        "anyOf": [
+          { "type": "object", "properties": { "part": true }, "required": ["part"] },
+          { "type": "object", "properties": { "parts": true }, "required": ["parts"] }
+        ]
+      }
+    },
+    "series_part": {
+      "type": "object",
+      "required": ["uuid", "type", "count", "part", "parts"],
+      "properties": {
+        "uuid": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "enum": ["workout_route", "heartbeat_series"] },
+        "count": { "type": "integer", "minimum": 0 },
+        "part": { "type": "integer", "minimum": 0 },
+        "parts": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "fingerprints_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "minLength": 1 },
+        "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/fingerprint_case" } }
+      }
+    },
+    "fingerprint_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent_pub", "device_pub", "sha256_hex", "fingerprint"],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "agent_pub": { "$ref": "#/$defs/b64url_32" },
+        "device_pub": { "$ref": "#/$defs/b64url_32" },
+        "sha256_hex": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "fingerprint": { "type": "string", "pattern": "^[0-9]{4}( [0-9]{4}){3}$" }
+      }
+    },
+    "pair_uris_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "minLength": 1 },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/pair_uri_parse_case" },
+              { "$ref": "#/$defs/pair_uri_build_case" }
+            ]
+          }
+        }
+      }
+    },
+    "pair_uri_parse_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "uri", "allow_insecure", "expect"],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "uri": { "type": "string" },
+        "allow_insecure": { "type": "boolean" },
+        "expect": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["ok", "relay_base", "hub_id", "pairing_token", "agent_public_key", "agent_name"],
+              "properties": {
+                "ok": { "type": "boolean", "const": true },
+                "relay_base": { "$ref": "#/$defs/relay_base" },
+                "hub_id": { "$ref": "#/$defs/hub_id" },
+                "pairing_token": { "$ref": "#/$defs/pairing_token" },
+                "agent_public_key": { "$ref": "#/$defs/b64url_32" },
+                "agent_name": { "$ref": "#/$defs/agent_name" },
+                "pair_secret": { "$ref": "#/$defs/b64url_16" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["ok", "error"],
+              "properties": {
+                "ok": { "type": "boolean", "const": false },
+                "error": { "type": "string", "enum": ["invalid_uri", "unsupported_version", "insecure_relay"] },
+                "param": { "type": "string", "minLength": 1 }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "pair_uri_build_case": {
+      "type": "object",
+      "required": ["name", "input", "uri"],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["relay_base", "hub_id", "pairing_token", "agent_public_key", "agent_name"],
+          "properties": {
+            "relay_base": { "$ref": "#/$defs/relay_base" },
+            "hub_id": { "$ref": "#/$defs/hub_id" },
+            "pairing_token": { "$ref": "#/$defs/pairing_token" },
+            "agent_public_key": { "$ref": "#/$defs/b64url_32" },
+            "agent_name": { "$ref": "#/$defs/agent_name" },
+            "pair_secret": { "$ref": "#/$defs/b64url_16" },
+            "url_scheme": { "type": "string", "enum": ["syncky", "syncky-dev", "syncky-staging"], "default": "syncky" }
+          }
+        },
+        "uri": {
+          "description": "v=2 with c exactly when input has pair_secret",
+          "type": "string",
+          "pattern": "^syncky(?:-dev|-staging)?://pair\\?(v=1&r=[^&]+&h=[^&]+&t=[^&]+&k=[^&]+&n=[^&]+|v=2&r=[^&]+&h=[^&]+&t=[^&]+&k=[^&]+&n=[^&]+&c=[A-Za-z0-9_-]{22})(&s=http)?$"
+        }
+      },
+      "not": { "type": "object", "properties": { "expect": true }, "required": ["expect"] }
+    },
+    "pair_codes_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "minLength": 1 },
+        "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/pair_code_case" } }
+      }
+    },
+    "pair_code_case": {
+      "description": "code = 3 groups of SHA-256(\"syncky-code-v2|\" + pair_secret) words mod 1000; choices = the last group and its two decoys, sorted; proof = HMAC-SHA256 keyed by the raw pair_secret over \"syncky-pair-v2|\" + agent_public_key + \"|\" + device_public_key",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "pair_secret", "agent_public_key", "device_public_key", "code", "choices", "proof"],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "pair_secret": { "$ref": "#/$defs/b64url_16" },
+        "agent_public_key": { "$ref": "#/$defs/b64url_32" },
+        "device_public_key": { "$ref": "#/$defs/b64url_32" },
+        "code": { "type": "string", "pattern": "^[0-9]{3} [0-9]{3} [0-9]{3}$" },
+        "choices": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[0-9]{3}$" }
+        },
+        "proof": { "$ref": "#/$defs/b64url_32" }
+      }
+    },
+    "webhook_signatures_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "minLength": 1 },
+        "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/webhook_case" } }
+      }
+    },
+    "webhook_case": {
+      "type": "object",
+      "required": ["secret", "timestamp", "body", "signature", "now", "expect"],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "secret": { "type": "string", "pattern": "^whsec_[A-Za-z0-9_-]{43}$" },
+        "timestamp": { "$ref": "#/$defs/unix_seconds" },
+        "body": { "type": "string" },
+        "signature": { "type": "string" },
+        "now": { "$ref": "#/$defs/unix_seconds" },
+        "expect": { "type": "string", "enum": ["valid", "bad_signature", "stale"] }
+      }
+    },
+    "daily_quantity_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "unit", "start", "end", "stat", "value"],
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "unit": { "type": "string", "minLength": 1 },
+        "start": { "$ref": "#/$defs/timestamp" },
+        "end": { "$ref": "#/$defs/timestamp" },
+        "stat": { "type": "string", "enum": ["sum", "avg"] },
+        "value": { "type": "number" }
+      }
+    },
+    "webhook_requests_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "minLength": 1 },
+        "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/webhook_request_case" } }
+      }
+    },
+    "webhook_request_case": {
+      "description": "one direct webhook delivery: the destination, its secrets and the collected changes in; optional resend defaults to false and marks only native bodies; the exact request bodies (byte-exact, signed) and headers out; an hae case adds the delivery's session_id; a csv body is RFC 4180 rows under the fixed header and an influx body is InfluxDB line protocol, and report.skipped_kinds counts the object-kind samples such a format cannot carry; link is the byte-exact webhook configuration link of the destination and its secrets, using url_scheme (default syncky); follows names an earlier case whose requests the same destination received first",
+      "type": "object",
+      "additionalProperties": false,
+      "if": { "type": "object", "properties": { "format": { "type": "string", "const": "hae" } }, "required": ["format"] },
+      "then": { "type": "object", "properties": { "session_id": true }, "required": ["session_id"] },
+      "else": { "type": "object", "properties": { "session_id": false } },
+      "allOf": [{
+        "if": { "type": "object", "properties": { "summaries": true }, "required": ["summaries"] },
+        "then": { "type": "object", "properties": { "format": { "type": "string", "const": "native" }, "resend": { "type": "boolean", "const": true } }, "required": ["resend"] }
+      }],
+      "required": [
+        "name", "format", "destination", "secrets", "device", "user_agent", "max_request_bytes", "sent_at", "timestamp",
+        "collected", "report", "requests", "link"
+      ],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "follows": { "$ref": "#/$defs/case_name" },
+        "summaries": { "type": "array", "items": { "$ref": "#/$defs/daily_quantity_summary" } },
+        "resend": { "type": "boolean", "default": false },
+        "url_scheme": { "type": "string", "enum": ["syncky", "syncky-dev", "syncky-staging"], "default": "syncky" },
+        "format": { "type": "string", "enum": ["native", "hae", "csv", "influx"] },
+        "destination": {
+          "type": "object",
+          "required": ["id", "name", "url", "format", "auth", "signing", "types", "enabled", "created_at", "send_deletions"],
+          "properties": {
+            "id": { "$ref": "#/$defs/webhook_destination_id" },
+            "name": { "type": "string", "minLength": 1 },
+            "url": { "type": "string", "minLength": 1 },
+            "format": { "type": "string", "enum": ["native", "hae", "csv", "influx"] },
+            "auth": {
+              "type": "object",
+              "required": ["kind"],
+              "properties": {
+                "kind": { "type": "string", "enum": ["none", "bearer", "header", "basic"] },
+                "header_name": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] },
+                "user": { "anyOf": [{ "type": "string", "pattern": "^[ -9;-~]{1,256}$" }, { "type": "null" }] }
+              }
+            },
+            "signing": { "type": "boolean" },
+            "types": { "anyOf": [{ "type": "null" }, { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }] },
+            "enabled": { "type": "boolean" },
+            "created_at": { "type": "string", "minLength": 1 },
+            "send_deletions": { "type": "boolean" }
+          }
+        },
+        "secrets": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "token": { "type": "string", "minLength": 1 },
+            "header_value": { "type": "string", "minLength": 1 },
+            "hmac": { "type": "string", "pattern": "^whsec_[A-Za-z0-9_-]{43}$" }
+          }
+        },
+        "device": { "type": "string", "pattern": "^d_[A-Za-z0-9_-]{22}$" },
+        "user_agent": { "type": "string", "minLength": 1 },
+        "max_request_bytes": { "type": "integer", "minimum": 1 },
+        "sent_at": { "type": "string", "minLength": 1 },
+        "timestamp": { "$ref": "#/$defs/unix_seconds" },
+        "session_id": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+        "collected": {
+          "type": "object",
+          "required": ["samples", "deleted"],
+          "properties": { "samples": { "type": "array" }, "deleted": { "type": "array" } }
+        },
+        "report": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["requests", "samples", "deleted", "dropped", "invalid", "skipped_kinds", "delivered_groups"],
+          "properties": {
+            "requests": { "type": "integer", "minimum": 0 },
+            "samples": { "type": "integer", "minimum": 0 },
+            "summaries": { "type": "integer", "minimum": 0 },
+            "deleted": { "type": "integer", "minimum": 0 },
+            "dropped": { "type": "integer", "minimum": 0 },
+            "invalid": { "type": "integer", "minimum": 0 },
+            "skipped_kinds": { "type": "integer", "minimum": 0 },
+            "delivered_groups": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+          }
+        },
+        "requests": { "type": "array", "items": { "$ref": "#/$defs/webhook_request" } },
+        "link": {
+          "type": "string",
+          "pattern": "^syncky(?:-dev|-staging)?://webhook\\?v=1&name=[^&]+&url=[^&]+&format=(native|hae|csv|influx)&auth=(none|bearer|header|basic)(&header=[^&]+)?(&user=[^&]+)?(&token=[^&]+)?(&hmac=whsec_[A-Za-z0-9_-]{43})?(&types=[^&]+)?$"
+        }
+      }
+    },
+    "webhook_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [{
+        "if": { "type": "object", "properties": { "summaries": { "type": "integer", "minimum": 1 } }, "required": ["summaries"] },
+        "else": { "type": "object", "properties": { "groups": { "type": "array", "minItems": 1 } } }
+      }],
+      "required": ["groups", "samples", "deleted", "headers", "body"],
+      "properties": {
+        "groups": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "summaries": { "type": "integer", "minimum": 0 },
+        "samples": { "type": "integer", "minimum": 0 },
+        "deleted": { "type": "integer", "minimum": 0 },
+        "headers": {
+          "type": "object",
+          "required": ["Content-Type", "User-Agent", "X-Syncky-Format", "X-Syncky-Delivery", "X-Syncky-Destination"],
+          "properties": {
+            "Content-Type": { "type": "string", "enum": ["application/json", "text/csv; charset=utf-8", "text/plain; charset=utf-8"] },
+            "User-Agent": { "type": "string", "minLength": 1 },
+            "X-Syncky-Format": { "type": "string", "enum": ["native", "hae", "csv", "influx"] },
+            "X-Syncky-Delivery": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+            "X-Syncky-Destination": { "$ref": "#/$defs/webhook_destination_id" },
+            "X-Syncky-Timestamp": { "$ref": "#/$defs/unix_seconds" },
+            "X-Syncky-Signature": { "type": "string", "pattern": "^v1=[0-9a-f]{64}$" }
+          },
+          "additionalProperties": { "type": "string" }
+        },
+        "body": { "type": "string", "minLength": 1 }
+      }
+    },
+    "webhook_exchanges_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "minLength": 1 },
+        "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/webhook_exchange_case" } }
+      }
+    },
+    "webhook_exchange_case": {
+      "description": "the server's side of a direct webhook exchange, by kind: a reply to a data request, the results request that reports what the phone did with replied commands, or the Check-connection request of one format",
+      "oneOf": [
+        { "$ref": "#/$defs/webhook_reply_case" },
+        { "$ref": "#/$defs/webhook_results_request_case" },
+        { "$ref": "#/$defs/webhook_test_request_case" }
+      ]
+    },
+    "webhook_reply_case": {
+      "description": "a server's reply to the data request delivery, checked by the phone at now: an http destination needs signing and signature t=<t>,v1=<lowercase hex HMAC-SHA256 of '<delivery>.<t>.<body>' keyed with the UTF-8 of secret>, within 300 s of now; https needs no signature; then content_type application/json and a commands message. signature_valid says whether signature is the exact signature of delivery, t and body, whatever the time window",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "url", "signing", "secret", "delivery", "t", "now", "content_type", "body", "signature", "signature_valid", "expect"],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "kind": { "type": "string", "const": "reply" },
+        "url": { "type": "string", "pattern": "^https?://" },
+        "signing": { "type": "boolean" },
+        "secret": { "type": "string", "pattern": "^whsec_[A-Za-z0-9_-]{43}$" },
+        "delivery": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+        "t": { "$ref": "#/$defs/unix_seconds" },
+        "now": { "$ref": "#/$defs/unix_seconds" },
+        "content_type": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] },
+        "body": { "type": "string" },
+        "signature": { "anyOf": [{ "type": "string", "pattern": "^t=[0-9]{1,15},v1=[0-9A-Fa-f]{64}$" }, { "type": "null" }] },
+        "signature_valid": { "type": "boolean" },
+        "expect": { "$ref": "#/$defs/webhook_reply_verdict" }
+      }
+    },
+    "webhook_reply_verdict": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["verdict", "count"],
+          "properties": { "verdict": { "type": "string", "const": "commands" }, "count": { "type": "integer", "minimum": 0 } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["verdict"],
+          "properties": { "verdict": { "type": "string", "const": "empty" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["verdict", "reason"],
+          "properties": {
+            "verdict": { "type": "string", "const": "ignored" },
+            "reason": { "type": "string", "enum": ["too_large", "not_json", "not_commands", "unsigned", "bad_signature"] }
+          }
+        }
+      ]
+    },
+    "webhook_exchange_destination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "url", "format", "auth", "signing", "types", "enabled", "created_at", "send_deletions", "accept_writes", "write_types"],
+      "properties": {
+        "id": { "$ref": "#/$defs/webhook_destination_id" },
+        "name": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "pattern": "^https?://" },
+        "format": { "type": "string", "enum": ["native", "hae", "csv", "influx"] },
+        "auth": {
+          "type": "object",
+          "required": ["kind"],
+          "properties": {
+            "kind": { "type": "string", "enum": ["none", "bearer", "header", "basic"] },
+            "header_name": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] },
+            "user": { "anyOf": [{ "type": "string", "pattern": "^[ -9;-~]{1,256}$" }, { "type": "null" }] }
+          }
+        },
+        "signing": { "type": "boolean" },
+        "types": { "anyOf": [{ "type": "null" }, { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }] },
+        "enabled": { "type": "boolean" },
+        "created_at": { "type": "string", "minLength": 1 },
+        "send_deletions": { "type": "boolean" },
+        "accept_writes": { "type": "boolean" },
+        "write_types": { "anyOf": [{ "type": "null" }, { "type": "array", "items": { "type": "string", "minLength": 1 } }] }
+      }
+    },
+    "webhook_exchange_secrets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "token": { "type": "string", "minLength": 1 },
+        "header_value": { "type": "string", "minLength": 1 },
+        "hmac": { "type": "string", "pattern": "^whsec_[A-Za-z0-9_-]{43}$" }
+      }
+    },
+    "webhook_results_request_case": {
+      "description": "the results request the phone sends after a reply's commands are applied or rejected: body is the byte-exact results message, headers the byte-exact headers in send order, signed like a data request",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "destination", "secrets", "user_agent", "delivery", "timestamp", "headers", "body"],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "kind": { "type": "string", "const": "results_request" },
+        "destination": { "$ref": "#/$defs/webhook_exchange_destination" },
+        "secrets": { "$ref": "#/$defs/webhook_exchange_secrets" },
+        "user_agent": { "type": "string", "minLength": 1 },
+        "delivery": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+        "timestamp": { "$ref": "#/$defs/unix_seconds" },
+        "headers": {
+          "type": "object",
+          "required": ["Content-Type", "User-Agent", "X-Syncky-Kind", "X-Syncky-Delivery", "X-Syncky-Destination"],
+          "properties": {
+            "Content-Type": { "type": "string", "const": "application/json" },
+            "User-Agent": { "type": "string", "minLength": 1 },
+            "X-Syncky-Kind": { "type": "string", "const": "results" },
+            "X-Syncky-Delivery": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+            "X-Syncky-Destination": { "$ref": "#/$defs/webhook_destination_id" },
+            "X-Syncky-Timestamp": { "$ref": "#/$defs/unix_seconds" },
+            "X-Syncky-Signature": { "type": "string", "pattern": "^v1=[0-9a-f]{64}$" }
+          },
+          "additionalProperties": { "type": "string" }
+        },
+        "body": { "type": "string", "minLength": 1 }
+      }
+    },
+    "webhook_test_request_case": {
+      "description": "the Check-connection request of one format: the format's body for no changes with the delivery marked as a test, byte-exact (an influx body is empty), and its byte-exact headers; an hae case carries the session_id of its session-id header",
+      "type": "object",
+      "additionalProperties": false,
+      "if": { "type": "object", "properties": { "format": { "type": "string", "const": "hae" } }, "required": ["format"] },
+      "then": { "type": "object", "properties": { "session_id": true }, "required": ["session_id"] },
+      "else": { "type": "object", "properties": { "session_id": false } },
+      "required": ["name", "kind", "format", "destination", "secrets", "device", "user_agent", "sent_at", "delivery", "timestamp", "headers", "body"],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "kind": { "type": "string", "const": "test_request" },
+        "format": { "type": "string", "enum": ["native", "hae", "csv", "influx"] },
+        "destination": { "$ref": "#/$defs/webhook_exchange_destination" },
+        "secrets": { "$ref": "#/$defs/webhook_exchange_secrets" },
+        "device": { "type": "string", "pattern": "^d_[A-Za-z0-9_-]{22}$" },
+        "user_agent": { "type": "string", "minLength": 1 },
+        "sent_at": { "type": "string", "minLength": 1 },
+        "session_id": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+        "delivery": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+        "timestamp": { "$ref": "#/$defs/unix_seconds" },
+        "headers": {
+          "type": "object",
+          "required": ["Content-Type", "User-Agent", "X-Syncky-Format", "X-Syncky-Delivery", "X-Syncky-Destination"],
+          "properties": {
+            "Content-Type": { "type": "string", "enum": ["application/json", "text/csv; charset=utf-8", "text/plain; charset=utf-8"] },
+            "User-Agent": { "type": "string", "minLength": 1 },
+            "X-Syncky-Format": { "type": "string", "enum": ["native", "hae", "csv", "influx"] },
+            "X-Syncky-Delivery": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+            "X-Syncky-Destination": { "$ref": "#/$defs/webhook_destination_id" },
+            "X-Syncky-Timestamp": { "$ref": "#/$defs/unix_seconds" },
+            "X-Syncky-Signature": { "type": "string", "pattern": "^v1=[0-9a-f]{64}$" }
+          },
+          "additionalProperties": { "type": "string" }
+        },
+        "body": { "type": "string" }
+      }
+    },
+    "webhook_destination_id": { "type": "string", "pattern": "^wh_[A-Za-z0-9_-]{22}$" },
+    "command_policy_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "minLength": 1 },
+        "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/command_policy_case" } }
+      }
+    },
+    "command_policy_case": {
+      "description": "command is the parsed command the phone evaluates at now; an allowed quantity write carries the canonical value and unit after conversion, compared by value",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "now", "command", "expect"],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "now": { "$ref": "#/$defs/timestamp" },
+        "command": { "type": "object" },
+        "expect": { "type": "string", "enum": ["allow", "reject"] },
+        "scope": { "$ref": "#/$defs/command_policy_scope" },
+        "reason": { "type": "string", "enum": ["type_not_allowed", "type_not_in_scope", "invalid", "value_out_of_range"] },
+        "value": { "type": "number" },
+        "unit": { "type": "string", "minLength": 1 }
+      },
+      "if": { "type": "object", "properties": { "expect": { "type": "string", "const": "reject" } }, "required": ["expect"] },
+      "then": { "type": "object", "properties": { "reason": true, "value": false, "unit": false }, "required": ["reason"] },
+      "else": {
+        "type": "object",
+        "properties": { "reason": false },
+        "dependentRequired": { "value": ["unit"], "unit": ["value"] }
+      }
+    },
+    "command_policy_scope": {
+      "description": "the receiving agent's full scope the phone evaluates the command against; absent means read and write \"all\"",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read", "write"],
+      "properties": {
+        "read": { "$ref": "#/$defs/command_policy_scope_selection" },
+        "write": { "$ref": "#/$defs/command_policy_scope_selection" }
+      }
+    },
+    "command_policy_scope_selection": {
+      "anyOf": [
+        { "type": "string", "const": "all" },
+        { "type": "string", "const": "none" },
+        { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$" } }
+      ]
+    },
+    "unix_seconds": {
+      "anyOf": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" }
+      ]
+    },
+    "rfc9180_file": {
+      "description": "the vendored upstream entry; hex stays hex as upstream, extra upstream keys are allowed",
+      "type": "object",
+      "required": [
+        "mode", "kem_id", "kdf_id", "aead_id", "info", "ikmE", "pkEm", "skEm", "ikmR", "pkRm", "skRm",
+        "ikmS", "pkSm", "skSm", "enc", "shared_secret", "key", "base_nonce", "encryptions"
+      ],
+      "properties": {
+        "mode": { "type": "integer", "const": 2 },
+        "kem_id": { "type": "integer", "const": 32 },
+        "kdf_id": { "type": "integer", "const": 1 },
+        "aead_id": { "type": "integer", "const": 3 },
+        "info": { "$ref": "#/$defs/hex" },
+        "ikmE": { "$ref": "#/$defs/hex32" },
+        "pkEm": { "$ref": "#/$defs/hex32" },
+        "skEm": { "$ref": "#/$defs/hex32" },
+        "ikmR": { "$ref": "#/$defs/hex32" },
+        "pkRm": { "$ref": "#/$defs/hex32" },
+        "skRm": { "$ref": "#/$defs/hex32" },
+        "ikmS": { "$ref": "#/$defs/hex32" },
+        "pkSm": { "$ref": "#/$defs/hex32" },
+        "skSm": { "$ref": "#/$defs/hex32" },
+        "enc": { "$ref": "#/$defs/hex32" },
+        "shared_secret": { "$ref": "#/$defs/hex32" },
+        "key": { "$ref": "#/$defs/hex32" },
+        "base_nonce": { "type": "string", "pattern": "^[0-9a-f]{24}$" },
+        "secret": { "$ref": "#/$defs/hex" },
+        "exporter_secret": { "$ref": "#/$defs/hex" },
+        "key_schedule_context": { "$ref": "#/$defs/hex" },
+        "encryptions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["aad", "ct", "nonce", "pt"],
+            "properties": {
+              "aad": { "$ref": "#/$defs/hex" },
+              "ct": { "$ref": "#/$defs/hex" },
+              "nonce": { "type": "string", "pattern": "^[0-9a-f]{24}$" },
+              "pt": { "$ref": "#/$defs/hex" }
+            }
+          }
+        },
+        "exports": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["exporter_context", "L", "exported_value"],
+            "properties": {
+              "exporter_context": { "$ref": "#/$defs/hex" },
+              "L": { "type": "integer", "minimum": 0 },
+              "exported_value": { "$ref": "#/$defs/hex" }
+            }
+          }
+        }
+      }
+    },
+    "bridge_json_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "minLength": 1 },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "description": "json is the exact boundary JSON text emitted by the core's DTO serializers; status and sync_outcome may carry additive queue/pause and initial-completion fields, and collected may carry collection_completion, accepted_parts fingerprints and collection_probe; sync_outcome may return accepted_parts for a relay checkpoint",
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "kind", "json"],
+            "properties": {
+              "name": { "$ref": "#/$defs/case_name" },
+              "kind": {
+                "type": "string",
+                "pattern": "^(pair_result|status|unpair_result|sync_outcome|results|journal|collected|hub_state|notice_result|push_registration|pair_code_result|webhook_url_policy|webhook_link_preview|webhook_save_result|webhook_delivery_report|diagnostics_requests|access_requests|core_tools_[a-z][a-z_]*)$"
+              },
+              "json": { "type": "string", "minLength": 2 }
+            }
+          }
+        }
+      }
+    },
+    "envelope": {
+      "description": "a copy of envelope.schema.json#/$defs/submitted (no cross-file refs)",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "msg_id", "kind", "from", "created_at", "recipients", "nonce", "ciphertext"],
+      "allOf": [
+        { "not": { "type": "object", "properties": { "diagnostics": true, "access": true }, "required": ["diagnostics", "access"] } },
+        { "anyOf": [
+          { "not": { "type": "object", "properties": { "access": true }, "required": ["access"] } },
+          { "type": "object", "properties": { "kind": { "type": "string", "const": "control" } } }
+        ] }
+      ],
+      "anyOf": [
+        { "type": "object", "properties": { "kind": { "type": "string", "const": "control" }, "diagnostics": { "type": "string", "enum": ["request", "reply"] } } },
+        { "type": "object", "properties": { "kind": { "type": "string", "const": "data" }, "diagnostics": { "type": "string", "const": "archive" } } }
+      ],
+      "properties": {
+        "v": { "type": "integer", "const": 1 },
+        "msg_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "kind": { "type": "string", "enum": ["data", "control"] },
+        "diagnostics": { "type": "string", "enum": ["request", "reply", "archive"] },
+        "access": { "type": "string", "enum": ["request", "reply"] },
+        "from": { "$ref": "#/$defs/member_id" },
+        "created_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?([Zz]|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$"
+        },
+        "recipients": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 7,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["member_id", "enc", "wrapped_key"],
+            "properties": {
+              "member_id": { "$ref": "#/$defs/member_id" },
+              "enc": { "$ref": "#/$defs/b64url_32" },
+              "wrapped_key": { "type": "string", "pattern": "^[A-Za-z0-9_-]{64}$" }
+            }
+          }
+        },
+        "nonce": { "$ref": "#/$defs/b64url_12" },
+        "ciphertext": {
+          "type": "string",
+          "minLength": 22,
+          "pattern": "^([A-Za-z0-9_-]{4})*([A-Za-z0-9_-]{2,3})?$"
+        }
+      }
+    },
+    "timestamp": {
+      "description": "RFC 3339 emit form",
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.([1-9][0-9]{2}|0[1-9][0-9]|00[1-9]))?Z$"
+    },
+    "case_name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_.-]{0,127}$"
+    },
+    "hub_id": {
+      "type": "string",
+      "pattern": "^hub_[A-Za-z0-9_-]{22}$"
+    },
+    "member_id": {
+      "type": "string",
+      "pattern": "^m_(agent|dev)_[1-9][0-9]{0,5}$"
+    },
+    "pairing_token": {
+      "type": "string",
+      "pattern": "^pt_[A-Za-z0-9_-]{43}$"
+    },
+    "relay_base": {
+      "type": "string",
+      "pattern": "^https?://[^/?#@\\s]+$"
+    },
+    "agent_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "b64url_16": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{21}[AQgw]$"
+    },
+    "b64url_12": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{16}$"
+    },
+    "b64url_32": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$"
+    },
+    "hex": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{2})*$"
+    },
+    "hex32": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

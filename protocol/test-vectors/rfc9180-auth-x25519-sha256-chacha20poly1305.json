@@ -1,0 +1,60 @@
+{
+  "mode": 2,
+  "kem_id": 32,
+  "kdf_id": 1,
+  "aead_id": 3,
+  "info": "4f6465206f6e2061204772656369616e2055726e",
+  "ikmR": "64835d5ee64aa7aad57c6f2e4f758f7696617f8829e70bc9ac7a5ef95d1c756c",
+  "ikmS": "9d8f94537d5a3ddef71234c0baedfad4ca6861634d0b94c3007fed557ad17df6",
+  "ikmE": "938d3daa5a8904540bc24f48ae90eed3f4f7f11839560597b55e7c9598c996c0",
+  "skRm": "3ca22a6d1cda1bb9480949ec5329d3bf0b080ca4c45879c95eddb55c70b80b82",
+  "skSm": "2def0cb58ffcf83d1062dd085c8aceca7f4c0c3fd05912d847b61f3e54121f05",
+  "skEm": "c94619e1af28971c8fa7957192b7e62a71ca2dcdde0a7cc4a8a9e741d600ab13",
+  "pkRm": "1a478716d63cb2e16786ee93004486dc151e988b34b475043d3e0175bdb01c44",
+  "pkSm": "f0f4f9e96c54aeed3f323de8534fffd7e0577e4ce269896716bcb95643c8712b",
+  "pkEm": "f7674cc8cd7baa5872d1f33dbaffe3314239f6197ddf5ded1746760bfc847e0e",
+  "enc": "f7674cc8cd7baa5872d1f33dbaffe3314239f6197ddf5ded1746760bfc847e0e",
+  "shared_secret": "d2d67828c8bc9fa661cf15a31b3ebf1febe0cafef7abfaaca580aaf6d471e3eb",
+  "key_schedule_context": "02431df6cd95e11ff49d7013563baf7f11588c75a6611ee2a4404a49306ae4cfc5b69c5718a60cc5876c358d3f7fc31ddb598503f67be58ea1e798c0bb19eb9796",
+  "secret": "3022dfc0a81d6e09a2e6daeeb605bb1ebb9ac49535540d9a4c6560064a6c6da8",
+  "key": "b071fd1136680600eb447a845a967d35e9db20749cdf9ce098bcc4deef4b1356",
+  "base_nonce": "d20577dff16d7cea2c4bf780",
+  "exporter_secret": "be2d93b82071318cdb88510037cf504344151f2f9b9da8ab48974d40a2251dd7",
+  "encryptions": [
+    {
+      "aad": "436f756e742d30",
+      "ct": "ab1a13c9d4f01a87ec3440dbd756e2677bd2ecf9df0ce7ed73869b98e00c09be111cb9fdf077347aeb88e61bdf",
+      "nonce": "d20577dff16d7cea2c4bf780",
+      "pt": "4265617574792069732074727574682c20747275746820626561757479"
+    },
+    {
+      "aad": "436f756e742d31",
+      "ct": "3265c7807ffff7fdace21659a2c6ccffee52a26d270c76468ed74202a65478bfaedfff9c2b7634e24f10b71016",
+      "nonce": "d20577dff16d7cea2c4bf781",
+      "pt": "4265617574792069732074727574682c20747275746820626561757479"
+    },
+    {
+      "aad": "436f756e742d32",
+      "ct": "3aadee86ad2a05081ea860033a9d09dbccb4acac2ded0891da40f51d4df19925f7a767b076a5cbc9355c8fd35e",
+      "nonce": "d20577dff16d7cea2c4bf782",
+      "pt": "4265617574792069732074727574682c20747275746820626561757479"
+    }
+  ],
+  "exports": [
+    {
+      "exporter_context": "",
+      "L": 32,
+      "exported_value": "070cffafd89b67b7f0eeb800235303a223e6ff9d1e774dce8eac585c8688c872"
+    },
+    {
+      "exporter_context": "00",
+      "L": 32,
+      "exported_value": "2852e728568d40ddb0edde284d36a4359c56558bb2fb8837cd3d92e46a3a14a8"
+    },
+    {
+      "exporter_context": "54657374436f6e74657874",
+      "L": 32,
+      "exported_value": "1df39dc5dd60edcbf5f9ae804e15ada66e885b28ed7929116f768369a3f950ee"
+    }
+  ]
+}

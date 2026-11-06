@@ -1,0 +1,11 @@
+{
+  "name": "syncky",
+  "owner": { "name": "Syncky" },
+  "plugins": [
+    {
+      "name": "syncky",
+      "source": "./plugins/syncky",
+      "description": "Apple Health data through your local Syncky agent."
+    }
+  ]
+}

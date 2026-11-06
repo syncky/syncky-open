@@ -1,0 +1,12 @@
+{
+  "name": "syncky",
+  "version": "0.1.0",
+  "description": "Apple Health data through your local Syncky agent.",
+  "contextFileName": "SKILL.md",
+  "mcpServers": {
+    "syncky": {
+      "command": "npx",
+      "args": ["-y", "@syncky/agent", "mcp"]
+    }
+  }
+}

@@ -1,0 +1,36 @@
+Syncky reference agent
+Copyright 2026 Syncky (https://syncky.app)
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use these files except in compliance with the License. You may obtain a copy
+of the License at http://www.apache.org/licenses/LICENSE-2.0 or in the file
+LICENSE next to this file.
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied.
+
+This repository publishes an integration protocol for health data. The code
+and documents describe what the Syncky iPhone app and the Syncky relay do; they
+are not a guarantee of any security, privacy or medical property. Health data
+decrypted by an agent or received by a server built from this repository is in
+the control of whoever runs that agent or server. See https://syncky.app/privacy
+and https://syncky.app/terms for the app and the relay.
+
+Bundled runtime dependencies carry their own licences, reproduced in
+THIRD-PARTY-NOTICES in each distribution's executable skill folder:
+
+  @hpke/core, @hpke/dhkem-x25519, @hpke/chacha20poly1305, @hpke/common
+      MIT, https://github.com/dajiaji/hpke-js
+  qrcode (and its dependencies)
+      MIT, https://github.com/soldair/node-qrcode
+  qrcode-terminal
+      Apache License 2.0, https://github.com/gtanner/qrcode-terminal
+  ajv, fast-deep-equal, json-schema-traverse
+      MIT, https://github.com/ajv-validator/ajv
+  fast-uri
+      BSD-3-Clause, https://github.com/fastify/fast-uri
+
+The file protocol/test-vectors/rfc9180-auth-x25519-sha256-chacha20poly1305.json
+reproduces test data from RFC 9180 (IETF Trust and the persons identified as the
+document authors; see the RFC's copyright notice).

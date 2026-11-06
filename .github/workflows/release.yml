@@ -1,0 +1,68 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.repository == 'syncky/syncky-open'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.18.0'
+      - name: Install pinned dependencies
+        working-directory: agent
+        run: npm ci --no-audit --no-fund
+      - name: Build distributions
+        working-directory: agent
+        run: npm run build
+      - name: Test source
+        working-directory: agent
+        run: npm test
+      - name: Test bundle
+        working-directory: agent
+        run: npm run test:bundle
+      - name: Test public manifests and release guards
+        run: node --test test/*.test.mjs
+      - name: Pack and verify release assets
+        run: node release.mjs prepare "$RUNNER_TEMP/syncky-release"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: syncky-release
+          path: ${{ runner.temp }}/syncky-release
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    if: github.repository == 'syncky/syncky-open'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.18.0'
+      - name: Pin npm for trusted publishing
+        run: npm install --global npm@11.5.2 --ignore-scripts --no-audit --no-fund
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: syncky-release
+          path: ${{ runner.temp }}/syncky-release
+      - name: Publish tested tarball and attach verified assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node release.mjs publish "$RUNNER_TEMP/syncky-release"

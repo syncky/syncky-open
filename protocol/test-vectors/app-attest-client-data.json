@@ -1,0 +1,49 @@
+{
+  "format": 1,
+  "generated_by": "syncky-core GenerateProtocolArtifacts",
+  "cases": [
+    {
+      "name": "attestation_pairing",
+      "kind": "attestation",
+      "challenge": "-_z9_v8AAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRo",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "public_key": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE",
+      "pairing_token": "pt_dvSD_VV73lT8_dNsrkMJlnK0sVwT1-QmN1zSOAZnqXc",
+      "client_data": "syncky-attest-v1\n-_z9_v8AAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRo\nhub_AAAAAAAAAAAAAAAAAAAAAA\nv7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE\nb91e2212ac300305cb9fc65a41ad1905aa70cd6124660b5df8285ab1dee344cf",
+      "client_data_sha256": "vo1E_jLS1PNz604b5naVgzQpvnoaQ3a6NLy4mDAxd6c"
+    },
+    {
+      "name": "assertion_plan_exact_body",
+      "kind": "assertion",
+      "method": "post",
+      "path": "/relay/v1/members/me/plan",
+      "body": "ewogICJwcm9vZiI6ICJwdWJsaWNfcGxhbl9maXh0dXJlIgp9Cg",
+      "token": "tok_WToHz2pDdMg-zCKmzcmkz42BA7hDChN0Gy6MoAy2QL0",
+      "timestamp_ms": 1793095200123,
+      "client_data": "syncky-assert-v1\nPOST\n/relay/v1/members/me/plan\n8cdb7617e09592890336346c5d668572224bf5fea66e20690475ea9ac06abff2\nac3e3a98b17ffb8226d160cc6e2871a6a93833e32176cbdfdb2e14e51f5917f2\n1793095200123",
+      "client_data_sha256": "pEh8NYW8L14O_c8hKJCWpT53LnI5gVzXSTlrM2SzWZ0"
+    },
+    {
+      "name": "assertion_push_token_unicode_body",
+      "kind": "assertion",
+      "method": "put",
+      "path": "/v1/members/me/push-token",
+      "body": "eyJ0b2tlbiI6ImFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWIiLCAiZW52aXJvbm1lbnQiOiJkZXZlbG9wbWVudCIsImFwcF92ZXJzaW9uIjoiMS4wLc6yIiwib3NfdmVyc2lvbiI6IjI3LjAifQ",
+      "token": "tok_WToHz2pDdMg-zCKmzcmkz42BA7hDChN0Gy6MoAy2QL0",
+      "timestamp_ms": 1793095200124,
+      "client_data": "syncky-assert-v1\nPUT\n/v1/members/me/push-token\n8870a642853c235e7d73396a9f805da1b6fca7f5aa4884bbe9381516474085eb\nac3e3a98b17ffb8226d160cc6e2871a6a93833e32176cbdfdb2e14e51f5917f2\n1793095200124",
+      "client_data_sha256": "oT3gcKU8-bIWMftPLa7M4MTcQ1z4kSqqu6YYgoIqwCs"
+    },
+    {
+      "name": "assertion_delete_push_token_empty_body",
+      "kind": "assertion",
+      "method": "delete",
+      "path": "/v1/members/me/push-token",
+      "body": "",
+      "token": "tok_WToHz2pDdMg-zCKmzcmkz42BA7hDChN0Gy6MoAy2QL0",
+      "timestamp_ms": 0,
+      "client_data": "syncky-assert-v1\nDELETE\n/v1/members/me/push-token\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\nac3e3a98b17ffb8226d160cc6e2871a6a93833e32176cbdfdb2e14e51f5917f2\n0",
+      "client_data_sha256": "dYX7b30DwmrlVaHpiJemOV934yHsnWbtPjs1pUtXAgg"
+    }
+  ]
+}

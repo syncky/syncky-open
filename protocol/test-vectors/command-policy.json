@@ -1,0 +1,1741 @@
+{
+  "format": 1,
+  "generated_by": "syncky-core GenerateProtocolArtifacts",
+  "cases": [
+    {
+      "name": "water_canonical_litres",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 0.25,
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 0.25,
+      "unit": "L"
+    },
+    {
+      "name": "water_millilitres",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 250,
+        "unit": "mL",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 0.25,
+      "unit": "L"
+    },
+    {
+      "name": "water_us_fluid_ounces",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 8,
+        "unit": "fl_oz_us",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 0.2365882365,
+      "unit": "L"
+    },
+    {
+      "name": "water_us_cups",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 2,
+        "unit": "cup_us",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 0.473176473,
+      "unit": "L"
+    },
+    {
+      "name": "water_missing_unit_is_canonical",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 0.5,
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 0.5,
+      "unit": "L"
+    },
+    {
+      "name": "water_zero",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 0,
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 0,
+      "unit": "L"
+    },
+    {
+      "name": "water_negative_zero",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": -0.0,
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 0,
+      "unit": "L"
+    },
+    {
+      "name": "water_at_ceiling",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 100,
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 100,
+      "unit": "L"
+    },
+    {
+      "name": "water_above_ceiling",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 100.001,
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "value_out_of_range"
+    },
+    {
+      "name": "body_mass_above_ceiling",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "body_mass",
+        "value": 1001,
+        "unit": "kg",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "value_out_of_range"
+    },
+    {
+      "name": "heart_rate_above_ceiling",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "heart_rate",
+        "value": 1000000000,
+        "unit": "count/min",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "value_out_of_range"
+    },
+    {
+      "name": "steps_at_ceiling",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "steps",
+        "value": 1000000,
+        "unit": "count",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:30:00Z"
+      },
+      "expect": "allow",
+      "value": 1000000,
+      "unit": "count"
+    },
+    {
+      "name": "fat_saturated_grams",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_fat_saturated",
+        "value": 3,
+        "unit": "g",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 3,
+      "unit": "g"
+    },
+    {
+      "name": "fat_saturated_milligrams",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_fat_saturated",
+        "value": 1500,
+        "unit": "mg",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 1.5,
+      "unit": "g"
+    },
+    {
+      "name": "cholesterol_milligrams",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_cholesterol",
+        "value": 300,
+        "unit": "mg",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 0.3,
+      "unit": "g"
+    },
+    {
+      "name": "sodium_milligrams",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_sodium",
+        "value": 2300,
+        "unit": "mg",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 2.3,
+      "unit": "g"
+    },
+    {
+      "name": "sodium_micrograms",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_sodium",
+        "value": 1500,
+        "unit": "mcg",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 0.0015,
+      "unit": "g"
+    },
+    {
+      "name": "body_mass_pounds",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "body_mass",
+        "value": 154,
+        "unit": "lb",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 69.85322498,
+      "unit": "kg"
+    },
+    {
+      "name": "body_mass_grams",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "body_mass",
+        "value": 70500,
+        "unit": "g",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 70.5,
+      "unit": "kg"
+    },
+    {
+      "name": "height_inches",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "height",
+        "value": 70,
+        "unit": "in",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 177.8,
+      "unit": "cm"
+    },
+    {
+      "name": "height_feet",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "height",
+        "value": 6,
+        "unit": "ft",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 182.88,
+      "unit": "cm"
+    },
+    {
+      "name": "energy_kilojoules",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_energy_consumed",
+        "value": 418.4,
+        "unit": "kJ",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 100,
+      "unit": "kcal"
+    },
+    {
+      "name": "energy_large_calories",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_energy_consumed",
+        "value": 250,
+        "unit": "Cal",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 250,
+      "unit": "kcal"
+    },
+    {
+      "name": "body_temperature_fahrenheit",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "body_temperature",
+        "value": 98.6,
+        "unit": "degF",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 36.99999999999998,
+      "unit": "degC"
+    },
+    {
+      "name": "body_temperature_kelvin",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "body_temperature",
+        "value": 310.15,
+        "unit": "K",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 36.99999999999998,
+      "unit": "degC"
+    },
+    {
+      "name": "water_temperature_below_freezing",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "water_temperature",
+        "value": -1.5,
+        "unit": "degC",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": -1.5,
+      "unit": "degC"
+    },
+    {
+      "name": "water_temperature_fahrenheit_below_freezing",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "water_temperature",
+        "value": 14,
+        "unit": "degF",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": -10,
+      "unit": "degC"
+    },
+    {
+      "name": "water_temperature_at_absolute_zero_bound",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "water_temperature",
+        "value": -273.15,
+        "unit": "degC",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": -273.15,
+      "unit": "degC"
+    },
+    {
+      "name": "blood_glucose_millimoles",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "blood_glucose",
+        "value": 5.5,
+        "unit": "mmol<180.15588000005408>/L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 99.08573400002975,
+      "unit": "mg/dL"
+    },
+    {
+      "name": "heart_rate_per_second",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "heart_rate",
+        "value": 1.2,
+        "unit": "count/s",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 72,
+      "unit": "count/min"
+    },
+    {
+      "name": "oxygen_saturation_fraction_upper_bound",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "oxygen_saturation",
+        "value": 1,
+        "unit": "%",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 1,
+      "unit": "%"
+    },
+    {
+      "name": "oxygen_saturation_fraction",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "oxygen_saturation",
+        "value": 0.97,
+        "unit": "%",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 0.97,
+      "unit": "%"
+    },
+    {
+      "name": "steps_count",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "steps",
+        "value": 1200,
+        "unit": "count",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 1200,
+      "unit": "count"
+    },
+    {
+      "name": "workout_effort_score_upper_bound",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "workout_effort_score",
+        "value": 10,
+        "unit": "appleEffortScore",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "allow",
+      "value": 10,
+      "unit": "appleEffortScore"
+    },
+    {
+      "name": "start_before_end",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 0.25,
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:30:00Z"
+      },
+      "expect": "allow",
+      "value": 0.25,
+      "unit": "L"
+    },
+    {
+      "name": "unknown_fields_ignored",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 0.25,
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z",
+        "note": "lunch"
+      },
+      "expect": "allow",
+      "value": 0.25,
+      "unit": "L"
+    },
+    {
+      "name": "category_mindful_session",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "mindful_session",
+        "value": "not_applicable",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:30:00Z"
+      },
+      "expect": "allow"
+    },
+    {
+      "name": "category_sleep_core",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "sleep_analysis",
+        "value": "asleep_core",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:30:00Z"
+      },
+      "expect": "allow"
+    },
+    {
+      "name": "category_sleep_changes_present",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "sleep_changes",
+        "value": "present",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:30:00Z"
+      },
+      "expect": "allow"
+    },
+    {
+      "name": "delete_water",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "delete",
+        "type": "dietary_water"
+      },
+      "expect": "allow"
+    },
+    {
+      "name": "delete_sleep_analysis",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "delete",
+        "type": "sleep_analysis"
+      },
+      "expect": "allow"
+    },
+    {
+      "name": "delete_ignores_other_fields",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "delete",
+        "type": "dietary_water",
+        "unit": "ml"
+      },
+      "expect": "allow"
+    },
+    {
+      "name": "apple_exercise_time_is_apple_owned",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "apple_exercise_time",
+        "value": 30,
+        "unit": "min",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "type_checked_before_unit_and_value",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "apple_exercise_time",
+        "value": -1,
+        "unit": "ml",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "walking_speed_is_apple_owned",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "walking_speed",
+        "value": 1.4,
+        "unit": "m/s",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "blood_pressure_systolic",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "blood_pressure_systolic",
+        "value": 120,
+        "unit": "mmHg",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "blood_pressure_diastolic",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "blood_pressure_diastolic",
+        "value": 80,
+        "unit": "mmHg",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "insulin_delivery_needs_a_delivery_reason",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "insulin_delivery",
+        "value": 2,
+        "unit": "IU",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "workout",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "workout",
+        "value": 1,
+        "unit": "count",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "unknown_type",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "no_such_type",
+        "value": 1,
+        "unit": "count",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "type_name_is_case_sensitive",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "Dietary_Water",
+        "value": 0.25,
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "high_heart_rate_event_is_apple_owned",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "high_heart_rate_event",
+        "value": "not_applicable",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:30:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "delete_apple_owned_type",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "delete",
+        "type": "apple_exercise_time"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "state_of_mind_is_read_only",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "state_of_mind",
+        "value": "daily_mood",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:30:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "activity_summary_is_read_only",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "activity_summary",
+        "value": 500,
+        "unit": "kcal",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "gad7_assessment_is_read_only",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "gad7_assessment",
+        "value": 5,
+        "unit": "count",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "phq9_assessment_is_read_only",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "phq9_assessment",
+        "value": 5,
+        "unit": "count",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "audiogram_is_read_only",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "audiogram",
+        "value": 20,
+        "unit": "dBHL",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "workout_route_is_read_only",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "delete",
+        "type": "workout_route"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "heartbeat_series_is_read_only",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "delete",
+        "type": "heartbeat_series"
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "unit_from_another_family",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 1,
+        "unit": "kg",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "count_unit_for_percent_type",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "oxygen_saturation",
+        "value": 0.97,
+        "unit": "count",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "percent_unit_for_count_type",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "steps",
+        "value": 10,
+        "unit": "%",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "unit_lowercase_ml",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 250,
+        "unit": "ml",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "unit_small_calorie",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_energy_consumed",
+        "value": 250000,
+        "unit": "cal",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "unit_mmol_without_molar_mass",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "blood_glucose",
+        "value": 5.5,
+        "unit": "mmol/L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "unit_null",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 0.25,
+        "unit": null,
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "unit_number",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 0.25,
+        "unit": 1,
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "value_null",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": null,
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "value_string",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": "0.25",
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "value_missing",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "start_after_end",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 0.25,
+        "unit": "L",
+        "start": "2026-10-11T08:30:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "start_missing",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 0.25,
+        "unit": "L",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "op_unknown",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "upsert",
+        "type": "dietary_water",
+        "value": 0.25,
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "category_with_unit",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "mindful_session",
+        "value": "not_applicable",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:30:00Z",
+        "unit": "count"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "category_value_unknown",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "sleep_analysis",
+        "value": "Asleep_Core",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:30:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "unit_checked_before_range",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": -11,
+        "unit": "kg",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "water_negative",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": -0.1,
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "value_out_of_range"
+    },
+    {
+      "name": "water_negative_millilitres",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": -100,
+        "unit": "mL",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "value_out_of_range"
+    },
+    {
+      "name": "oxygen_saturation_above_one",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "oxygen_saturation",
+        "value": 1.01,
+        "unit": "%",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "value_out_of_range"
+    },
+    {
+      "name": "oxygen_saturation_as_percent_number",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "oxygen_saturation",
+        "value": 95,
+        "unit": "%",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "value_out_of_range"
+    },
+    {
+      "name": "water_temperature_below_absolute_zero",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "water_temperature",
+        "value": -300,
+        "unit": "degC",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "value_out_of_range"
+    },
+    {
+      "name": "water_temperature_fahrenheit_below_absolute_zero",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "water_temperature",
+        "value": -500,
+        "unit": "degF",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "value_out_of_range"
+    },
+    {
+      "name": "body_temperature_converted_below_zero",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "body_temperature",
+        "value": 0,
+        "unit": "degF",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "value_out_of_range"
+    },
+    {
+      "name": "workout_effort_score_above_ten",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "workout_effort_score",
+        "value": 10.5,
+        "unit": "appleEffortScore",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "value_out_of_range"
+    },
+    {
+      "name": "conversion_overflows_to_infinity",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 1.0E300,
+        "unit": "mL",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "value_out_of_range"
+    },
+    {
+      "name": "quantity_end_at_skew",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "body_mass",
+        "value": 70,
+        "unit": "kg",
+        "start": "2026-10-11T10:00:00Z",
+        "end": "2026-10-11T10:00:00Z"
+      },
+      "expect": "allow",
+      "value": 70,
+      "unit": "kg"
+    },
+    {
+      "name": "quantity_end_after_skew",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "body_mass",
+        "value": 70,
+        "unit": "kg",
+        "start": "2026-10-11T10:00:00.001Z",
+        "end": "2026-10-11T10:00:00.001Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "category_end_after_skew",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "sleep_analysis",
+        "value": "asleep_core",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T10:00:00.001Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "quantity_span_at_cap",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "steps",
+        "value": 20000,
+        "unit": "count",
+        "start": "2026-10-09T09:00:00Z",
+        "end": "2026-10-11T09:00:00Z"
+      },
+      "expect": "allow",
+      "value": 20000,
+      "unit": "count"
+    },
+    {
+      "name": "quantity_span_over_cap",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "steps",
+        "value": 20000,
+        "unit": "count",
+        "start": "2026-10-09T08:59:59Z",
+        "end": "2026-10-11T09:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "category_span_over_cap",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "sleep_analysis",
+        "value": "asleep_core",
+        "start": "2026-10-04T08:59:59Z",
+        "end": "2026-10-11T09:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "pregnancy_long_span_allowed",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "pregnancy",
+        "value": "not_applicable",
+        "start": "2026-01-01T00:00:00Z",
+        "end": "2026-10-11T09:00:00Z"
+      },
+      "expect": "allow"
+    },
+    {
+      "name": "pregnancy_span_over_cap",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "pregnancy",
+        "value": "not_applicable",
+        "start": "2021-10-07T08:59:59Z",
+        "end": "2026-10-11T09:00:00Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "year_9999_rejected",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "body_mass",
+        "value": 70,
+        "unit": "kg",
+        "start": "9999-12-31T23:59:59Z",
+        "end": "9999-12-31T23:59:59Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "interval_wins_over_range",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "body_mass",
+        "value": 1000000,
+        "unit": "kg",
+        "start": "2026-10-11T10:00:00.001Z",
+        "end": "2026-10-11T10:00:00.001Z"
+      },
+      "expect": "reject",
+      "reason": "invalid"
+    },
+    {
+      "name": "scope_write_inside_selected",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "body_mass",
+        "value": 154,
+        "unit": "lb",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "scope": {
+        "read": "all",
+        "write": [
+          "body_mass",
+          "dietary_water"
+        ]
+      },
+      "expect": "allow",
+      "value": 69.85322498,
+      "unit": "kg"
+    },
+    {
+      "name": "scope_write_all_explicit",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "steps",
+        "value": 1200,
+        "unit": "count",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "scope": {
+        "read": "all",
+        "write": "all"
+      },
+      "expect": "allow",
+      "value": 1200,
+      "unit": "count"
+    },
+    {
+      "name": "scope_delete_outside_selected",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "delete",
+        "type": "steps"
+      },
+      "scope": {
+        "read": "all",
+        "write": [
+          "body_mass",
+          "dietary_water"
+        ]
+      },
+      "expect": "allow"
+    },
+    {
+      "name": "scope_write_outside_selected",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "steps",
+        "value": 1200,
+        "unit": "count",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "scope": {
+        "read": "all",
+        "write": [
+          "body_mass",
+          "dietary_water"
+        ]
+      },
+      "expect": "reject",
+      "reason": "type_not_in_scope"
+    },
+    {
+      "name": "scope_category_write_outside_selected",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "sleep_analysis",
+        "value": "asleep_core",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:30:00Z"
+      },
+      "scope": {
+        "read": "all",
+        "write": [
+          "body_mass",
+          "dietary_water"
+        ]
+      },
+      "expect": "reject",
+      "reason": "type_not_in_scope"
+    },
+    {
+      "name": "scope_read_only_type_outside_selected_is_not_allowed",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "apple_exercise_time",
+        "value": 30,
+        "unit": "min",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "scope": {
+        "read": "all",
+        "write": [
+          "body_mass",
+          "dietary_water"
+        ]
+      },
+      "expect": "reject",
+      "reason": "type_not_allowed"
+    },
+    {
+      "name": "scope_write_none_rejects_write",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 0.25,
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "scope": {
+        "read": "all",
+        "write": "none"
+      },
+      "expect": "reject",
+      "reason": "type_not_in_scope"
+    },
+    {
+      "name": "scope_write_none_rejects_category_write",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "sleep_analysis",
+        "value": "asleep_core",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:30:00Z"
+      },
+      "scope": {
+        "read": "all",
+        "write": "none"
+      },
+      "expect": "reject",
+      "reason": "type_not_in_scope"
+    },
+    {
+      "name": "scope_write_none_allows_delete",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "delete",
+        "type": "dietary_water"
+      },
+      "scope": {
+        "read": "all",
+        "write": "none"
+      },
+      "expect": "allow"
+    },
+    {
+      "name": "scope_read_none_allows_write",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "dietary_water",
+        "value": 0.25,
+        "unit": "L",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "scope": {
+        "read": "none",
+        "write": "all"
+      },
+      "expect": "allow",
+      "value": 0.25,
+      "unit": "L"
+    }
+  ]
+}

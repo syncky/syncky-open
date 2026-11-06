@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "skill_version": 1,
+  "protocol": {
+    "protocol_version": 1,
+    "message_table_schema": 1
+  },
+  "whats_new": "Initial package-carried skill, message table and inner schemas."
+}

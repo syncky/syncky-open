@@ -1,0 +1,1104 @@
+{
+  "format": 1,
+  "generated_by": "syncky-core GenerateProtocolArtifacts",
+  "cases": [
+    {
+      "name": "ciphertext_byte_flipped",
+      "base": "sync_steps_to_agent",
+      "mutation": "flip bit 0 of ciphertext byte 0 (inside the encrypted body)",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77cb",
+        "kind": "data",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwBs",
+            "wrapped_key": "1YL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB3l"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eXa",
+        "ciphertext": "vB5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pels"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "aead_failed"
+    },
+    {
+      "name": "tag_byte_flipped",
+      "base": "sync_steps_to_agent",
+      "mutation": "flip bit 0 of the last ciphertext byte (inside the Poly1305 tag)",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77cb",
+        "kind": "data",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwBs",
+            "wrapped_key": "1YL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB3l"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eXa",
+        "ciphertext": "vR5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pelo"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "aead_failed"
+    },
+    {
+      "name": "wrapped_key_byte_flipped",
+      "base": "sync_steps_to_agent",
+      "mutation": "flip bit 0 of recipients[0].wrapped_key byte 0",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77cb",
+        "kind": "data",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwBs",
+            "wrapped_key": "1IL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB3l"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eXa",
+        "ciphertext": "vR5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pels"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "msg_id_changed",
+      "base": "sync_steps_to_agent",
+      "mutation": "replace the last hex digit of msg_id (AAD input)",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77c0",
+        "kind": "data",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwBs",
+            "wrapped_key": "1YL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB3l"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eXa",
+        "ciphertext": "vR5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pels"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "from_changed_to_registered_member",
+      "base": "sync_steps_to_agent",
+      "mutation": "rewrite from m_dev_1 to the registered m_dev_2 (sealed by m_dev_1)",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77cb",
+        "kind": "data",
+        "from": "m_dev_2",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwBs",
+            "wrapped_key": "1YL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB3l"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eXa",
+        "ciphertext": "vR5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pels"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE",
+        "m_dev_2": "mSU2LGwPMZR69ovQe_jHThxABD-gmADwUntaTzIvmFc"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "hub_changed",
+      "base": "sync_steps_to_agent",
+      "mutation": "open under a different hub_id (AAD input)",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77cb",
+        "kind": "data",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwBs",
+            "wrapped_key": "1YL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB3l"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eXa",
+        "ciphertext": "vR5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pels"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_9ykQ-g6CWCg0GYLXHn5BtQ",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "sender_key_swapped_to_mallory",
+      "base": "sync_steps_to_agent",
+      "mutation": "the registry maps the sender m_dev_1 to mallory's public key",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77cb",
+        "kind": "data",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwBs",
+            "wrapped_key": "1YL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB3l"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eXa",
+        "ciphertext": "vR5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pels"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "q2BRwBCZ0ZqG5l5mQ-GjjaKkZQHPDta-Uq667T5y3Ek"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "receiver_not_in_recipients",
+      "base": "sync_steps_to_agent",
+      "mutation": "open as dev2, which is not a recipient",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77cb",
+        "kind": "data",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwBs",
+            "wrapped_key": "1YL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB3l"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eXa",
+        "ciphertext": "vR5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pels"
+      },
+      "receiver": "dev2",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "not_a_recipient"
+    },
+    {
+      "name": "from_unknown",
+      "base": "sync_steps_to_agent",
+      "mutation": "rewrite from to m_dev_3, which is not in the registry",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77cb",
+        "kind": "data",
+        "from": "m_dev_3",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwBs",
+            "wrapped_key": "1YL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB3l"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eXa",
+        "ciphertext": "vR5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pels"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "unknown_sender"
+    },
+    {
+      "name": "enc_padded",
+      "base": "sync_steps_to_agent",
+      "mutation": "append '=' padding to recipients[0].enc",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77cb",
+        "kind": "data",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwBs=",
+            "wrapped_key": "1YL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB3l"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eXa",
+        "ciphertext": "vR5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pels"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "malformed"
+    },
+    {
+      "name": "enc_31_bytes",
+      "base": "sync_steps_to_agent",
+      "mutation": "truncate recipients[0].enc to 31 bytes",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77cb",
+        "kind": "data",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwA",
+            "wrapped_key": "1YL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB3l"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eXa",
+        "ciphertext": "vR5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pels"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "malformed"
+    },
+    {
+      "name": "nonce_11_bytes",
+      "base": "sync_steps_to_agent",
+      "mutation": "truncate nonce to 11 bytes",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77cb",
+        "kind": "data",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwBs",
+            "wrapped_key": "1YL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB3l"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eU",
+        "ciphertext": "vR5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pels"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "malformed"
+    },
+    {
+      "name": "wrapped_key_47_bytes",
+      "base": "sync_steps_to_agent",
+      "mutation": "truncate recipients[0].wrapped_key to 47 bytes",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77cb",
+        "kind": "data",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwBs",
+            "wrapped_key": "1YL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB0"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eXa",
+        "ciphertext": "vR5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pels"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "malformed"
+    },
+    {
+      "name": "ciphertext_bad_alphabet",
+      "base": "sync_steps_to_agent",
+      "mutation": "replace the first ciphertext character with '+'",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77cb",
+        "kind": "data",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwBs",
+            "wrapped_key": "1YL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB3l"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eXa",
+        "ciphertext": "+R5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pels"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "malformed"
+    },
+    {
+      "name": "kind_data_relabelled_as_control",
+      "base": "sync_steps_to_agent",
+      "mutation": "rewrite kind from data to control (the control AAD binds the kind)",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-d000-73c0-aeb9-7d8bf53d77cb",
+        "kind": "control",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:00Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "LOu8FT8dQLMKR9XVOTG7YFlUsGEnHbXoibNaG-2KwBs",
+            "wrapped_key": "1YL5KiTW7FNZceFkyCy4mxV2Hps0ycqYQ-Hw_CfRhZi2beUU0jHS2LMDG6SzoB3l"
+          }
+        ],
+        "nonce": "BMjGR1E9xY-o_eXa",
+        "ciphertext": "vR5GcMmIvNQtoScT1o2d6Dpr3z3oxg8bPzBA_FwkiZUB9YN4CZn115BpVtALc5-9ULBYnL1GavC_iLtYQE_Z7Fj6qDDfH4oLdjrf_-Z1iR_1v5mdwf9Qz5t6xgPZ0H108cayDkKO-YMY7benNYp6NXWWrmZNfmaQcTdfUvdlsk4gkCd51ahkfsrQ0x2S8fgjo04xfRzof84hQxjWzn_MpMLYTGLGnEl172NZdOcoLWB4VvmFUH4wptcXLRTr0v9tMzzxFXbPEd8T9HJfAm66hQlFCAAwFSgJf5c3U49k3Spkzv7mHkssncrR68CfAk5drxXn3Oe-_geqgzI1W4mI4IylBifCclILHUXWK5ybkRD_9qzAIe2FIGCoLlNil6B1IjGQbWjucXUku9R0-Gv4QD2pels"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "kind_control_relabelled_as_data",
+      "base": "control_unpair_to_agent",
+      "mutation": "rewrite kind from control to data (the data AAD lacks the kind)",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-e770-76bb-84ab-bb25d4ee6878",
+        "kind": "data",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:06Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "cLSB7BcPwvdsID8r0YBMsWPQki-sw8uOvN-mUVA_FTE",
+            "wrapped_key": "l2IHlKgbwIrWTZW2hQFmrakwZlf31TP3qPrDL6XSu9alxmzMmCgkQDlGEQDJxWTR"
+          }
+        ],
+        "nonce": "uQ8WYsPenNyZI8IP",
+        "ciphertext": "D3zOORZhiBYVyxPS0WbXxUx0bqBlKpmr2bp21Q_f_qI2eWp2x4Cc_PcLvPhr1yC4WJ7UA8puIg"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "diagnostics_request_stripped",
+      "base": "diagnostics_request",
+      "mutation": "remove the authenticated diagnostics marker",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-ef40-7ff2-ab84-de14fcee3050",
+        "kind": "control",
+        "from": "m_agent_1",
+        "created_at": "2026-10-11T08:00:08Z",
+        "recipients": [
+          {
+            "member_id": "m_dev_1",
+            "enc": "QeEGRxPXLbPIN2yyukyv3ODtsEaWHsABuFGK0jCIl1k",
+            "wrapped_key": "0iQS7PVgZwAmuYEL_zcDQLpSMY73IX5sMLyE-NK5Gz6902JmKX0TfsqXOFV0eUvH"
+          }
+        ],
+        "nonce": "8fcx1dgN7nbmc9Tx",
+        "ciphertext": "KmHF3U-qnALZC8BlPH_WIDyM2mMHy0wkm-ifrxWytNpcJez3pVL8ByidDkNXbtoseERm0pamv5tPIiStj-pAKeMg65VQuI3eiqh_ES7dEH5_vF1xgEx_3e3_EirN54Im3GvMMn5A54Q7oQZOHwUyaYTMnCZrcDh4pBIznIKkjNb-o5n5Xr2NP85Xyrv-NQ4BaYyf_8K25cjQDZmLRpVj3SLO1Xy-2bNmJmY85AE"
+      },
+      "receiver": "dev1",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_agent_1": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "diagnostics_request_added",
+      "base": "legacy_diagnostics_request",
+      "mutation": "attach a shape-valid marker to diagnostics encrypted with legacy AAD",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-f328-73b3-9fe6-cc86a3e92e62",
+        "kind": "control",
+        "diagnostics": "request",
+        "from": "m_agent_1",
+        "created_at": "2026-10-11T08:00:09Z",
+        "recipients": [
+          {
+            "member_id": "m_dev_1",
+            "enc": "UZJjBWZ30gCRvK9eD8KiyixqfIyk9zSoFSElutR41Hc",
+            "wrapped_key": "i40ofjgibOlZoN7qlArlZShEvEdb9e-x_0K-H3OTFEVNpHqVR5LLDnxCHsyf6ZWh"
+          }
+        ],
+        "nonce": "3p9bu3AiWtpo6j_W",
+        "ciphertext": "Jpam4Z5VlHiKY31H_Aw3ctgJEnRYfaSQE8FI41qNzE5DBdfM0cs_TE0TuVg-SDMyKLvMDrVqn-F2jVmMkArNUzuk21yJqTgoXciWlAXt4twZqhVaXueWB8ThH-iwwIJ03yzy4J12CRktBRmAdQbUqTXqIB_ZfWpTCMhtDyRONVPHb4VRYMNTk-WVpe3ZiYbvvrHruR5XEwlJBeMWInfVBgVymqGU6rv-j30mbgA"
+      },
+      "receiver": "dev1",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_agent_1": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "diagnostics_reply_stripped",
+      "base": "diagnostics_reply",
+      "mutation": "remove the authenticated diagnostics marker",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-f710-7e98-bcf3-0a9adba94ffd",
+        "kind": "control",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:10Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "vhgSBwV49Yc8eIFWNg4RfrqlqEa08hsjUYz1D0s-b1w",
+            "wrapped_key": "uQjUpZrA3K6dWa5cKXIgNy9vHo4ZU4ipqSFaJbBeeegoT_9d9gQT7XYe-3agPJYB"
+          }
+        ],
+        "nonce": "WcJyXJjQAfszHQ-Y",
+        "ciphertext": "gFtSzv9AqbHglL0s1wiYK70y-Z-_CZati6MIB_774hcXkK3U8zRktjrnGGNSseKrmHgchFI1LFHyYB7thieU_NXE2nEV9S7BDJPqy0-MbubnXr5rq9Y7Zm1sJoESLcBz9_N4T-5E7w0AH6fY_HfYmJVVsyMvt9EMxz13H5i0Fy5f7EX5GI8Sog"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "diagnostics_reply_added",
+      "base": "legacy_diagnostics_reply",
+      "mutation": "attach a shape-valid marker to diagnostics encrypted with legacy AAD",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-faf8-7613-86f1-c1349ef76aa1",
+        "kind": "control",
+        "diagnostics": "reply",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:11Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "K1cZGg0fCSsywqrxsnWIHvjdpmyxVayIYEKdz9NFenE",
+            "wrapped_key": "ms32sV7BY4nJ16MZWcGt7w7uPWosAIVjzdjDGbAeAyEtr-fF9yzC2-n7EYdPHzdn"
+          }
+        ],
+        "nonce": "wbK4Uoj4kcOkFZ65",
+        "ciphertext": "u1r8ozWP1-tbwv18QlDv8QPUAnZeUjhUSRssopr6rkcTaI-74FpFegnKm7wdU3CAwyavEmufzGX2R4ehSIMJ18c3Dgt424U8DY7RJwonfXeho3RxEMZC5RPAZC2bOixOQceS0fOb9OfE1iD2T5DdmHm6lMLRtwWNyr8CIXrBOBbopmnZFLjWTA"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "diagnostics_archive_stripped",
+      "base": "diagnostics_archive",
+      "mutation": "remove the authenticated diagnostics marker",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-fee0-7844-bf2f-a2f95e320397",
+        "kind": "data",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:12Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "v24FAZGSHx2gWsldvarhtTi9-BuNOKcOsjt5MQLQKHw",
+            "wrapped_key": "c46HTvTi9qH93Qwt8CiYZX-eE-Q4as_jjNV_31jkFc1m-jwrVt5r6PqRHQoanTlS"
+          }
+        ],
+        "nonce": "MyrLtbP8jskbhWXB",
+        "ciphertext": "3cspzOZMFgdxXhRdyoZkwOXhZHtX5E_hx5AsEBzy6AUxxK1c0txximA90k0affFkZIQRm1A8gdIdSKl1t3ZdXGu-wQEN6V0wWb8xfjPEPq3l82MIJf1_d634rM8yTlnyCG9z7j96uYDBdJEUXsOvib9vpdlk2I9rXcftk29gXpose2r7mE0efHv-NDUNuA1uJWveQjG_qF__ik2a6vRFnFR6PNCPljrVsu2PVX4OChKVJOHC9fAtwd0Pdz84NCFUMbVairKPGT9mah_tbrkWSAwF9fj11wS0b036XpXzFwy9VjF4hcUHzoBvP0jymlwrR6YwOz3380l--PefRrKy5s7p9oazfDHKSoFJmjIolb-oakft8j6nfJRM4u8lrgJFxvPanUyYKdEkm1zFVuo3U4KYuOUjdv0m2WLPqhEicoDh0zz-D1IvxVko7DuXh15SmBNK7erV13mpMUYnOOIWrZ2ifn3dT0Nvz2L0oQCBrPJfr7-iC2bSoZgyiWKLH8_MhBXCtZwYxPlX0AEfnOQQx1fzH4eKX11P8-gLz_uz76qlYLVLNRrhd0uisw3AqaB9FJBS9BhSSE2IxHnL3v9gJQSXR94dMXXanIOsNjXMh0HP2Ns4254P-yV5M-ySVWN5N5YpFty43MDHOha9JubNso4DFExiDcL1egnIXMl3GWPbL6JTCS9YwISw_FDoEyYM8WF5CpV39-n4OxPaUPUGiktK27wAeYSKQhYQaL6jn0K0pcCwAwEmj1X9BudgNKFM4jZ4SMGLax019vhd8TvCHxujdvX1AN66DQ9N3A5STnkIKh97cyo3U6u6ra-0yLjNyINvZKxSvv_ZTNif__SJoEcQHu6YbWJ3lzLBrcq9XsXGqEUhTHneoXBoUlmLw0xv51ZWltLCAH9XWQXK5F06Gk6ooYC3woBpppbBnj6qFuBmPOmimmBqn3GI8Cqb1DWddrOCBRbYlu3a2i7nrCy2oUQPWKHOp1B3Bd2l45FWXnH7w8mCt86ZK5FXGGK1qutgMt1_W_ACDx7GOKYkU8325y04cQlenUJhOuQxWPWkatXWTR5DahUroEEA_aIvQ6ogUVAlQwYokAga6lLEctQ8qgl-jbZGX5-6Pdi-smCabgWh3Ey1xnxPo8AXFGF7V7yxkTxjtzvT3f_7hSNcXaMnaiuSXCUQ5XpSeoVBhKUd2shLfvfLLv1icQeu5_eMe9rKcavBYXjelsZBBMA7dyT_G_D-P6qxl6-q6VEsd15_I91mn8TB2Iwt6IOK62ZlMpQoHn-ERjpzCyBX3ytoBLJN8D6X82dqnSFXTn01pNXCBPoLy8-ghXNw9kAQjy4vOOWoOj8LGZ9L5nMsAYzvVkjBcRGwJlvfKKoEqaE_Qq9-6kIzVg-0pBhzogUHxsVnrHQdRU8laXIq8zTojvxjwoL4uNHzzw3Esw"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "diagnostics_archive_added",
+      "base": "legacy_diagnostics_archive",
+      "mutation": "attach a shape-valid marker to diagnostics encrypted with legacy AAD",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fa-02c8-713f-9d87-9ab000ce5fb0",
+        "kind": "data",
+        "diagnostics": "archive",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:13Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "w7UwZbwnynPKqRZnJ-UDLmLMBBVeWpI-M9EVJ1SxbXE",
+            "wrapped_key": "E0dFbe5V-5E1Mw-D1FU6wvTHsqPvLQ0LNEv0u3-WWk6Dp-jliiz0wFigeejwF5-n"
+          }
+        ],
+        "nonce": "cSPJIRutllSehrXn",
+        "ciphertext": "XqAs41Fncp2-IA7Wg7qhAJK0xMN9Ssx-Wq2RGMcG2fS07f2_r-FTSjDFNpf0zVzAsT2MPZ-VoWg4azV6oJ71ZUb_G5O8ENv83-BLIdwBVaRKn4Ta_61Ns42Pi-70D6q2c3HYr05T0gsOCtcbWft9vPOEQv0FU2NS_fI4fIjihFoQH_avNykQyif7MrBlmvGr1XPWgRgOIW6FJT1EmC1RdK33nXvjwgmVFkRz0VB_oDjJZApIDN9FXaFu9mC5rFT8rrFq-W5I4c1EnrcbI2sOaSvNAYfCx9Pxi_hggmxY_oFi-ckIB9cNIFiw-swK_pAzc5ws7yi8MqWu69IoYJ3odwPAMqQrZRfhQb_YGhW90n0RG9qqvTujWUcxG2XQNX6V8mC1d9Dqh580dMDTZeFpOdsdZH2VBv-rh325emrtMRSBmfREbRARUUEV1z-xqpBv0oUjzN9B3N3HXSWdPdtBSKRtHYwL_RslPc03BNZO109PR1r6EHxnDAcnblTt8lju7OvTONtlT4QDYzl2xDnFPstLvzKGRq4qdEI1V7ABbs8QYgK9D3sg4wzDrhFM5xP-WXYroKIj_qYp7m61E4S_JN7C575HvuK3-Ew6GnQRrlVgmRGPZwwhKkVVFHH3I9fquMDY6hv2C3G8YJA6fA4tujyyGxnUa8hqHYzYlYSZhNeOf3RZI4jrEjZEEWvfLJR_21WJjQWmW4yTSBWe8BATQ5uRqJ_WW0STD49EkwpVJBJd2TtrmnAtMOKy0r_1pVykkqxC25Zs-Cuq0rbjlhvjsMMiJNqNnsEX1dC0q3JCwZ_LI7eeIXj8t_Sg5NDeWbHs0u36U4PoCRDtgJoaUxWZ2zWedqc1CfnDemm56S3alCGc9px0soPUy0oP1e7oa8hbMHvij9I74X70rn2wrZhjpApRfCRfZtrYkXc87l4P-pXV0npzXzjakQh_wuTD1lucynZQLAttMnRay9PWaaqBAXEu8BKZorFzS_hrA3zJd3tYS2mgeagWqKdr-f4dqgYVjVqiPnDaq8Un5Vm-1IjQV6KCeyT_TEOy66TAWliUQHunKu3EnBpiSIXr64T2OjP_WUQtWpwRa92PXc3UMqJOopLaiCprg-pb5xaZbFesRGEIDwdmmq07C-_DsCwy44aAopP5a8fbG7DSLd0mR6xiRgu52hXRIjvM-4wg7m0uwUao6FLKhe6xvnv0zcxXlYjsVbPS9x8x_4zHgolFApot3OQahgJ84uabx_OJaKG-KV1Jdci0M5x01QBFs9bm6R-9f1w0pxpaj4mWfaUYd2xmvcTezUKXFjX79v1d-ZKPOruPy118N2gFdBI4eWk0oUIxLjSyD0S0x_1OJKoJ6KsOwv8kcMN3K3UwJkcdDrJ3Ckq1Glg3c-OXqQlVo2ParIbEaUBYEhD5CAB75bhYoPTlRcTGNG1YCw"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "diagnostics_request_changed_to_reply",
+      "base": "diagnostics_request",
+      "mutation": "change the marker while preserving a valid control kind",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-ef40-7ff2-ab84-de14fcee3050",
+        "kind": "control",
+        "diagnostics": "reply",
+        "from": "m_agent_1",
+        "created_at": "2026-10-11T08:00:08Z",
+        "recipients": [
+          {
+            "member_id": "m_dev_1",
+            "enc": "QeEGRxPXLbPIN2yyukyv3ODtsEaWHsABuFGK0jCIl1k",
+            "wrapped_key": "0iQS7PVgZwAmuYEL_zcDQLpSMY73IX5sMLyE-NK5Gz6902JmKX0TfsqXOFV0eUvH"
+          }
+        ],
+        "nonce": "8fcx1dgN7nbmc9Tx",
+        "ciphertext": "KmHF3U-qnALZC8BlPH_WIDyM2mMHy0wkm-ifrxWytNpcJez3pVL8ByidDkNXbtoseERm0pamv5tPIiStj-pAKeMg65VQuI3eiqh_ES7dEH5_vF1xgEx_3e3_EirN54Im3GvMMn5A54Q7oQZOHwUyaYTMnCZrcDh4pBIznIKkjNb-o5n5Xr2NP85Xyrv-NQ4BaYyf_8K25cjQDZmLRpVj3SLO1Xy-2bNmJmY85AE"
+      },
+      "receiver": "dev1",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_agent_1": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "diagnostics_reply_changed_to_request",
+      "base": "diagnostics_reply",
+      "mutation": "change the marker while preserving a valid control kind",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129f9-f710-7e98-bcf3-0a9adba94ffd",
+        "kind": "control",
+        "diagnostics": "request",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:10Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "vhgSBwV49Yc8eIFWNg4RfrqlqEa08hsjUYz1D0s-b1w",
+            "wrapped_key": "uQjUpZrA3K6dWa5cKXIgNy9vHo4ZU4ipqSFaJbBeeegoT_9d9gQT7XYe-3agPJYB"
+          }
+        ],
+        "nonce": "WcJyXJjQAfszHQ-Y",
+        "ciphertext": "gFtSzv9AqbHglL0s1wiYK70y-Z-_CZati6MIB_774hcXkK3U8zRktjrnGGNSseKrmHgchFI1LFHyYB7thieU_NXE2nEV9S7BDJPqy0-MbubnXr5rq9Y7Zm1sJoESLcBz9_N4T-5E7w0AH6fY_HfYmJVVsyMvt9EMxz13H5i0Fy5f7EX5GI8Sog"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "diagnostics_request_inner_mismatch",
+      "base": "control_confirmed_to_dev1",
+      "mutation": "legitimately encrypt confirmed under the request marker AAD",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fb-56a0-71ad-a239-4a7ab70eae17",
+        "kind": "control",
+        "diagnostics": "request",
+        "from": "m_agent_1",
+        "created_at": "2026-10-11T08:01:40Z",
+        "recipients": [
+          {
+            "member_id": "m_dev_1",
+            "enc": "_gGEOw5S2kavIPZra8_G1CuzupNpGhUvkH9xVD32HXQ",
+            "wrapped_key": "o455po1Zaia-lq0_VokjXLkPR11SvgxlRS7qIzjlPrgFZmJacgj1ZrA96zM4amaq"
+          }
+        ],
+        "nonce": "TTWNmKeNozmBJWZV",
+        "ciphertext": "XOBGuVWdPLtFX5rJ5wbxy4KYmlWp5mWWXhOR6ko8B-F4qwSuSCgHVBM3"
+      },
+      "receiver": "dev1",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_agent_1": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU"
+      },
+      "expect": "inner_invalid"
+    },
+    {
+      "name": "access_request_unmarked",
+      "base": "access_request",
+      "mutation": "access inner authenticated with legacy AAD and no access marker",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fc-dd40-7038-9910-20bc7622d1fd",
+        "kind": "control",
+        "from": "m_agent_1",
+        "created_at": "2026-10-11T08:03:20Z",
+        "recipients": [
+          {
+            "member_id": "m_dev_1",
+            "enc": "rXP0YZ5BXjcvWNH0TP4d80-Payc0US2wIP_sVEu4zWY",
+            "wrapped_key": "46XKYmBxyOePkep3uj_YTQpP7H0_YDNoynriLcd0Q91A4nIgPGuFHElauqGcMD2p"
+          }
+        ],
+        "nonce": "_zCrCjEb6YpRIZbh",
+        "ciphertext": "9EnhmuwVBTEq8wuzBMpg8P4Z5XhFRUgsKkCDmzxpZtkD1kRwFR6X8Fx9bYzwYbIMzkSLsR83bwZKC6lUy4cGODG58T7A2yBLlxMe7X9_M63dZIqPBVNgKGWXlH2WNKqcU3CehEK0cSjHh1Rah-tBAwVp2lbzfK5TpwjajJCXr8rsvlC3l4Z6ui4ZWM-ZWUjY4mxZaXARUL8HsoroIvqnBWcE7tBpCr9NFYsORb1zvbxaWyy88SCbAkvm028AOF6HkW1ENSyRk1xrxQaXs0cla6fVKjjObnD99faHZT2QhGdbeWRggEMLiTj29qHM9ub4u-slcilTLFY15B6T1Ydt_oixpzA-U3IKTjuFaxjNuMH-woYwKA"
+      },
+      "receiver": "dev1",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_agent_1": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU"
+      },
+      "expect": "inner_invalid"
+    },
+    {
+      "name": "access_request_stripped",
+      "base": "access_request",
+      "mutation": "remove authenticated access marker",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fa-06b0-7a3a-b835-95a6b1c4b9e6",
+        "kind": "control",
+        "from": "m_agent_1",
+        "created_at": "2026-10-11T08:00:14Z",
+        "recipients": [
+          {
+            "member_id": "m_dev_1",
+            "enc": "dhcrqxdGRZUKjhVROz1SK8t4M0tIZcJLKx7kFSRruwk",
+            "wrapped_key": "NEQ6CWT2rWJUqYpYBX7TIYE78zpqxeR-cWf1_Mzj_kh-5XRu_HApZRUmFnx6PQWz"
+          }
+        ],
+        "nonce": "GP-C74u1gq_Z_KyM",
+        "ciphertext": "Yd1H-d41ZcxDoXPpDY9clH-lg6iTp-JAqWxiZBgKejUDl3f-tlndao-l5ikgA6y4mVS2c0khCkheHtOQ9O49jOaHlSNl8KV_BrY0QLKeNXYG0_ApP7-EFaFBZqiSl3Wkh0psg-4DEYb7FhlhGIgQYPUAQvIU4bNdoLDSe0a34_6ec3EtJ1Wd0Z9K4obcHMPMnccmAl8YbK9hydC1rsFFhzoInQcONEf0GyIxTISGQoIU2wHevvUQQfXpqmv6jSpHBylgnmRkrkCiUHYKgOz2fvhhIR1p_cASBT3kA9lSm7-QXU9wQOvx03_uunpEe4NHxeKqtEUiO75VMOseaEJy5KDmcn3Jl9LCIh-Iq0DWHIt2HTIDwQ"
+      },
+      "receiver": "dev1",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_agent_1": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "access_request_changed",
+      "base": "access_request",
+      "mutation": "change authenticated access marker",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fa-06b0-7a3a-b835-95a6b1c4b9e6",
+        "kind": "control",
+        "access": "reply",
+        "from": "m_agent_1",
+        "created_at": "2026-10-11T08:00:14Z",
+        "recipients": [
+          {
+            "member_id": "m_dev_1",
+            "enc": "dhcrqxdGRZUKjhVROz1SK8t4M0tIZcJLKx7kFSRruwk",
+            "wrapped_key": "NEQ6CWT2rWJUqYpYBX7TIYE78zpqxeR-cWf1_Mzj_kh-5XRu_HApZRUmFnx6PQWz"
+          }
+        ],
+        "nonce": "GP-C74u1gq_Z_KyM",
+        "ciphertext": "Yd1H-d41ZcxDoXPpDY9clH-lg6iTp-JAqWxiZBgKejUDl3f-tlndao-l5ikgA6y4mVS2c0khCkheHtOQ9O49jOaHlSNl8KV_BrY0QLKeNXYG0_ApP7-EFaFBZqiSl3Wkh0psg-4DEYb7FhlhGIgQYPUAQvIU4bNdoLDSe0a34_6ec3EtJ1Wd0Z9K4obcHMPMnccmAl8YbK9hydC1rsFFhzoInQcONEf0GyIxTISGQoIU2wHevvUQQfXpqmv6jSpHBylgnmRkrkCiUHYKgOz2fvhhIR1p_cASBT3kA9lSm7-QXU9wQOvx03_uunpEe4NHxeKqtEUiO75VMOseaEJy5KDmcn3Jl9LCIh-Iq0DWHIt2HTIDwQ"
+      },
+      "receiver": "dev1",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_agent_1": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "access_request_added",
+      "base": "access_request",
+      "mutation": "attach access marker to legacy AAD",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fc-dd40-7038-9910-20bc7622d1fd",
+        "kind": "control",
+        "access": "request",
+        "from": "m_agent_1",
+        "created_at": "2026-10-11T08:03:20Z",
+        "recipients": [
+          {
+            "member_id": "m_dev_1",
+            "enc": "rXP0YZ5BXjcvWNH0TP4d80-Payc0US2wIP_sVEu4zWY",
+            "wrapped_key": "46XKYmBxyOePkep3uj_YTQpP7H0_YDNoynriLcd0Q91A4nIgPGuFHElauqGcMD2p"
+          }
+        ],
+        "nonce": "_zCrCjEb6YpRIZbh",
+        "ciphertext": "9EnhmuwVBTEq8wuzBMpg8P4Z5XhFRUgsKkCDmzxpZtkD1kRwFR6X8Fx9bYzwYbIMzkSLsR83bwZKC6lUy4cGODG58T7A2yBLlxMe7X9_M63dZIqPBVNgKGWXlH2WNKqcU3CehEK0cSjHh1Rah-tBAwVp2lbzfK5TpwjajJCXr8rsvlC3l4Z6ui4ZWM-ZWUjY4mxZaXARUL8HsoroIvqnBWcE7tBpCr9NFYsORb1zvbxaWyy88SCbAkvm028AOF6HkW1ENSyRk1xrxQaXs0cla6fVKjjObnD99faHZT2QhGdbeWRggEMLiTj29qHM9ub4u-slcilTLFY15B6T1Ydt_oixpzA-U3IKTjuFaxjNuMH-woYwKA"
+      },
+      "receiver": "dev1",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_agent_1": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "access_request_legacy_payload",
+      "base": "access_request",
+      "mutation": "marked HPKE wrap with a legacy payload AAD",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fa-06b0-7a3a-b835-95a6b1c4b9e6",
+        "kind": "control",
+        "access": "request",
+        "from": "m_agent_1",
+        "created_at": "2026-10-11T08:00:14Z",
+        "recipients": [
+          {
+            "member_id": "m_dev_1",
+            "enc": "dhcrqxdGRZUKjhVROz1SK8t4M0tIZcJLKx7kFSRruwk",
+            "wrapped_key": "NEQ6CWT2rWJUqYpYBX7TIYE78zpqxeR-cWf1_Mzj_kh-5XRu_HApZRUmFnx6PQWz"
+          }
+        ],
+        "nonce": "GP-C74u1gq_Z_KyM",
+        "ciphertext": "Yd1H-d41ZcxDoXPpDY9clH-lg6iTp-JAqWxiZBgKejUDl3f-tlndao-l5ikgA6y4mVS2c0khCkheHtOQ9O49jOaHlSNl8KV_BrY0QLKeNXYG0_ApP7-EFaFBZqiSl3Wkh0psg-4DEYb7FhlhGIgQYPUAQvIU4bNdoLDSe0a34_6ec3EtJ1Wd0Z9K4obcHMPMnccmAl8YbK9hydC1rsFFhzoInQcONEf0GyIxTISGQoIU2wHevvUQQfXpqmv6jSpHBylgnmRkrkCiUHYKgOz2fvhhIR1p_cASBT3kA9lSm7-QXU9wQOvx03_uunpEe4NHxeKqtEUiO75VMOseaEJy5KDmcn3J1iVzYOTjDeAwbQSY2kPFFA"
+      },
+      "receiver": "dev1",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_agent_1": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU"
+      },
+      "expect": "aead_failed"
+    },
+    {
+      "name": "access_request_wrong_sender",
+      "base": "access_request",
+      "mutation": "relabel the authenticated sender",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fa-06b0-7a3a-b835-95a6b1c4b9e6",
+        "kind": "control",
+        "access": "request",
+        "from": "m_dev_2",
+        "created_at": "2026-10-11T08:00:14Z",
+        "recipients": [
+          {
+            "member_id": "m_dev_1",
+            "enc": "dhcrqxdGRZUKjhVROz1SK8t4M0tIZcJLKx7kFSRruwk",
+            "wrapped_key": "NEQ6CWT2rWJUqYpYBX7TIYE78zpqxeR-cWf1_Mzj_kh-5XRu_HApZRUmFnx6PQWz"
+          }
+        ],
+        "nonce": "GP-C74u1gq_Z_KyM",
+        "ciphertext": "Yd1H-d41ZcxDoXPpDY9clH-lg6iTp-JAqWxiZBgKejUDl3f-tlndao-l5ikgA6y4mVS2c0khCkheHtOQ9O49jOaHlSNl8KV_BrY0QLKeNXYG0_ApP7-EFaFBZqiSl3Wkh0psg-4DEYb7FhlhGIgQYPUAQvIU4bNdoLDSe0a34_6ec3EtJ1Wd0Z9K4obcHMPMnccmAl8YbK9hydC1rsFFhzoInQcONEf0GyIxTISGQoIU2wHevvUQQfXpqmv6jSpHBylgnmRkrkCiUHYKgOz2fvhhIR1p_cASBT3kA9lSm7-QXU9wQOvx03_uunpEe4NHxeKqtEUiO75VMOseaEJy5KDmcn3Jl9LCIh-Iq0DWHIt2HTIDwQ"
+      },
+      "receiver": "dev1",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_2": "mSU2LGwPMZR69ovQe_jHThxABD-gmADwUntaTzIvmFc"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "access_request_wrong_kind",
+      "base": "access_request",
+      "mutation": "access metadata on data kind",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fa-06b0-7a3a-b835-95a6b1c4b9e6",
+        "kind": "data",
+        "access": "request",
+        "from": "m_agent_1",
+        "created_at": "2026-10-11T08:00:14Z",
+        "recipients": [
+          {
+            "member_id": "m_dev_1",
+            "enc": "dhcrqxdGRZUKjhVROz1SK8t4M0tIZcJLKx7kFSRruwk",
+            "wrapped_key": "NEQ6CWT2rWJUqYpYBX7TIYE78zpqxeR-cWf1_Mzj_kh-5XRu_HApZRUmFnx6PQWz"
+          }
+        ],
+        "nonce": "GP-C74u1gq_Z_KyM",
+        "ciphertext": "Yd1H-d41ZcxDoXPpDY9clH-lg6iTp-JAqWxiZBgKejUDl3f-tlndao-l5ikgA6y4mVS2c0khCkheHtOQ9O49jOaHlSNl8KV_BrY0QLKeNXYG0_ApP7-EFaFBZqiSl3Wkh0psg-4DEYb7FhlhGIgQYPUAQvIU4bNdoLDSe0a34_6ec3EtJ1Wd0Z9K4obcHMPMnccmAl8YbK9hydC1rsFFhzoInQcONEf0GyIxTISGQoIU2wHevvUQQfXpqmv6jSpHBylgnmRkrkCiUHYKgOz2fvhhIR1p_cASBT3kA9lSm7-QXU9wQOvx03_uunpEe4NHxeKqtEUiO75VMOseaEJy5KDmcn3Jl9LCIh-Iq0DWHIt2HTIDwQ"
+      },
+      "receiver": "dev1",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_agent_1": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU"
+      },
+      "expect": "malformed"
+    },
+    {
+      "name": "access_reply_unmarked",
+      "base": "access_reply",
+      "mutation": "access inner authenticated with legacy AAD and no access marker",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fc-e128-7e90-bb1f-3c77c6fc526e",
+        "kind": "control",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:03:21Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "m6m1vJToI_aXCnA3X4wmjIVRAbj9NwNWL_xkoxOjVQQ",
+            "wrapped_key": "q0lQthLlw7uvc7L5zoGl5CgUNjNhl438hcRF0j5WUt5YvwXsuTskVEHAcVujITL2"
+          }
+        ],
+        "nonce": "iW-CYDq8BLU1kPad",
+        "ciphertext": "6D0FR2k_hdRG0X6hyDGYWgTgM56rmqcoX9AQEfxvxCvRzD4VWvspTrtC6oYc_x73QNBTuqT1ta4DhBFhX0pQQxYHSjIlKuLbKepC74SmyG_LcqY3mzF0yCAARggWONlKNB2yNCSY7D_G2Me8xfuV4C7irw4oBRh2g4nFNIw9RQqmiqJsB5HSm0IAsD1YeFxBV9ZfCmA1bC2FF-6Nc-AR3Tnqb3ikAExYD4Hld_BcIk9fOu4jcImiiHNTzYYk0J3L4d2rzoHsVsRxkG3qegLKUjN1rKpVofXSusFY0iclU35889JK0Uxe4mHq7RKlUS11Tl3YjeB7zIS63gG7dJMQWdIkFrrwd00iiHhazJLTHPyvwEZYeCOehZrQpXvjWBqCDhv8IpLAqDYL1BCOL3_9W56RWETmicT6MU4eAy-S8s_K2Ke0VWEt-DSrUHTqZGBM7VcVtZuC3lj6hjrCfcsV65QMZ6KivWbK"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "inner_invalid"
+    },
+    {
+      "name": "access_reply_stripped",
+      "base": "access_reply",
+      "mutation": "remove authenticated access marker",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fa-0a98-79ad-9491-31134755e0de",
+        "kind": "control",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:15Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "uoCnjre3K6iJvxNTtVUskduq6J45IW14xZnOZnX-lg4",
+            "wrapped_key": "_5Rg9DI3Uol8KzTxNb7JySITPDXOhHxa5h-Xra09mATV1iZDHr09I_fs6l6-fKZJ"
+          }
+        ],
+        "nonce": "mSnA3Dsc2VtKROaO",
+        "ciphertext": "WJyQq5rJxRqGGkvwmfjWYR9cYLehHz9msy1qGZDYcaJDdhx240iM_Ii6S7ze-NABtNzdThMY4inIzjEKYUyQqWsy556CnUk7W0dMp3_1t66n5nzis00NKsv2JA3dUU-rJbFb-5v9VyJp5tKGVSk8LArjwJBFUANnpiuR6RrACOOUNPd3Vhvywj4UlxUUm1w57gt_SZZifJ9usErtjvk_Qb2SHyiuV1vfE3Pd7dycLh7A33fBiwhyfhjIfRL-3ZG26jVfThf9SwCoILDgmwImVqMBjRy3Jxk88UzJXziqThaxXnez7xRQZ7JZv0R5QOrDM5T5jKQYGb07DtMDXMPDFyt6CELLc6fciErUlZuof1HNZMs2xt8_0hcBB9-3oXpDlwRNhB7AJV_RB4V8IY3cyWN4reutIpkGhl6FhD0J2dWPthxKpVmB9Txsu9wZ607oFLOEPPSOkvCGShcvdtx1PvFsv8SmAPB-"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "access_reply_changed",
+      "base": "access_reply",
+      "mutation": "change authenticated access marker",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fa-0a98-79ad-9491-31134755e0de",
+        "kind": "control",
+        "access": "request",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:15Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "uoCnjre3K6iJvxNTtVUskduq6J45IW14xZnOZnX-lg4",
+            "wrapped_key": "_5Rg9DI3Uol8KzTxNb7JySITPDXOhHxa5h-Xra09mATV1iZDHr09I_fs6l6-fKZJ"
+          }
+        ],
+        "nonce": "mSnA3Dsc2VtKROaO",
+        "ciphertext": "WJyQq5rJxRqGGkvwmfjWYR9cYLehHz9msy1qGZDYcaJDdhx240iM_Ii6S7ze-NABtNzdThMY4inIzjEKYUyQqWsy556CnUk7W0dMp3_1t66n5nzis00NKsv2JA3dUU-rJbFb-5v9VyJp5tKGVSk8LArjwJBFUANnpiuR6RrACOOUNPd3Vhvywj4UlxUUm1w57gt_SZZifJ9usErtjvk_Qb2SHyiuV1vfE3Pd7dycLh7A33fBiwhyfhjIfRL-3ZG26jVfThf9SwCoILDgmwImVqMBjRy3Jxk88UzJXziqThaxXnez7xRQZ7JZv0R5QOrDM5T5jKQYGb07DtMDXMPDFyt6CELLc6fciErUlZuof1HNZMs2xt8_0hcBB9-3oXpDlwRNhB7AJV_RB4V8IY3cyWN4reutIpkGhl6FhD0J2dWPthxKpVmB9Txsu9wZ607oFLOEPPSOkvCGShcvdtx1PvFsv8SmAPB-"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "access_reply_added",
+      "base": "access_reply",
+      "mutation": "attach access marker to legacy AAD",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fc-e128-7e90-bb1f-3c77c6fc526e",
+        "kind": "control",
+        "access": "reply",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:03:21Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "m6m1vJToI_aXCnA3X4wmjIVRAbj9NwNWL_xkoxOjVQQ",
+            "wrapped_key": "q0lQthLlw7uvc7L5zoGl5CgUNjNhl438hcRF0j5WUt5YvwXsuTskVEHAcVujITL2"
+          }
+        ],
+        "nonce": "iW-CYDq8BLU1kPad",
+        "ciphertext": "6D0FR2k_hdRG0X6hyDGYWgTgM56rmqcoX9AQEfxvxCvRzD4VWvspTrtC6oYc_x73QNBTuqT1ta4DhBFhX0pQQxYHSjIlKuLbKepC74SmyG_LcqY3mzF0yCAARggWONlKNB2yNCSY7D_G2Me8xfuV4C7irw4oBRh2g4nFNIw9RQqmiqJsB5HSm0IAsD1YeFxBV9ZfCmA1bC2FF-6Nc-AR3Tnqb3ikAExYD4Hld_BcIk9fOu4jcImiiHNTzYYk0J3L4d2rzoHsVsRxkG3qegLKUjN1rKpVofXSusFY0iclU35889JK0Uxe4mHq7RKlUS11Tl3YjeB7zIS63gG7dJMQWdIkFrrwd00iiHhazJLTHPyvwEZYeCOehZrQpXvjWBqCDhv8IpLAqDYL1BCOL3_9W56RWETmicT6MU4eAy-S8s_K2Ke0VWEt-DSrUHTqZGBM7VcVtZuC3lj6hjrCfcsV65QMZ6KivWbK"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "access_reply_legacy_payload",
+      "base": "access_reply",
+      "mutation": "marked HPKE wrap with a legacy payload AAD",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fa-0a98-79ad-9491-31134755e0de",
+        "kind": "control",
+        "access": "reply",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:15Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "uoCnjre3K6iJvxNTtVUskduq6J45IW14xZnOZnX-lg4",
+            "wrapped_key": "_5Rg9DI3Uol8KzTxNb7JySITPDXOhHxa5h-Xra09mATV1iZDHr09I_fs6l6-fKZJ"
+          }
+        ],
+        "nonce": "mSnA3Dsc2VtKROaO",
+        "ciphertext": "WJyQq5rJxRqGGkvwmfjWYR9cYLehHz9msy1qGZDYcaJDdhx240iM_Ii6S7ze-NABtNzdThMY4inIzjEKYUyQqWsy556CnUk7W0dMp3_1t66n5nzis00NKsv2JA3dUU-rJbFb-5v9VyJp5tKGVSk8LArjwJBFUANnpiuR6RrACOOUNPd3Vhvywj4UlxUUm1w57gt_SZZifJ9usErtjvk_Qb2SHyiuV1vfE3Pd7dycLh7A33fBiwhyfhjIfRL-3ZG26jVfThf9SwCoILDgmwImVqMBjRy3Jxk88UzJXziqThaxXnez7xRQZ7JZv0R5QOrDM5T5jKQYGb07DtMDXMPDFyt6CELLc6fciErUlZuof1HNZMs2xt8_0hcBB9-3oXpDlwRNhB7AJV_RB4V8IY3cyWN4reutIpkGhl6FhD0J2dWPthxKpVmB9Txsu9wZ607oFLOEPPSOkvDv_kUNbQvNwCEkLjNIy4Yh"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "aead_failed"
+    },
+    {
+      "name": "access_reply_wrong_sender",
+      "base": "access_reply",
+      "mutation": "relabel the authenticated sender",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fa-0a98-79ad-9491-31134755e0de",
+        "kind": "control",
+        "access": "reply",
+        "from": "m_dev_2",
+        "created_at": "2026-10-11T08:00:15Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "uoCnjre3K6iJvxNTtVUskduq6J45IW14xZnOZnX-lg4",
+            "wrapped_key": "_5Rg9DI3Uol8KzTxNb7JySITPDXOhHxa5h-Xra09mATV1iZDHr09I_fs6l6-fKZJ"
+          }
+        ],
+        "nonce": "mSnA3Dsc2VtKROaO",
+        "ciphertext": "WJyQq5rJxRqGGkvwmfjWYR9cYLehHz9msy1qGZDYcaJDdhx240iM_Ii6S7ze-NABtNzdThMY4inIzjEKYUyQqWsy556CnUk7W0dMp3_1t66n5nzis00NKsv2JA3dUU-rJbFb-5v9VyJp5tKGVSk8LArjwJBFUANnpiuR6RrACOOUNPd3Vhvywj4UlxUUm1w57gt_SZZifJ9usErtjvk_Qb2SHyiuV1vfE3Pd7dycLh7A33fBiwhyfhjIfRL-3ZG26jVfThf9SwCoILDgmwImVqMBjRy3Jxk88UzJXziqThaxXnez7xRQZ7JZv0R5QOrDM5T5jKQYGb07DtMDXMPDFyt6CELLc6fciErUlZuof1HNZMs2xt8_0hcBB9-3oXpDlwRNhB7AJV_RB4V8IY3cyWN4reutIpkGhl6FhD0J2dWPthxKpVmB9Txsu9wZ607oFLOEPPSOkvCGShcvdtx1PvFsv8SmAPB-"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_2": "mSU2LGwPMZR69ovQe_jHThxABD-gmADwUntaTzIvmFc"
+      },
+      "expect": "hpke_open_failed"
+    },
+    {
+      "name": "access_reply_wrong_kind",
+      "base": "access_reply",
+      "mutation": "access metadata on data kind",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fa-0a98-79ad-9491-31134755e0de",
+        "kind": "data",
+        "access": "reply",
+        "from": "m_dev_1",
+        "created_at": "2026-10-11T08:00:15Z",
+        "recipients": [
+          {
+            "member_id": "m_agent_1",
+            "enc": "uoCnjre3K6iJvxNTtVUskduq6J45IW14xZnOZnX-lg4",
+            "wrapped_key": "_5Rg9DI3Uol8KzTxNb7JySITPDXOhHxa5h-Xra09mATV1iZDHr09I_fs6l6-fKZJ"
+          }
+        ],
+        "nonce": "mSnA3Dsc2VtKROaO",
+        "ciphertext": "WJyQq5rJxRqGGkvwmfjWYR9cYLehHz9msy1qGZDYcaJDdhx240iM_Ii6S7ze-NABtNzdThMY4inIzjEKYUyQqWsy556CnUk7W0dMp3_1t66n5nzis00NKsv2JA3dUU-rJbFb-5v9VyJp5tKGVSk8LArjwJBFUANnpiuR6RrACOOUNPd3Vhvywj4UlxUUm1w57gt_SZZifJ9usErtjvk_Qb2SHyiuV1vfE3Pd7dycLh7A33fBiwhyfhjIfRL-3ZG26jVfThf9SwCoILDgmwImVqMBjRy3Jxk88UzJXziqThaxXnez7xRQZ7JZv0R5QOrDM5T5jKQYGb07DtMDXMPDFyt6CELLc6fciErUlZuof1HNZMs2xt8_0hcBB9-3oXpDlwRNhB7AJV_RB4V8IY3cyWN4reutIpkGhl6FhD0J2dWPthxKpVmB9Txsu9wZ607oFLOEPPSOkvCGShcvdtx1PvFsv8SmAPB-"
+      },
+      "receiver": "agent",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_dev_1": "v7KxbKExzJ1RG9ilJqlbpRHzPu-BX4fGf1pcyic9kmE"
+      },
+      "expect": "malformed"
+    },
+    {
+      "name": "access_request_inner_mismatch",
+      "base": "control_confirmed_to_dev1",
+      "mutation": "authenticated access marker on confirmed inner",
+      "envelope": {
+        "v": 1,
+        "msg_id": "01a129fd-0450-759c-972e-fd72e197f60c",
+        "kind": "control",
+        "access": "request",
+        "from": "m_agent_1",
+        "created_at": "2026-10-11T08:03:30Z",
+        "recipients": [
+          {
+            "member_id": "m_dev_1",
+            "enc": "3sv1Xn0ULGy74ee7Fodm65rfiBXQp9Zy5ilitIsmuzY",
+            "wrapped_key": "Gypf6Mn7jZmaFuXrc_cmXNlDBYI_Iif8W-G2DXxEG4ckcz6hP-8RUmuCEG1vQqyc"
+          }
+        ],
+        "nonce": "745MJ3fZuaZsNfHr",
+        "ciphertext": "b0yR_OHkKMXZm0dqYfylZbgzOc_vfuLNzTZss9xvSmAmV-6Ttklfi7xI"
+      },
+      "receiver": "dev1",
+      "hub_id": "hub_AAAAAAAAAAAAAAAAAAAAAA",
+      "registry": {
+        "m_agent_1": "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU"
+      },
+      "expect": "inner_invalid"
+    }
+  ]
+}

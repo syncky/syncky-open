@@ -1,0 +1,40 @@
+{
+  "name": "@syncky/agent",
+  "version": "0.1.0",
+  "mcpName": "io.github.syncky/syncky-health",
+  "license": "Apache-2.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/syncky/syncky-open.git",
+    "directory": "agent"
+  },
+  "engines": {
+    "node": ">=22.15"
+  },
+  "bin": {
+    "syncky-agent": "dist/syncky-agent.mjs",
+    "syncky": "dist/syncky-agent.mjs"
+  },
+  "files": [
+    "dist/syncky-agent.mjs",
+    "dist/syncky-agent.mjs.sha256",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "prepack": "npm run build",
+    "test:bundle": "node test/support/bundle-suite.js",
+    "test": "node --test --experimental-test-coverage --test-coverage-include='src/**/*.js' --test-coverage-exclude='test/**' --test-coverage-lines=85 --test-coverage-branches=75 --test-coverage-functions=85 'test/unit/**/*.test.js' 'test/vectors/**/*.test.js'"
+  },
+  "devDependencies": {
+    "@hpke/chacha20poly1305": "1.8.0",
+    "@hpke/core": "1.9.0",
+    "@hpke/dhkem-x25519": "1.8.0",
+    "qrcode-terminal": "0.12.0",
+    "ajv": "8.20.0",
+    "esbuild": "0.28.1"
+  }
+}

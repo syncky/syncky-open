@@ -1,0 +1,4511 @@
+{
+  "schema_version": 1,
+  "protocol_version": 1,
+  "generated_by": "syncky-core TypeCatalog (do not edit)",
+  "types": [
+    {
+      "name": "activity_summary",
+      "kind": "activity_summary",
+      "hk": "HKObjectType.activitySummaryType()",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none",
+      "enums": {
+        "move_mode": [
+          {
+            "name": "active_energy",
+            "hk_raw": 1
+          },
+          {
+            "name": "apple_move_time",
+            "hk_raw": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "audiogram",
+      "kind": "audiogram",
+      "hk": "HKObjectType.audiogramSampleType()",
+      "write": false,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none",
+      "enums": {
+        "side": [
+          {
+            "name": "left",
+            "hk_raw": 0
+          },
+          {
+            "name": "right",
+            "hk_raw": 1
+          }
+        ],
+        "conduction": [
+          {
+            "name": "air",
+            "hk_raw": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "abdominal_cramps",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierAbdominalCramps",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "acne",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierAcne",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "appetite_changes",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierAppetiteChanges",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "no_change",
+          "hk_raw": 1
+        },
+        {
+          "name": "decreased",
+          "hk_raw": 2
+        },
+        {
+          "name": "increased",
+          "hk_raw": 3
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "apple_stand_hour",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierAppleStandHour",
+      "values": [
+        {
+          "name": "stood",
+          "hk_raw": 0
+        },
+        {
+          "name": "idle",
+          "hk_raw": 1
+        }
+      ],
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "apple_walking_steadiness_event",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent",
+      "values": [
+        {
+          "name": "initial_low",
+          "hk_raw": 1
+        },
+        {
+          "name": "initial_very_low",
+          "hk_raw": 2
+        },
+        {
+          "name": "repeat_low",
+          "hk_raw": 3
+        },
+        {
+          "name": "repeat_very_low",
+          "hk_raw": 4
+        }
+      ],
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "bladder_incontinence",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierBladderIncontinence",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "bleeding_after_menopause",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierBleedingAfterMenopause",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 1
+        },
+        {
+          "name": "light",
+          "hk_raw": 2
+        },
+        {
+          "name": "medium",
+          "hk_raw": 3
+        },
+        {
+          "name": "heavy",
+          "hk_raw": 4
+        },
+        {
+          "name": "none",
+          "hk_raw": 5
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "bleeding_after_pregnancy",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierBleedingAfterPregnancy",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 1
+        },
+        {
+          "name": "light",
+          "hk_raw": 2
+        },
+        {
+          "name": "medium",
+          "hk_raw": 3
+        },
+        {
+          "name": "heavy",
+          "hk_raw": 4
+        },
+        {
+          "name": "none",
+          "hk_raw": 5
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "bleeding_during_pregnancy",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierBleedingDuringPregnancy",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 1
+        },
+        {
+          "name": "light",
+          "hk_raw": 2
+        },
+        {
+          "name": "medium",
+          "hk_raw": 3
+        },
+        {
+          "name": "heavy",
+          "hk_raw": 4
+        },
+        {
+          "name": "none",
+          "hk_raw": 5
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "bloating",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierBloating",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "breast_pain",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierBreastPain",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "cervical_mucus_quality",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierCervicalMucusQuality",
+      "values": [
+        {
+          "name": "dry",
+          "hk_raw": 1
+        },
+        {
+          "name": "sticky",
+          "hk_raw": 2
+        },
+        {
+          "name": "creamy",
+          "hk_raw": 3
+        },
+        {
+          "name": "watery",
+          "hk_raw": 4
+        },
+        {
+          "name": "egg_white",
+          "hk_raw": 5
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "chest_tightness_or_pain",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierChestTightnessOrPain",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "chills",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierChills",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "constipation",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierConstipation",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "contraceptive",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierContraceptive",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 1
+        },
+        {
+          "name": "implant",
+          "hk_raw": 2
+        },
+        {
+          "name": "injection",
+          "hk_raw": 3
+        },
+        {
+          "name": "intrauterine_device",
+          "hk_raw": 4
+        },
+        {
+          "name": "intravaginal_ring",
+          "hk_raw": 5
+        },
+        {
+          "name": "oral",
+          "hk_raw": 6
+        },
+        {
+          "name": "patch",
+          "hk_raw": 7
+        }
+      ],
+      "write": true,
+      "max_span_s": 158112000,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "coughing",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierCoughing",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "diarrhea",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierDiarrhea",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dizziness",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierDizziness",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dry_skin",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierDrySkin",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "environmental_audio_exposure_event",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierEnvironmentalAudioExposureEvent",
+      "values": [
+        {
+          "name": "momentary_limit",
+          "hk_raw": 1
+        }
+      ],
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "fainting",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierFainting",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "fatigue",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierFatigue",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "fever",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierFever",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "generalized_body_ache",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierGeneralizedBodyAche",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "hair_loss",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierHairLoss",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "handwashing_event",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierHandwashingEvent",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "headache",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierHeadache",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "headphone_audio_exposure_event",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierHeadphoneAudioExposureEvent",
+      "values": [
+        {
+          "name": "seven_day_limit",
+          "hk_raw": 1
+        }
+      ],
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "heartburn",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierHeartburn",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "high_heart_rate_event",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierHighHeartRateEvent",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "hot_flashes",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierHotFlashes",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "hypertension_event",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierHypertensionEvent",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "infrequent_menstrual_cycles",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierInfrequentMenstrualCycles",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "intermenstrual_bleeding",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierIntermenstrualBleeding",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "irregular_heart_rhythm_event",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierIrregularHeartRhythmEvent",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "irregular_menstrual_cycles",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierIrregularMenstrualCycles",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "lactation",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierLactation",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": true,
+      "max_span_s": 158112000,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "loss_of_smell",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierLossOfSmell",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "loss_of_taste",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierLossOfTaste",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "low_cardio_fitness_event",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierLowCardioFitnessEvent",
+      "values": [
+        {
+          "name": "low_fitness",
+          "hk_raw": 1
+        }
+      ],
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "low_heart_rate_event",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierLowHeartRateEvent",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "lower_back_pain",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierLowerBackPain",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "memory_lapse",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierMemoryLapse",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "menopausal_state",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierMenopausalState",
+      "values": [
+        {
+          "name": "menopause",
+          "hk_raw": 1
+        },
+        {
+          "name": "perimenopause",
+          "hk_raw": 2
+        },
+        {
+          "name": "none",
+          "hk_raw": 3
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "menstrual_flow",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierMenstrualFlow",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 1
+        },
+        {
+          "name": "light",
+          "hk_raw": 2
+        },
+        {
+          "name": "medium",
+          "hk_raw": 3
+        },
+        {
+          "name": "heavy",
+          "hk_raw": 4
+        },
+        {
+          "name": "none",
+          "hk_raw": 5
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "mindful_session",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierMindfulSession",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "mood_changes",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierMoodChanges",
+      "values": [
+        {
+          "name": "present",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "nausea",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierNausea",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "night_sweats",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierNightSweats",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "ovulation_test_result",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierOvulationTestResult",
+      "values": [
+        {
+          "name": "negative",
+          "hk_raw": 1
+        },
+        {
+          "name": "luteinizing_hormone_surge",
+          "hk_raw": 2
+        },
+        {
+          "name": "indeterminate",
+          "hk_raw": 3
+        },
+        {
+          "name": "estrogen_surge",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "pelvic_pain",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierPelvicPain",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "persistent_intermenstrual_bleeding",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierPersistentIntermenstrualBleeding",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "pregnancy",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierPregnancy",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": true,
+      "max_span_s": 158112000,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "pregnancy_test_result",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierPregnancyTestResult",
+      "values": [
+        {
+          "name": "negative",
+          "hk_raw": 1
+        },
+        {
+          "name": "positive",
+          "hk_raw": 2
+        },
+        {
+          "name": "indeterminate",
+          "hk_raw": 3
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "progesterone_test_result",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierProgesteroneTestResult",
+      "values": [
+        {
+          "name": "negative",
+          "hk_raw": 1
+        },
+        {
+          "name": "positive",
+          "hk_raw": 2
+        },
+        {
+          "name": "indeterminate",
+          "hk_raw": 3
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "prolonged_menstrual_periods",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierProlongedMenstrualPeriods",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "rapid_pounding_or_fluttering_heartbeat",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierRapidPoundingOrFlutteringHeartbeat",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "runny_nose",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierRunnyNose",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "sexual_activity",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierSexualActivity",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "shortness_of_breath",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierShortnessOfBreath",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "sinus_congestion",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierSinusCongestion",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "skipped_heartbeat",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierSkippedHeartbeat",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "sleep_analysis",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierSleepAnalysis",
+      "values": [
+        {
+          "name": "in_bed",
+          "hk_raw": 0
+        },
+        {
+          "name": "asleep_unspecified",
+          "hk_raw": 1
+        },
+        {
+          "name": "awake",
+          "hk_raw": 2
+        },
+        {
+          "name": "asleep_core",
+          "hk_raw": 3
+        },
+        {
+          "name": "asleep_deep",
+          "hk_raw": 4
+        },
+        {
+          "name": "asleep_rem",
+          "hk_raw": 5
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": "SleepSessionRecord",
+      "hc_mapping": "lossy"
+    },
+    {
+      "name": "sleep_apnea_event",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierSleepApneaEvent",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "sleep_changes",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierSleepChanges",
+      "values": [
+        {
+          "name": "present",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "sore_throat",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierSoreThroat",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "toothbrushing_event",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierToothbrushingEvent",
+      "values": [
+        {
+          "name": "not_applicable",
+          "hk_raw": 0
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "vaginal_dryness",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierVaginalDryness",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "vomiting",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierVomiting",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "wheezing",
+      "kind": "category",
+      "hk": "HKCategoryTypeIdentifierWheezing",
+      "values": [
+        {
+          "name": "unspecified",
+          "hk_raw": 0
+        },
+        {
+          "name": "not_present",
+          "hk_raw": 1
+        },
+        {
+          "name": "mild",
+          "hk_raw": 2
+        },
+        {
+          "name": "moderate",
+          "hk_raw": 3
+        },
+        {
+          "name": "severe",
+          "hk_raw": 4
+        }
+      ],
+      "write": true,
+      "max_span_s": 604800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "heartbeat_series",
+      "kind": "heartbeat_series",
+      "hk": "HKDataTypeIdentifierHeartbeatSeries",
+      "write": false,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none",
+      "enums": {}
+    },
+    {
+      "name": "active_energy_burned",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierActiveEnergyBurned",
+      "unit": "kcal",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 100000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "apple_exercise_time",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierAppleExerciseTime",
+      "unit": "min",
+      "aggregation": "cumulative",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "apple_move_time",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierAppleMoveTime",
+      "unit": "min",
+      "aggregation": "cumulative",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "apple_sleeping_breathing_disturbances",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierAppleSleepingBreathingDisturbances",
+      "unit": "count",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "apple_sleeping_wrist_temperature",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierAppleSleepingWristTemperature",
+      "unit": "degC",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "apple_stand_time",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierAppleStandTime",
+      "unit": "min",
+      "aggregation": "cumulative",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "apple_walking_steadiness",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierAppleWalkingSteadiness",
+      "unit": "%",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "atrial_fibrillation_burden",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierAtrialFibrillationBurden",
+      "unit": "%",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "basal_body_temperature",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierBasalBodyTemperature",
+      "unit": "degC",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 100,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "basal_energy_burned",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierBasalEnergyBurned",
+      "unit": "kcal",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 100000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "blood_alcohol_content",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierBloodAlcoholContent",
+      "unit": "%",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "blood_glucose",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierBloodGlucose",
+      "unit": "mg/dL",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 5000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": "BloodGlucoseRecord",
+      "hc_mapping": "one_to_one"
+    },
+    {
+      "name": "blood_pressure_diastolic",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierBloodPressureDiastolic",
+      "unit": "mmHg",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "blood_pressure_systolic",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierBloodPressureSystolic",
+      "unit": "mmHg",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "body_fat_percentage",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierBodyFatPercentage",
+      "unit": "%",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": "BodyFatRecord",
+      "hc_mapping": "one_to_one"
+    },
+    {
+      "name": "body_mass",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierBodyMass",
+      "unit": "kg",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": "WeightRecord",
+      "hc_mapping": "one_to_one"
+    },
+    {
+      "name": "body_mass_index",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierBodyMassIndex",
+      "unit": "count",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "body_temperature",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierBodyTemperature",
+      "unit": "degC",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 100,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": "BodyTemperatureRecord",
+      "hc_mapping": "one_to_one"
+    },
+    {
+      "name": "cross_country_skiing_speed",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierCrossCountrySkiingSpeed",
+      "unit": "m/s",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 150,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "cycling_cadence",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierCyclingCadence",
+      "unit": "count/min",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "cycling_functional_threshold_power",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierCyclingFunctionalThresholdPower",
+      "unit": "W",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 10000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "cycling_power",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierCyclingPower",
+      "unit": "W",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 10000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "cycling_speed",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierCyclingSpeed",
+      "unit": "m/s",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 150,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_biotin",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryBiotin",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_caffeine",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryCaffeine",
+      "unit": "mg",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_calcium",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryCalcium",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_carbohydrates",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryCarbohydrates",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_chloride",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryChloride",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_cholesterol",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryCholesterol",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_chromium",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryChromium",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_copper",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryCopper",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_energy_consumed",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryEnergyConsumed",
+      "unit": "kcal",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 100000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_fat_monounsaturated",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryFatMonounsaturated",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_fat_polyunsaturated",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryFatPolyunsaturated",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_fat_saturated",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryFatSaturated",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_fat_total",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryFatTotal",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_fiber",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryFiber",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_folate",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryFolate",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_iodine",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryIodine",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_iron",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryIron",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_magnesium",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryMagnesium",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_manganese",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryManganese",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_molybdenum",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryMolybdenum",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_niacin",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryNiacin",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_pantothenic_acid",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryPantothenicAcid",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_phosphorus",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryPhosphorus",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_potassium",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryPotassium",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_protein",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryProtein",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_riboflavin",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryRiboflavin",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_selenium",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietarySelenium",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_sodium",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietarySodium",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_sugar",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietarySugar",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_thiamin",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryThiamin",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_vitamin_a",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryVitaminA",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_vitamin_b12",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryVitaminB12",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_vitamin_b6",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryVitaminB6",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_vitamin_c",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryVitaminC",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_vitamin_d",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryVitaminD",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_vitamin_e",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryVitaminE",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_vitamin_k",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryVitaminK",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "dietary_water",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryWater",
+      "unit": "L",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 100,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": "HydrationRecord",
+      "hc_mapping": "one_to_one"
+    },
+    {
+      "name": "dietary_zinc",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDietaryZinc",
+      "unit": "g",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "distance_cross_country_skiing",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDistanceCrossCountrySkiing",
+      "unit": "m",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 10000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "distance_cycling",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDistanceCycling",
+      "unit": "m",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 10000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "distance_downhill_snow_sports",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDistanceDownhillSnowSports",
+      "unit": "m",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 10000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "distance_paddle_sports",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDistancePaddleSports",
+      "unit": "m",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 10000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "distance_rowing",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDistanceRowing",
+      "unit": "m",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 10000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "distance_skating_sports",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDistanceSkatingSports",
+      "unit": "m",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 10000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "distance_swimming",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDistanceSwimming",
+      "unit": "m",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 10000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "distance_walking_running",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDistanceWalkingRunning",
+      "unit": "m",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 10000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "distance_wheelchair",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierDistanceWheelchair",
+      "unit": "m",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 10000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "electrodermal_activity",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierElectrodermalActivity",
+      "unit": "S",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "environmental_audio_exposure",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierEnvironmentalAudioExposure",
+      "unit": "dBASPL",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 200,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "environmental_sound_reduction",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierEnvironmentalSoundReduction",
+      "unit": "dBASPL",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 200,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "estimated_workout_effort_score",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierEstimatedWorkoutEffortScore",
+      "unit": "appleEffortScore",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "flights_climbed",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierFlightsClimbed",
+      "unit": "count",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "forced_expiratory_volume1",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierForcedExpiratoryVolume1",
+      "unit": "L",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 100,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "forced_vital_capacity",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierForcedVitalCapacity",
+      "unit": "L",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 100,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "headphone_audio_exposure",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierHeadphoneAudioExposure",
+      "unit": "dBASPL",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 200,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "heart_rate",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierHeartRate",
+      "unit": "count/min",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": "HeartRateRecord",
+      "hc_mapping": "one_to_one"
+    },
+    {
+      "name": "heart_rate_recovery_one_minute",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierHeartRateRecoveryOneMinute",
+      "unit": "count/min",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "heart_rate_variability_rmssd",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierHeartRateVariabilityRMSSD",
+      "unit": "ms",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 172800000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "heart_rate_variability_sdnn",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierHeartRateVariabilitySDNN",
+      "unit": "ms",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 172800000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "height",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierHeight",
+      "unit": "cm",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1000000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": "HeightRecord",
+      "hc_mapping": "one_to_one"
+    },
+    {
+      "name": "inhaler_usage",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierInhalerUsage",
+      "unit": "count",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "insulin_delivery",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierInsulinDelivery",
+      "unit": "IU",
+      "aggregation": "cumulative",
+      "write": false,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "lean_body_mass",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierLeanBodyMass",
+      "unit": "kg",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "nike_fuel",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierNikeFuel",
+      "unit": "count",
+      "aggregation": "cumulative",
+      "write": false,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "number_of_alcoholic_beverages",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierNumberOfAlcoholicBeverages",
+      "unit": "count",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "number_of_times_fallen",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierNumberOfTimesFallen",
+      "unit": "count",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "oxygen_saturation",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierOxygenSaturation",
+      "unit": "%",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": "OxygenSaturationRecord",
+      "hc_mapping": "one_to_one"
+    },
+    {
+      "name": "paddle_sports_speed",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierPaddleSportsSpeed",
+      "unit": "m/s",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 150,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "peak_expiratory_flow_rate",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierPeakExpiratoryFlowRate",
+      "unit": "L/min",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 2000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "peripheral_perfusion_index",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierPeripheralPerfusionIndex",
+      "unit": "%",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "physical_effort",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierPhysicalEffort",
+      "unit": "kcal/(kg*hr)",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "push_count",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierPushCount",
+      "unit": "count",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "respiratory_rate",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierRespiratoryRate",
+      "unit": "count/min",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": "RespiratoryRateRecord",
+      "hc_mapping": "one_to_one"
+    },
+    {
+      "name": "resting_heart_rate",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierRestingHeartRate",
+      "unit": "count/min",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": "RestingHeartRateRecord",
+      "hc_mapping": "one_to_one"
+    },
+    {
+      "name": "rowing_speed",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierRowingSpeed",
+      "unit": "m/s",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 150,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "running_ground_contact_time",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierRunningGroundContactTime",
+      "unit": "ms",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 172800000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "running_power",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierRunningPower",
+      "unit": "W",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 10000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "running_speed",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierRunningSpeed",
+      "unit": "m/s",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 150,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "running_stride_length",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierRunningStrideLength",
+      "unit": "m",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 10000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "running_vertical_oscillation",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierRunningVerticalOscillation",
+      "unit": "cm",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1000000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "six_minute_walk_test_distance",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierSixMinuteWalkTestDistance",
+      "unit": "m",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "stair_ascent_speed",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierStairAscentSpeed",
+      "unit": "m/s",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "stair_descent_speed",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierStairDescentSpeed",
+      "unit": "m/s",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "steps",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierStepCount",
+      "unit": "count",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": "StepsRecord",
+      "hc_mapping": "one_to_one"
+    },
+    {
+      "name": "swimming_stroke_count",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierSwimmingStrokeCount",
+      "unit": "count",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "time_in_daylight",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierTimeInDaylight",
+      "unit": "min",
+      "aggregation": "cumulative",
+      "write": true,
+      "min": 0,
+      "max": 2880,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "underwater_depth",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierUnderwaterDepth",
+      "unit": "m",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 10000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "uv_exposure",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierUVExposure",
+      "unit": "count",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "vo2_max",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierVO2Max",
+      "unit": "ml/(kg*min)",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "waist_circumference",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierWaistCircumference",
+      "unit": "cm",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 1000000000,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "walking_asymmetry_percentage",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierWalkingAsymmetryPercentage",
+      "unit": "%",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "walking_double_support_percentage",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierWalkingDoubleSupportPercentage",
+      "unit": "%",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "walking_heart_rate_average",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierWalkingHeartRateAverage",
+      "unit": "count/min",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "walking_speed",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierWalkingSpeed",
+      "unit": "m/s",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "walking_step_length",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierWalkingStepLength",
+      "unit": "m",
+      "aggregation": "discrete",
+      "write": false,
+      "computed_by_apple": true,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "water_temperature",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierWaterTemperature",
+      "unit": "degC",
+      "aggregation": "discrete",
+      "write": true,
+      "min": -273.15,
+      "max": 100,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "workout_effort_score",
+      "kind": "quantity",
+      "hk": "HKQuantityTypeIdentifierWorkoutEffortScore",
+      "unit": "appleEffortScore",
+      "aggregation": "discrete",
+      "write": true,
+      "min": 0,
+      "max": 10,
+      "max_span_s": 172800,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none"
+    },
+    {
+      "name": "gad7_assessment",
+      "kind": "scored_assessment",
+      "hk": "HKScoredAssessmentTypeIdentifierGAD7",
+      "write": false,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none",
+      "enums": {
+        "risk": [
+          {
+            "name": "none_to_minimal",
+            "hk_raw": 1
+          },
+          {
+            "name": "mild",
+            "hk_raw": 2
+          },
+          {
+            "name": "moderate",
+            "hk_raw": 3
+          },
+          {
+            "name": "severe",
+            "hk_raw": 4
+          }
+        ],
+        "answer": [
+          {
+            "name": "not_at_all",
+            "hk_raw": 0
+          },
+          {
+            "name": "several_days",
+            "hk_raw": 1
+          },
+          {
+            "name": "more_than_half_the_days",
+            "hk_raw": 2
+          },
+          {
+            "name": "nearly_every_day",
+            "hk_raw": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "phq9_assessment",
+      "kind": "scored_assessment",
+      "hk": "HKScoredAssessmentTypeIdentifierPHQ9",
+      "write": false,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none",
+      "enums": {
+        "risk": [
+          {
+            "name": "none_to_minimal",
+            "hk_raw": 1
+          },
+          {
+            "name": "mild",
+            "hk_raw": 2
+          },
+          {
+            "name": "moderate",
+            "hk_raw": 3
+          },
+          {
+            "name": "moderately_severe",
+            "hk_raw": 4
+          },
+          {
+            "name": "severe",
+            "hk_raw": 5
+          }
+        ],
+        "answer": [
+          {
+            "name": "not_at_all",
+            "hk_raw": 0
+          },
+          {
+            "name": "several_days",
+            "hk_raw": 1
+          },
+          {
+            "name": "more_than_half_the_days",
+            "hk_raw": 2
+          },
+          {
+            "name": "nearly_every_day",
+            "hk_raw": 3
+          },
+          {
+            "name": "prefer_not_to_answer",
+            "hk_raw": 4
+          }
+        ]
+      }
+    },
+    {
+      "name": "state_of_mind",
+      "kind": "state_of_mind",
+      "hk": "HKDataTypeIdentifierStateOfMind",
+      "write": false,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none",
+      "enums": {
+        "kind": [
+          {
+            "name": "momentary_emotion",
+            "hk_raw": 1
+          },
+          {
+            "name": "daily_mood",
+            "hk_raw": 2
+          }
+        ],
+        "valence_class": [
+          {
+            "name": "very_unpleasant",
+            "hk_raw": 1
+          },
+          {
+            "name": "unpleasant",
+            "hk_raw": 2
+          },
+          {
+            "name": "slightly_unpleasant",
+            "hk_raw": 3
+          },
+          {
+            "name": "neutral",
+            "hk_raw": 4
+          },
+          {
+            "name": "slightly_pleasant",
+            "hk_raw": 5
+          },
+          {
+            "name": "pleasant",
+            "hk_raw": 6
+          },
+          {
+            "name": "very_pleasant",
+            "hk_raw": 7
+          }
+        ],
+        "label": [
+          {
+            "name": "amazed",
+            "hk_raw": 1
+          },
+          {
+            "name": "amused",
+            "hk_raw": 2
+          },
+          {
+            "name": "angry",
+            "hk_raw": 3
+          },
+          {
+            "name": "anxious",
+            "hk_raw": 4
+          },
+          {
+            "name": "ashamed",
+            "hk_raw": 5
+          },
+          {
+            "name": "brave",
+            "hk_raw": 6
+          },
+          {
+            "name": "calm",
+            "hk_raw": 7
+          },
+          {
+            "name": "content",
+            "hk_raw": 8
+          },
+          {
+            "name": "disappointed",
+            "hk_raw": 9
+          },
+          {
+            "name": "discouraged",
+            "hk_raw": 10
+          },
+          {
+            "name": "disgusted",
+            "hk_raw": 11
+          },
+          {
+            "name": "embarrassed",
+            "hk_raw": 12
+          },
+          {
+            "name": "excited",
+            "hk_raw": 13
+          },
+          {
+            "name": "frustrated",
+            "hk_raw": 14
+          },
+          {
+            "name": "grateful",
+            "hk_raw": 15
+          },
+          {
+            "name": "guilty",
+            "hk_raw": 16
+          },
+          {
+            "name": "happy",
+            "hk_raw": 17
+          },
+          {
+            "name": "hopeless",
+            "hk_raw": 18
+          },
+          {
+            "name": "irritated",
+            "hk_raw": 19
+          },
+          {
+            "name": "jealous",
+            "hk_raw": 20
+          },
+          {
+            "name": "joyful",
+            "hk_raw": 21
+          },
+          {
+            "name": "lonely",
+            "hk_raw": 22
+          },
+          {
+            "name": "passionate",
+            "hk_raw": 23
+          },
+          {
+            "name": "peaceful",
+            "hk_raw": 24
+          },
+          {
+            "name": "proud",
+            "hk_raw": 25
+          },
+          {
+            "name": "relieved",
+            "hk_raw": 26
+          },
+          {
+            "name": "sad",
+            "hk_raw": 27
+          },
+          {
+            "name": "scared",
+            "hk_raw": 28
+          },
+          {
+            "name": "stressed",
+            "hk_raw": 29
+          },
+          {
+            "name": "surprised",
+            "hk_raw": 30
+          },
+          {
+            "name": "worried",
+            "hk_raw": 31
+          },
+          {
+            "name": "annoyed",
+            "hk_raw": 32
+          },
+          {
+            "name": "confident",
+            "hk_raw": 33
+          },
+          {
+            "name": "drained",
+            "hk_raw": 34
+          },
+          {
+            "name": "hopeful",
+            "hk_raw": 35
+          },
+          {
+            "name": "indifferent",
+            "hk_raw": 36
+          },
+          {
+            "name": "overwhelmed",
+            "hk_raw": 37
+          },
+          {
+            "name": "satisfied",
+            "hk_raw": 38
+          }
+        ],
+        "association": [
+          {
+            "name": "community",
+            "hk_raw": 1
+          },
+          {
+            "name": "current_events",
+            "hk_raw": 2
+          },
+          {
+            "name": "dating",
+            "hk_raw": 3
+          },
+          {
+            "name": "education",
+            "hk_raw": 4
+          },
+          {
+            "name": "family",
+            "hk_raw": 5
+          },
+          {
+            "name": "fitness",
+            "hk_raw": 6
+          },
+          {
+            "name": "friends",
+            "hk_raw": 7
+          },
+          {
+            "name": "health",
+            "hk_raw": 8
+          },
+          {
+            "name": "hobbies",
+            "hk_raw": 9
+          },
+          {
+            "name": "identity",
+            "hk_raw": 10
+          },
+          {
+            "name": "money",
+            "hk_raw": 11
+          },
+          {
+            "name": "partner",
+            "hk_raw": 12
+          },
+          {
+            "name": "self_care",
+            "hk_raw": 13
+          },
+          {
+            "name": "spirituality",
+            "hk_raw": 14
+          },
+          {
+            "name": "tasks",
+            "hk_raw": 15
+          },
+          {
+            "name": "travel",
+            "hk_raw": 16
+          },
+          {
+            "name": "work",
+            "hk_raw": 17
+          },
+          {
+            "name": "weather",
+            "hk_raw": 18
+          }
+        ]
+      }
+    },
+    {
+      "name": "workout_route",
+      "kind": "workout_route",
+      "hk": "HKWorkoutRouteTypeIdentifier",
+      "write": false,
+      "computed_by_apple": false,
+      "hc": null,
+      "hc_mapping": "none",
+      "enums": {}
+    }
+  ],
+  "workout": {
+    "hk": "HKWorkoutTypeIdentifier",
+    "write": false,
+    "activities": [
+      {
+        "name": "american_football",
+        "hk_raw": 1
+      },
+      {
+        "name": "archery",
+        "hk_raw": 2
+      },
+      {
+        "name": "australian_football",
+        "hk_raw": 3
+      },
+      {
+        "name": "badminton",
+        "hk_raw": 4
+      },
+      {
+        "name": "barre",
+        "hk_raw": 58
+      },
+      {
+        "name": "baseball",
+        "hk_raw": 5
+      },
+      {
+        "name": "basketball",
+        "hk_raw": 6
+      },
+      {
+        "name": "bowling",
+        "hk_raw": 7
+      },
+      {
+        "name": "boxing",
+        "hk_raw": 8
+      },
+      {
+        "name": "cardio_dance",
+        "hk_raw": 77
+      },
+      {
+        "name": "climbing",
+        "hk_raw": 9
+      },
+      {
+        "name": "cooldown",
+        "hk_raw": 80
+      },
+      {
+        "name": "core_training",
+        "hk_raw": 59
+      },
+      {
+        "name": "cricket",
+        "hk_raw": 10
+      },
+      {
+        "name": "cross_country_skiing",
+        "hk_raw": 60
+      },
+      {
+        "name": "cross_training",
+        "hk_raw": 11
+      },
+      {
+        "name": "curling",
+        "hk_raw": 12
+      },
+      {
+        "name": "cycling",
+        "hk_raw": 13
+      },
+      {
+        "name": "disc_sports",
+        "hk_raw": 75
+      },
+      {
+        "name": "downhill_skiing",
+        "hk_raw": 61
+      },
+      {
+        "name": "elliptical",
+        "hk_raw": 16
+      },
+      {
+        "name": "equestrian_sports",
+        "hk_raw": 17
+      },
+      {
+        "name": "fencing",
+        "hk_raw": 18
+      },
+      {
+        "name": "fishing",
+        "hk_raw": 19
+      },
+      {
+        "name": "fitness_gaming",
+        "hk_raw": 76
+      },
+      {
+        "name": "flexibility",
+        "hk_raw": 62
+      },
+      {
+        "name": "functional_strength_training",
+        "hk_raw": 20
+      },
+      {
+        "name": "golf",
+        "hk_raw": 21
+      },
+      {
+        "name": "gymnastics",
+        "hk_raw": 22
+      },
+      {
+        "name": "hand_cycling",
+        "hk_raw": 74
+      },
+      {
+        "name": "handball",
+        "hk_raw": 23
+      },
+      {
+        "name": "high_intensity_interval_training",
+        "hk_raw": 63
+      },
+      {
+        "name": "hiking",
+        "hk_raw": 24
+      },
+      {
+        "name": "hockey",
+        "hk_raw": 25
+      },
+      {
+        "name": "hunting",
+        "hk_raw": 26
+      },
+      {
+        "name": "jump_rope",
+        "hk_raw": 64
+      },
+      {
+        "name": "kickboxing",
+        "hk_raw": 65
+      },
+      {
+        "name": "lacrosse",
+        "hk_raw": 27
+      },
+      {
+        "name": "martial_arts",
+        "hk_raw": 28
+      },
+      {
+        "name": "mind_and_body",
+        "hk_raw": 29
+      },
+      {
+        "name": "mixed_cardio",
+        "hk_raw": 73
+      },
+      {
+        "name": "other",
+        "hk_raw": 3000
+      },
+      {
+        "name": "paddle_sports",
+        "hk_raw": 31
+      },
+      {
+        "name": "pickleball",
+        "hk_raw": 79
+      },
+      {
+        "name": "pilates",
+        "hk_raw": 66
+      },
+      {
+        "name": "play",
+        "hk_raw": 32
+      },
+      {
+        "name": "preparation_and_recovery",
+        "hk_raw": 33
+      },
+      {
+        "name": "racquetball",
+        "hk_raw": 34
+      },
+      {
+        "name": "rowing",
+        "hk_raw": 35
+      },
+      {
+        "name": "rugby",
+        "hk_raw": 36
+      },
+      {
+        "name": "running",
+        "hk_raw": 37
+      },
+      {
+        "name": "sailing",
+        "hk_raw": 38
+      },
+      {
+        "name": "skating_sports",
+        "hk_raw": 39
+      },
+      {
+        "name": "snow_sports",
+        "hk_raw": 40
+      },
+      {
+        "name": "snowboarding",
+        "hk_raw": 67
+      },
+      {
+        "name": "soccer",
+        "hk_raw": 41
+      },
+      {
+        "name": "social_dance",
+        "hk_raw": 78
+      },
+      {
+        "name": "softball",
+        "hk_raw": 42
+      },
+      {
+        "name": "squash",
+        "hk_raw": 43
+      },
+      {
+        "name": "stair_climbing",
+        "hk_raw": 44
+      },
+      {
+        "name": "stairs",
+        "hk_raw": 68
+      },
+      {
+        "name": "step_training",
+        "hk_raw": 69
+      },
+      {
+        "name": "surfing_sports",
+        "hk_raw": 45
+      },
+      {
+        "name": "swim_bike_run",
+        "hk_raw": 82
+      },
+      {
+        "name": "swimming",
+        "hk_raw": 46
+      },
+      {
+        "name": "table_tennis",
+        "hk_raw": 47
+      },
+      {
+        "name": "tai_chi",
+        "hk_raw": 72
+      },
+      {
+        "name": "tennis",
+        "hk_raw": 48
+      },
+      {
+        "name": "track_and_field",
+        "hk_raw": 49
+      },
+      {
+        "name": "traditional_strength_training",
+        "hk_raw": 50
+      },
+      {
+        "name": "transition",
+        "hk_raw": 83
+      },
+      {
+        "name": "underwater_diving",
+        "hk_raw": 84
+      },
+      {
+        "name": "volleyball",
+        "hk_raw": 51
+      },
+      {
+        "name": "walking",
+        "hk_raw": 52
+      },
+      {
+        "name": "water_fitness",
+        "hk_raw": 53
+      },
+      {
+        "name": "water_polo",
+        "hk_raw": 54
+      },
+      {
+        "name": "water_sports",
+        "hk_raw": 55
+      },
+      {
+        "name": "wheelchair_run_pace",
+        "hk_raw": 71
+      },
+      {
+        "name": "wheelchair_walk_pace",
+        "hk_raw": 70
+      },
+      {
+        "name": "wrestling",
+        "hk_raw": 56
+      },
+      {
+        "name": "yoga",
+        "hk_raw": 57
+      }
+    ],
+    "enums": {
+      "event_type": [
+        {
+          "name": "pause",
+          "hk_raw": 1
+        },
+        {
+          "name": "resume",
+          "hk_raw": 2
+        },
+        {
+          "name": "lap",
+          "hk_raw": 3
+        },
+        {
+          "name": "marker",
+          "hk_raw": 4
+        },
+        {
+          "name": "motion_paused",
+          "hk_raw": 5
+        },
+        {
+          "name": "motion_resumed",
+          "hk_raw": 6
+        },
+        {
+          "name": "segment",
+          "hk_raw": 7
+        },
+        {
+          "name": "pause_or_resume_request",
+          "hk_raw": 8
+        }
+      ],
+      "location": [
+        {
+          "name": "unknown",
+          "hk_raw": 1
+        },
+        {
+          "name": "indoor",
+          "hk_raw": 2
+        },
+        {
+          "name": "outdoor",
+          "hk_raw": 3
+        }
+      ],
+      "swimming_location": [
+        {
+          "name": "unknown",
+          "hk_raw": 0
+        },
+        {
+          "name": "pool",
+          "hk_raw": 1
+        },
+        {
+          "name": "open_water",
+          "hk_raw": 2
+        }
+      ]
+    }
+  },
+  "characteristics": [
+    {
+      "name": "activity_move_mode",
+      "hk": "HKCharacteristicTypeIdentifierActivityMoveMode",
+      "format": "enum",
+      "values": [
+        {
+          "name": "active_energy",
+          "hk_raw": 1
+        },
+        {
+          "name": "apple_move_time",
+          "hk_raw": 2
+        }
+      ]
+    },
+    {
+      "name": "biological_sex",
+      "hk": "HKCharacteristicTypeIdentifierBiologicalSex",
+      "format": "enum",
+      "values": [
+        {
+          "name": "not_set",
+          "hk_raw": 0
+        },
+        {
+          "name": "female",
+          "hk_raw": 1
+        },
+        {
+          "name": "male",
+          "hk_raw": 2
+        },
+        {
+          "name": "other",
+          "hk_raw": 3
+        }
+      ]
+    },
+    {
+      "name": "blood_type",
+      "hk": "HKCharacteristicTypeIdentifierBloodType",
+      "format": "enum",
+      "values": [
+        {
+          "name": "not_set",
+          "hk_raw": 0
+        },
+        {
+          "name": "a_positive",
+          "hk_raw": 1
+        },
+        {
+          "name": "a_negative",
+          "hk_raw": 2
+        },
+        {
+          "name": "b_positive",
+          "hk_raw": 3
+        },
+        {
+          "name": "b_negative",
+          "hk_raw": 4
+        },
+        {
+          "name": "ab_positive",
+          "hk_raw": 5
+        },
+        {
+          "name": "ab_negative",
+          "hk_raw": 6
+        },
+        {
+          "name": "o_positive",
+          "hk_raw": 7
+        },
+        {
+          "name": "o_negative",
+          "hk_raw": 8
+        }
+      ]
+    },
+    {
+      "name": "date_of_birth",
+      "hk": "HKCharacteristicTypeIdentifierDateOfBirth",
+      "format": "date"
+    },
+    {
+      "name": "fitzpatrick_skin_type",
+      "hk": "HKCharacteristicTypeIdentifierFitzpatrickSkinType",
+      "format": "enum",
+      "values": [
+        {
+          "name": "not_set",
+          "hk_raw": 0
+        },
+        {
+          "name": "i",
+          "hk_raw": 1
+        },
+        {
+          "name": "ii",
+          "hk_raw": 2
+        },
+        {
+          "name": "iii",
+          "hk_raw": 3
+        },
+        {
+          "name": "iv",
+          "hk_raw": 4
+        },
+        {
+          "name": "v",
+          "hk_raw": 5
+        },
+        {
+          "name": "vi",
+          "hk_raw": 6
+        }
+      ]
+    },
+    {
+      "name": "wheelchair_use",
+      "hk": "HKCharacteristicTypeIdentifierWheelchairUse",
+      "format": "enum",
+      "values": [
+        {
+          "name": "not_set",
+          "hk_raw": 0
+        },
+        {
+          "name": "no",
+          "hk_raw": 1
+        },
+        {
+          "name": "yes",
+          "hk_raw": 2
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,418 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://syncky.app/protocol/schemas/inner-system.schema.json",
+  "title": "Inner protocol v1, system messages inside a control envelope: the canonical emitted form. Named types have exactly their keys; another type matching ^[a-z_]{1,32}$ is skipped by receivers as unknown_system_type",
+  "$defs": {
+    "system": {
+      "oneOf": [
+        { "$ref": "#/$defs/unpair" },
+        { "$ref": "#/$defs/paused" },
+        { "$ref": "#/$defs/resumed" },
+        { "$ref": "#/$defs/confirmed" },
+        { "$ref": "#/$defs/unpaired" },
+        { "$ref": "#/$defs/resync_request" },
+        { "$ref": "#/$defs/agent_info" },
+        { "$ref": "#/$defs/pair_proof" },
+        { "$ref": "#/$defs/diagnostics_request" },
+        { "$ref": "#/$defs/diagnostics_reply" },
+        { "$ref": "#/$defs/access_request" },
+        { "$ref": "#/$defs/access_reply" },
+        { "$ref": "#/$defs/unknown" }
+      ]
+    },
+    "unpair": {
+      "description": "phone to agent: this phone leaves the hub",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "type", "reason"],
+      "properties": {
+        "v": { "type": "integer", "const": 1 },
+        "type": { "type": "string", "const": "unpair" },
+        "reason": { "type": "string", "enum": ["user", "reset", "replaced", "delete_relay_data"] }
+      }
+    },
+    "paused": {
+      "description": "phone to agent: uploads and command application stop until resumed",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "type", "reason"],
+      "properties": {
+        "v": { "type": "integer", "const": 1 },
+        "type": { "type": "string", "const": "paused" },
+        "reason": { "type": "string", "enum": ["subscription_ended", "user_paused", "health_access_changed"] }
+      }
+    },
+    "resumed": {
+      "description": "phone to agent",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "type"],
+      "properties": {
+        "v": { "type": "integer", "const": 1 },
+        "type": { "type": "string", "const": "resumed" }
+      }
+    },
+    "confirmed": {
+      "description": "agent to phone: the owner confirmed this phone's fingerprint on the agent",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "type"],
+      "properties": {
+        "v": { "type": "integer", "const": 1 },
+        "type": { "type": "string", "const": "confirmed" }
+      }
+    },
+    "unpaired": {
+      "description": "agent to phone: the agent no longer takes this phone",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "type", "reason"],
+      "properties": {
+        "v": { "type": "integer", "const": 1 },
+        "type": { "type": "string", "const": "unpaired" },
+        "reason": { "type": "string", "enum": ["user", "reset", "replaced"] }
+      }
+    },
+    "resync_request": {
+      "description": "agent to phone: send again what changed since from",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "type", "from"],
+      "properties": {
+        "v": { "type": "integer", "const": 1 },
+        "type": { "type": "string", "const": "resync_request" },
+        "from": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "agent_info": {
+      "description": "agent to phone",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "type", "version"],
+      "properties": {
+        "v": { "type": "integer", "const": 1 },
+        "type": { "type": "string", "const": "agent_info" },
+        "version": { "type": "string", "pattern": "^[0-9A-Za-z.+_-]{1,64}$" }
+      }
+    },
+    "pair_proof": {
+      "description": "phone to agent: HMAC-SHA256 keyed by the pairing secret of the v2 link over the agent and device keys",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "type", "proof"],
+      "properties": {
+        "v": { "type": "integer", "const": 1 },
+        "type": { "type": "string", "const": "pair_proof" },
+        "proof": { "type": "string", "pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$" }
+      }
+    },
+    "diagnostics_request": {
+      "description": "agent to phone; exactly 24 hours from creation",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "type", "request_ref", "created_at", "expires_at"],
+      "properties": {
+        "v": {"type": "integer", "const": 1},
+        "type": {"type": "string", "const": "diagnostics_request"},
+        "request_ref": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+        "created_at": {"$ref": "#/$defs/timestamp"},
+        "expires_at": {"$ref": "#/$defs/timestamp"}
+      }
+    },
+    "diagnostics_reply": {
+      "description": "phone to requesting agent; decision-based retries for 48 hours",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "type", "request_ref", "outcome", "reason"],
+      "properties": {
+        "v": {"type": "integer", "const": 1},
+        "type": {"type": "string", "const": "diagnostics_reply"},
+        "request_ref": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+        "outcome": {"type": "string", "enum": ["declined", "expired"]},
+        "reason": {"type": "string", "enum": ["user", "pending_limit", "rate_limited", "deadline"]}
+      },
+      "oneOf": [
+        {"type": "object", "properties": {"outcome": {"type": "string", "const": "declined"}, "reason": {"type": "string", "enum": ["user", "pending_limit", "rate_limited"]}}},
+        {"type": "object", "properties": {"outcome": {"type": "string", "const": "expired"}, "reason": {"type": "string", "const": "deadline"}}}
+      ]
+    },
+    "access_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "type",
+        "request_ref",
+        "created_at",
+        "expires_at",
+        "read",
+        "write"
+      ],
+      "properties": {
+        "v": {
+          "type": "integer",
+          "const": 1
+        },
+        "type": {
+          "type": "string",
+          "const": "access_request"
+        },
+        "request_ref": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "created_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "read": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,63}$"
+          }
+        },
+        "write": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,63}$"
+          }
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "read": {
+              "type": "array",
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "write": {
+              "type": "array",
+              "minItems": 1
+            }
+          }
+        }
+      ]
+    },
+    "access_reply": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "type",
+        "request_ref",
+        "decided_at",
+        "outcome",
+        "read",
+        "write"
+      ],
+      "properties": {
+        "v": {
+          "type": "integer",
+          "const": 1
+        },
+        "type": {
+          "type": "string",
+          "const": "access_reply"
+        },
+        "request_ref": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "decided_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "resolved",
+            "expired",
+            "pending_limit",
+            "rate_limited"
+          ]
+        },
+        "read": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "outcome"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{1,63}$"
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "allowed",
+                  "declined",
+                  "needs_health_settings"
+                ]
+              }
+            }
+          }
+        },
+        "write": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "outcome"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{1,63}$"
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "allowed",
+                  "declined",
+                  "needs_health_settings"
+                ]
+              }
+            }
+          }
+        },
+        "next_available_at": {
+          "$ref": "#/$defs/timestamp"
+        }
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "not": {
+            "type": "object",
+            "required": [
+              "next_available_at"
+            ],
+            "properties": {
+              "next_available_at": true
+            }
+          },
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "const": "resolved"
+            }
+          },
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "read": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "write": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "not": {
+            "type": "object",
+            "required": [
+              "next_available_at"
+            ],
+            "properties": {
+              "next_available_at": true
+            }
+          },
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "const": "expired"
+            },
+            "read": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "write": {
+              "type": "array",
+              "maxItems": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "enum": [
+                "pending_limit",
+                "rate_limited"
+              ]
+            },
+            "read": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "write": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "next_available_at": {
+              "$ref": "#/$defs/timestamp"
+            }
+          },
+          "required": [
+            "next_available_at"
+          ]
+        }
+      ]
+    },
+    "unknown": {
+      "description": "the normalized form of a type this version does not know",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "type"],
+      "properties": {
+        "v": { "type": "integer", "const": 1 },
+        "type": {
+          "type": "string",
+          "pattern": "^[a-z_]{1,32}$",
+          "not": { "type": "string", "enum": ["unpair", "paused", "resumed", "confirmed", "unpaired", "resync_request", "agent_info", "pair_proof", "sync", "commands", "diagnostics", "diagnostics_request", "diagnostics_reply", "access_request", "access_reply"] }
+        }
+      }
+    },
+    "timestamp": {
+      "description": "RFC 3339 emit form: UTC, uppercase T and Z, no fraction when the milliseconds are 0, otherwise exactly 3 digits",
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.([1-9][0-9]{2}|0[1-9][0-9]|00[1-9]))?Z$"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "syncky": {
+      "command": "npx",
+      "args": ["-y", "@syncky/agent", "mcp"]
+    }
+  }
+}
