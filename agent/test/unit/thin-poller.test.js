@@ -39,6 +39,29 @@ test('one-shot receive waits for a CLI transaction before pruning', async t => {
   finally { clearTimeout(timer); transaction.release(); }
 });
 
+test('one-shot callers retry a short receiver lease and retain a full bounded cycle after acquisition', async t => {
+  const { home, transport } = setup(t), lease = acquireHomeLock(home, 'receiver', { role: 'once' });
+  const started = now().getTime(); let at = started, sleeps = 0;
+  const poller = createThinPoller({ home, transport, self, relay: { getMessages: async () => ({ messages: [] }) },
+    now: () => new Date(at), sleep: async ms => { at += ms; if (++sleeps === 150) lease.release(); },
+    watchPairing: async ({ deadline }) => { assert.equal(deadline, at + 15000); },
+  });
+  try { assert.equal((await poller.once()).pages, 1); assert.equal(sleeps, 150); assert.equal(at - started, 15000); }
+  finally { lease.release(); }
+});
+
+for (const abort of [false, true]) test(`one-shot lease retries respect ${abort ? 'cancellation' : 'an explicit deadline'}`, async t => {
+  const { home, transport } = setup(t), lease = acquireHomeLock(home, 'receiver'), controller = new AbortController();
+  let at = now().getTime(); const sleeps = [], deadline = at + 250;
+  const poller = createThinPoller({ home, transport, self, relay: {}, now: () => new Date(at), sleep: async ms => {
+    sleeps.push(ms); at += ms; if (abort) controller.abort();
+  } });
+  try {
+    await assert.rejects(poller.once({ signal: controller.signal, deadline }), abort ? { name: 'AbortError' } : { code: 'home_locked' });
+    assert.deepEqual(sleeps, abort ? [100] : [100, 100, 50]);
+  } finally { lease.release(); }
+});
+
 test('one-shot pairing watcher receives the caller cancellation and bounded deadline', async t => {
   const { home, transport } = setup(t), controller = new AbortController();
   const deadline = now().getTime() + 500;

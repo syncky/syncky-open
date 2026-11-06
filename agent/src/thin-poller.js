@@ -3,7 +3,7 @@ import { readHomeState, updateHomeState } from "./home-state.js";
 import { createInbox } from "./inbox.js";
 import { acquireHomeLock } from "./protected-files.js";
 import { createThinInbound } from "./thin-inbound.js";
-import { retryHomeLock } from "./thin-lock.js";
+import { retryHomeLock, retryReceiverLock } from "./thin-lock.js";
 import { startThinFastPoll } from "./thin-pairing.js";
 import { abortableSleep } from "./transport-time.js";
 
@@ -143,9 +143,9 @@ export function createThinPoller({ home, transport, self, relay, fs, now = () =>
     }
     return { pages, fetched, capped: pages === maxPages, acked_up_to: state().transport.acked_seq };
   }
-  function acquire() {
+  function acquire(role) {
     if (active) throw new LocalStateError("home_locked", "receiver is already active");
-    const lease = acquireHomeLock(home, "receiver", options); active = true;
+    const lease = acquireHomeLock(home, "receiver", { ...options, role }); active = true;
     return () => { active = false; lease.release(); };
   }
   return {
@@ -153,10 +153,10 @@ export function createThinPoller({ home, transport, self, relay, fs, now = () =>
     startFastPoll(memberId, graceUntil) {
       return mutate(s => startThinFastPoll(s, memberId, graceUntil, now().getTime()));
     },
-    async once({ signal, deadline = now().getTime() + 15000 } = {}) {
-      const release = acquire(), controller = new AbortController();
+    async once({ signal, deadline } = {}) {
+      const release = await retryReceiverLock(() => acquire("once"), { signal, sleep, deadline, now }), controller = new AbortController();
       const combined = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
-      deadline = Math.min(deadline, now().getTime() + 15000);
+      deadline = Math.min(deadline ?? Infinity, now().getTime() + 15000);
       const timer = setTimeout(() => controller.abort(), Math.max(0, deadline - now().getTime())), tasks = [];
       try {
         await retryHomeLock(() => inbox.prune(now()));
@@ -169,7 +169,7 @@ export function createThinPoller({ home, transport, self, relay, fs, now = () =>
       } finally { controller.abort(); clearTimeout(timer); await Promise.allSettled(tasks); release(); }
     },
     start() {
-      const release = acquire(), controller = new AbortController(), tasks = new Set();
+      const release = acquire("receiver"), controller = new AbortController(), tasks = new Set();
       let stopped = false, pruneAt = -Infinity;
       async function pruneIfDue() {
         const at = now();

@@ -3,16 +3,43 @@ import fs from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { b64uEncode, toHex } from '../../src/encoding.js';
-import { createLogger } from '../../src/log.js';
+import { clearRegisteredSecrets, createLogger, redact } from '../../src/log.js';
 import { createRuntime } from '../../src/runtime.js';
-import { createPairingService } from '../../src/pairing.js';
+import { createPairingService, readPairingFile } from '../../src/pairing.js';
 import { loadSecrets } from '../../src/secrets.js';
+import { openPrivateAppend } from '../../src/protected-files.js';
 import { loadVectors } from '../../src/protocol-files.js';
 import { createFakePhone } from '../support/fake-phone.js';
 import { startRelayDouble } from '../support/relay-double.js';
 import { runCli, tempHome } from '../support/helpers.js';
 
 function absent(text, needles, channel) { for (const needle of needles) assert.ok(!text.includes(needle), `private fixture leaked into ${channel}`); }
+
+test('waiter loads and registers pairing credentials and keeps its log free of URI, code and secrets', async t => {
+  const tmp = tempHome(), relay = await startRelayDouble({ invite: 'waiter-log-fixture' });
+  t.after(async () => { clearRegisteredSecrets(); await relay.stop(); tmp.cleanup(); });
+  assert.equal((await runCli(['--home', tmp.home, 'init', '--name', 'Lab', '--relay', relay.url], { env: { SYNCKY_INVITE: 'waiter-log-fixture' } })).code, 0);
+  const runtime = createRuntime({ home: tmp.home, env: {} });
+  const pairing = createPairingService({ home: tmp.home, relay: runtime.relay, publicKey: loadSecrets(tmp.home).public_key, agentName: 'Lab' });
+  const started = await pairing.startPairing();
+  clearRegisteredSecrets();
+  const pending = readPairingFile(tmp.home);
+  for (const secret of [pending.pair_secret, pending.pairing_token]) assert.ok(redact(secret) === '[redacted]', 'loaded pairing credential was not registered');
+  clearRegisteredSecrets();
+  let at = Date.parse(started.expires_at) + 59000;
+  const logPath = join(tmp.home, 'pair-waiter.log'), fd = openPrivateAppend(logPath);
+  try {
+    const result = await runCli(['--home', tmp.home, 'pair-waiter', started.pairing_id], {
+      env: { SYNCKY_LOG_LEVEL: 'debug' }, now: () => new Date(at), sleep: async ms => { at += ms; },
+      stderr: { write: text => fs.writeSync(fd, text) },
+    });
+    assert.equal(result.code, 0); assert.equal(result.stdout, '');
+  } finally { fs.closeSync(fd); }
+  const log = fs.readFileSync(logPath, 'utf8');
+  assert.match(log, /pair_waiter_started/); assert.match(log, /pair_waiter_stopped/);
+  absent(log, [pending.pair_secret, pending.pairing_token, started.uri, started.code, loadSecrets(tmp.home).token], 'waiter log');
+  for (const secret of [pending.pair_secret, pending.pairing_token]) assert.ok(redact(secret) === '[redacted]', 'waiter did not register a loaded credential');
+});
 
 test('credentials, CEKs, all Health kinds and inner bodies stay out of logs/status/receipts and ciphertext files', async t => {
   const tmp = tempHome(), relay = await startRelayDouble({ invite:'private-log-invite' });

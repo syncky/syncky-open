@@ -34,6 +34,7 @@ export function readPairingFile(home, { fs = nodeFs } = {}) {
     throw new LocalStateError("corrupt_state", `${PAIRING_FILE} is malformed; run syncky-agent pair again`);
   }
   if (doc.pair_secret !== undefined) registerSecret(doc.pair_secret);
+  registerSecret(doc.pairing_token);
   return doc;
 }
 
@@ -64,15 +65,15 @@ export function createPairingService({ home, relay, publicKey, agentName, urlSch
       await retryHomeLock(() => updateHomeState(home, s => { s.pairings[doc.pairing_id] = { pairing_id: doc.pairing_id, status: 'pending', expires_at: doc.expires_at, version: v1 ? 1 : 2 }; }, options));
       return view(doc);
     },
-    currentPairing({ includeCompleted = false } = {}) {
+    currentPairing({ includeCompleted = false, graceMs = 0 } = {}) {
       const doc = readPairingFile(home, options);
       if (!doc && includeCompleted) {
         const state = readHomeState(home, options);
-        const completed = Object.values(state.pairings).filter(p => p.status === 'completed' && Date.parse(p.expires_at) > now().getTime())
+        const completed = Object.values(state.pairings).filter(p => p.status === 'completed' && Date.parse(p.expires_at) + graceMs > now().getTime())
           .sort((a, b) => Date.parse(b.expires_at) - Date.parse(a.expires_at))[0];
         if (completed) return { pairing_id: completed.pairing_id, expires_at: completed.expires_at, version: completed.version ?? 2 };
       }
-      if (!doc || Date.parse(doc.expires_at) <= now().getTime() || !(["pending", ...(includeCompleted ? ["completed"] : [])].includes(readHomeState(home, options).pairings[doc.pairing_id]?.status))) return null;
+      if (!doc || Date.parse(doc.expires_at) + graceMs <= now().getTime() || !(["pending", ...(includeCompleted ? ["completed"] : [])].includes(readHomeState(home, options).pairings[doc.pairing_id]?.status))) return null;
       return view(doc);
     },
     async refreshPairing(id, { signal, deadline } = {}) {

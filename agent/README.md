@@ -11,7 +11,7 @@ syncky-agent pair
 syncky-agent receive >/dev/null
 ```
 
-Pairing credentials and QR/code output are private. V2 proof confirms the owner's code pick; v1 requires fingerprint comparison and explicit `confirm`. `confirm <member_id> <fingerprint>` refuses mismatches; `reject <member_id>` discards held ciphertext and revokes the phone. `wait` or `pair --wait` waits for joining/proof. Keep one receiver per home; MCP starts none.
+Pairing credentials and QR/code output are private. V2 pairing completes by itself after the owner's code pick through a short-lived background waiter or the running receiver; v1 requires fingerprint comparison and explicit `confirm`. `confirm <member_id> <fingerprint>` refuses mismatches; `reject <member_id>` discards held ciphertext and revokes the phone. Optionally use `wait` to see the result, or `pair --wait` to block for joining/proof. Keep one receiver per home; MCP starts none.
 
 `status` returns minimal local JSON: identity, member confirmation/fingerprint metadata, last reported scope, poll/ACK progress, send receipts, skill/update versions and legacy filenames. No Health bodies or values. Status and inbox reads work offline and do not fetch updates. Scope is explanatory, never a local admission policy.
 

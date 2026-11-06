@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
-import { acquireHomeLock, atomicPrivateWrite, privateDirectory, removePrivateFile } from "../../src/protected-files.js";
+import { acquireHomeLock, atomicPrivateWrite, openPrivateAppend, privateDirectory, receiverLockHeld, removePrivateFile } from "../../src/protected-files.js";
 import { createHomeState, readHomeState, updateHomeState, detectLegacyFiles, cipherEntries, createCipherFiles, forgetThinMember } from "../../src/home-state.js";
 import { createInbox } from "../../src/inbox.js";
 import { fixture, identity, keys, messageId, diskFailure, syncTrace } from "../support/thin-home.js";
@@ -92,6 +92,78 @@ test("receiver lease excludes another receiver while state locks serialize other
   fs.mkdirSync(join(home, ".state.lock"), { mode: 0o700 });
   assert.throws(() => acquireHomeLock(home, "state"), { code: "home_locked" });
   fs.rmdirSync(join(home, ".state.lock"));
+});
+
+test('receiver probe observes live and dead owners without creating, deleting or taking a lease', t => {
+  const home = fixture(t), directory = join(home, '.receiver.lock');
+  assert.equal(receiverLockHeld(home), false); assert.equal(fs.existsSync(directory), false);
+  const receiver = acquireHomeLock(home, 'receiver');
+  assert.equal(receiverLockHeld(home), true); receiver.release();
+  const module = new URL('../../src/protected-files.js', import.meta.url).href;
+  const dead = spawnSync(process.execPath, ['--input-type=module', '-e', `import { acquireHomeLock } from ${JSON.stringify(module)}; acquireHomeLock(process.argv[1], 'receiver');`, home]);
+  assert.equal(dead.status, 0);
+  const files = fs.readdirSync(directory);
+  assert.equal(receiverLockHeld(home), false); assert.deepEqual(fs.readdirSync(directory), files);
+  const live = acquireHomeLock(home, 'receiver'); live.release();
+  fs.mkdirSync(directory, { mode: 0o700 });
+  assert.equal(receiverLockHeld(home), true);
+  fs.rmdirSync(directory);
+  fs.mkdirSync(directory, { mode: 0o700 });
+  assert.equal(receiverLockHeld(home, { fs: { ...fs, readdirSync() { throw Object.assign(Error('unreadable'), { code: 'EACCES' }); } } }), true);
+  fs.rmdirSync(directory);
+});
+
+test('short receiver leases remain exclusive without suppressing pair waiters, and dead owners recover', t => {
+  const home = fixture(t), directory = join(home, '.receiver.lock');
+  const short = acquireHomeLock(home, 'receiver', { role: 'once' });
+  assert.equal(receiverLockHeld(home), false);
+  assert.throws(() => acquireHomeLock(home, 'receiver'), { code: 'home_locked' });
+  short.release();
+  const module = new URL('../../src/protected-files.js', import.meta.url).href;
+  const dead = spawnSync(process.execPath, ['--input-type=module', '-e', `import { acquireHomeLock } from ${JSON.stringify(module)}; acquireHomeLock(process.argv[1], 'receiver', { role: 'once' });`, home]);
+  assert.equal(dead.status, 0);
+  const files = fs.readdirSync(directory);
+  assert.equal(receiverLockHeld(home), false); assert.deepEqual(fs.readdirSync(directory), files);
+  const receiver = acquireHomeLock(home, 'receiver');
+  assert.equal(receiverLockHeld(home), true);
+  const ownerPath = join(directory, fs.readdirSync(directory)[0]);
+  fs.writeFileSync(ownerPath, JSON.stringify({ pid: process.pid }));
+  assert.equal(receiverLockHeld(home), true);
+  receiver.release();
+});
+
+test('private append keeps existing logs and refuses symlinks, hardlinks and public files', t => {
+  const home = fixture(t), path = join(home, 'pair-waiter.log');
+  let fd = openPrivateAppend(path); fs.writeSync(fd, 'first\n'); fs.closeSync(fd);
+  fd = openPrivateAppend(path); fs.writeSync(fd, 'second\n'); fs.closeSync(fd);
+  assert.equal(fs.readFileSync(path, 'utf8'), 'first\nsecond\n'); assert.equal(fs.statSync(path).mode & 0o777, 0o600);
+  fs.chmodSync(path, 0o644); assert.throws(() => openPrivateAppend(path), { code: 'insecure_permissions' }); fs.chmodSync(path, 0o600);
+  const other = join(home, 'other.log');
+  fs.linkSync(path, other); assert.throws(() => openPrivateAppend(path), { code: 'insecure_permissions' }); fs.unlinkSync(other);
+  fs.renameSync(path, other); fs.symlinkSync(other, path);
+  assert.throws(() => openPrivateAppend(path), { code: 'insecure_permissions' }); assert.equal(fs.readFileSync(other, 'utf8'), 'first\nsecond\n');
+});
+
+test('private append truncates oversized logs only after checking the opened file', t => {
+  const home = fixture(t), path = join(home, 'pair-waiter.log'), maxBytes = 256 * 1024;
+  fs.writeFileSync(path, Buffer.alloc(maxBytes, 120), { mode: 0o600 });
+  fs.closeSync(openPrivateAppend(path, { maxBytes }));
+  assert.equal(fs.statSync(path).size, maxBytes);
+  fs.appendFileSync(path, 'x');
+  const fd = openPrivateAppend(path, { maxBytes });
+  assert.equal(fs.fstatSync(fd).size, 0); fs.writeSync(fd, 'metadata\n'); fs.closeSync(fd);
+  assert.equal(fs.readFileSync(path, 'utf8'), 'metadata\n');
+  assert.equal(fs.statSync(path).mode & 0o777, 0o600);
+  const other = join(home, 'other.log');
+  fs.renameSync(path, other); fs.symlinkSync(other, path);
+  assert.throws(() => openPrivateAppend(path, { maxBytes: 0 }), { code: 'insecure_permissions' });
+  assert.equal(fs.readFileSync(other, 'utf8'), 'metadata\n');
+  fs.unlinkSync(path); fs.linkSync(other, path);
+  assert.throws(() => openPrivateAppend(path, { maxBytes: 0 }), { code: 'insecure_permissions' });
+  assert.equal(fs.readFileSync(other, 'utf8'), 'metadata\n');
+  fs.unlinkSync(path); fs.renameSync(other, path); fs.chmodSync(path, 0o644);
+  assert.throws(() => openPrivateAppend(path, { maxBytes: 0 }), { code: 'insecure_permissions' });
+  assert.equal(fs.readFileSync(path, 'utf8'), 'metadata\n');
 });
 
 test("only held migration metadata can transition while ciphertext stays immutable", t => {

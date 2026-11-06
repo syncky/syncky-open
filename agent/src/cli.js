@@ -1,24 +1,29 @@
 import fs from 'node:fs';
+import { spawn as nodeSpawn } from 'node:child_process';
+import { join, resolve } from 'node:path';
 import { LocalStateError, agentHome, resolveConfig } from './config.js';
 import { LEVELS, createLogger } from './log.js';
 import { createRuntime, readSkill, AGENT_VERSION, INBOX_MAX_LIMIT } from './runtime.js';
 import { createSkillUpdater } from './skill-update.js';
 import { registerAgent } from './register.js';
-import { createPairingService, renderTerminalQr } from './pairing.js';
+import { createPairingService, readPairingFile, renderTerminalQr } from './pairing.js';
 import { readHomeState } from './home-state.js';
 import { loadSecrets } from './secrets.js';
 import { runMcp } from './mcp.js';
 import { runSelftest } from './selftest.js';
 import { protocolDir } from './protocol-files.js';
 import { RelayError } from './relay-client.js';
-import { isMemberId } from './ids.js';
+import { isMemberId, isPairingId } from './ids.js';
 import { isPairUriName } from './pair-uri.js';
 import { abortableSleep } from './transport-time.js';
-import { retryHomeLock } from './thin-lock.js';
+import { retryHomeLock, retryReceiverLock } from './thin-lock.js';
+import { openPrivateAppend, receiverLockHeld } from './protected-files.js';
 
 export const EXIT = Object.freeze({ ok: 0, usage: 1, relay: 2, invalidToken: 3, local: 4 });
 export class UsageError extends Error { constructor(message) { super(message); this.name = 'UsageError'; this.code = 'invalid_arguments'; } }
 const globalFlags = { home: 'string', relay: 'string', 'url-scheme': 'string', 'log-level': 'string', help: 'boolean' };
+const internalCommands = { 'pair-waiter': { max: 1 } };
+const PAIR_WAITER_GRACE_MS = 60000;
 const commands = {
   init: { usage: 'init --name <name> [--invite <secret>]', flags: { name: 'string', invite: 'string' } },
   pair: { usage: 'pair [--v1] [--wait] [--timeout <seconds>] [--no-qr]', flags: { v1: 'boolean', wait: 'boolean', timeout: 'string', 'no-qr': 'boolean' } },
@@ -83,9 +88,9 @@ async function inputText(path, input) {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
   catch { throw new LocalStateError('invalid_input','JSON input must be UTF-8'); }
 }
-async function waitPair(runtime, pairing, started, { timeout = 900, signal, sleep, now }) {
-  const deadline = now().getTime() + timeout * 1000;
-  let outcome;
+const confirmationReceipt = (runtime, id) => runtime.outbox.receipts().find(e => e.type === 'confirmed' && e.to?.includes(id));
+async function waitPair(runtime, pairing, started, { timeout = 900, signal, sleep, now, deadline = now().getTime() + timeout * 1000, isCurrent, retryRelayErrors = false }) {
+  let outcome, failures = 0;
   function confirmation() {
     const member = readHomeState(runtime.home).members[outcome.member.member_id];
     if (member?.state === 'confirmed') return { ...outcome, member: { ...outcome.member, state: 'confirmed' } };
@@ -94,6 +99,7 @@ async function waitPair(runtime, pairing, started, { timeout = 900, signal, slee
   }
   while (now().getTime() < deadline) {
     signal?.throwIfAborted();
+    if (isCurrent && !isCurrent()) return;
     let delayMs = 2000;
     try {
       if (!outcome) {
@@ -102,6 +108,7 @@ async function waitPair(runtime, pairing, started, { timeout = 900, signal, slee
         if (result.status === 'completed') outcome = result;
       }
       if (outcome) {
+        if (isCurrent && !isCurrent()) return;
         if (started.version === 1) return outcome;
         const confirmed = confirmation();
         if (!confirmed) await runtime.poller.once({ signal, deadline });
@@ -109,32 +116,59 @@ async function waitPair(runtime, pairing, started, { timeout = 900, signal, slee
         if (completed) {
           await runtime.inbound.releaseHeld({ signal, deadline });
           await runtime.outbox.flush({ signal });
-          return completed;
+          if (!retryRelayErrors) return completed;
+          const receipt = confirmationReceipt(runtime, outcome.member.member_id);
+          if (receipt?.state === 'sent') return completed;
+          if (receipt?.state === 'failed') throw new LocalStateError('invalid_transition', 'pairing confirmation delivery failed');
+          delayMs = Math.max(delayMs, (typeof receipt?.next_attempt_at === 'string' ? Date.parse(receipt.next_attempt_at) : receipt?.next_attempt_at ?? 0) - now().getTime());
         }
       }
+      failures = 0;
     } catch (err) {
       if (!signal?.aborted && now().getTime() >= deadline) throw new LocalStateError('timeout', 'pairing wait timed out');
-      if (signal?.aborted || (err.code !== 'home_locked' && err.status !== 429)) throw err;
-      if (err.status === 429 && Number.isFinite(err.retryAfterS) && err.retryAfterS >= 0) delayMs = Math.max(1000, err.retryAfterS * 1000);
+      const recoverable = err.status === 0 || err.status === 429 || err.status >= 500 || err.name === 'AbortError' || ['network_error', 'timeout'].includes(err.code);
+      if (signal?.aborted || (err.code !== 'home_locked' && err.status !== 429 && !(retryRelayErrors && recoverable))) throw err;
+      if (retryRelayErrors && recoverable) delayMs = Math.min(30000, 1000 * 2 ** Math.min(++failures, 5));
+      if ((err.status === 429 || (retryRelayErrors && recoverable)) && Number.isFinite(err.retryAfterS) && err.retryAfterS >= 0) delayMs = Math.max(1000, err.retryAfterS * 1000);
     }
     await abortableSleep(Math.min(delayMs, Math.max(0, deadline - now().getTime())), sleep, signal);
   }
   throw new LocalStateError('timeout','pairing wait timed out; receive can continue automatic code-proof confirmation');
 }
-export async function main(argv, { env = process.env, stdout = process.stdout, stderr = process.stderr, stdin = process.stdin, fetch = globalThis.fetch, now = () => new Date(), sleep, random, signal } = {}) {
+function spawnPairWaiter(home, id, { spawn, env, logger, flags }) {
+  if (receiverLockHeld(home)) return;
+  let fd;
+  try {
+    fd = openPrivateAppend(join(home, 'pair-waiter.log'), { maxBytes: 256 * 1024 });
+    const overrides = ['relay', 'url-scheme'].flatMap(key => flags[key] === undefined ? [] : [`--${key}`, flags[key]]);
+    const child = spawn(process.execPath, [process.argv[1], '--home', resolve(home), ...overrides, 'pair-waiter', id], {
+      detached: true, stdio: ['ignore', 'ignore', fd], windowsHide: true, env,
+    });
+    child.once('error', () => logger.warn('pair_waiter_spawn_failed'));
+    child.unref();
+  } catch { logger.warn('pair_waiter_spawn_failed'); }
+  finally { if (fd !== undefined) { try { fs.closeSync(fd); } catch { logger.warn('pair_waiter_spawn_failed'); } } }
+}
+export async function main(argv, { env = process.env, stdout = process.stdout, stderr = process.stderr, stdin = process.stdin, fetch = globalThis.fetch, now = () => new Date(), sleep, random, signal, spawn = nodeSpawn } = {}) {
   const print = text => stdout.write(text), json = value => print(JSON.stringify(value) + '\n');
   let parsed;
   try {
     parsed = parseArgs(argv);
     const { command, flags, positionals } = parsed;
     if ((!command && flags.help) || command === 'help') { const topic = positionals[0]; if (topic && !commands[topic]) throw new UsageError('unknown command'); print(topic ? commandHelp(topic) : generalHelp()); return 0; }
-    if (!Object.hasOwn(commands, command ?? '')) throw new UsageError('unknown command');
-    if (positionals.length > (commands[command].max ?? 0)) throw new UsageError('unexpected argument');
+    const spec = Object.hasOwn(commands, command ?? '') ? commands[command] : Object.hasOwn(internalCommands, command ?? '') ? internalCommands[command] : undefined;
+    if (!spec) throw new UsageError('unknown command');
+    if (positionals.length > (spec.max ?? 0)) throw new UsageError('unexpected argument');
     if (flags.help) { print(commandHelp(command)); return 0; }
     const level = flags['log-level'] ?? env.SYNCKY_LOG_LEVEL ?? 'info';
     if (!Object.hasOwn(LEVELS, level)) throw new UsageError('unknown log level');
     const logger = createLogger({ level, sink: line => stderr.write(line + '\n'), name: 'syncky-agent' });
     const home = agentHome({ flags, env });
+    if (command === 'pair-waiter') {
+      if (!isPairingId(positionals[0])) throw new UsageError('pairing id required');
+      if (receiverLockHeld(home)) return 0;
+      readPairingFile(home);
+    }
     if (command === 'init') {
       const config = resolveConfig({ env, flags: { relay_url: flags.relay, url_scheme: flags['url-scheme'], name: flags.name } });
       if (!isPairUriName(config.name)) throw new UsageError('init requires a name that fits the pairing URI');
@@ -152,7 +186,7 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
         syncky_ack: args => runtime().poller.ack(args.up_to_seq), syncky_skill: args => readSkill(createSkillUpdater({ home }), args),
       } }); return 0;
     }
-    const runtime = createRuntime({ home, flags, env, fetch, now, sleep, random, logger, onRecord: command === 'receive' ? json : undefined });
+    const runtime = createRuntime({ home, flags, env, fetch, now, sleep, random, logger, outboxMaxAttempts: command === 'pair-waiter' ? Infinity : undefined, onRecord: command === 'receive' ? json : undefined });
     if (command === 'status') { json(await retryHomeLock(() => runtime.status())); return 0; }
     if (command === 'inbox') { json(await retryHomeLock(() => runtime.inbox(inboxArgs(flags)))); return 0; }
     if (command === 'send') {
@@ -162,7 +196,7 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
     if (command === 'ack') { json(await runtime.poller.ack(integer(flags['up-to-seq'], 0, Number.MAX_SAFE_INTEGER))); return 0; }
     if (command === 'receive') {
       if (flags.once) { logger.info('receive_cycle', await runtime.poller.once({ signal })); return 0; }
-      const receiver = runtime.poller.start();
+      const receiver = await retryReceiverLock(() => runtime.poller.start(), { signal, sleep });
       const stop = () => { receiver.stop(); };
       process.once('SIGINT', stop); process.once('SIGTERM', stop); signal?.addEventListener('abort', stop, { once: true });
       logger.info('receive_ready', { hub_id: readHomeState(home).identity.hub_id, member_id: runtime.self.memberId });
@@ -170,6 +204,30 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
       finally { process.off('SIGINT', stop); process.off('SIGTERM', stop); signal?.removeEventListener('abort', stop); }
     }
     const pairing = createPairingService({ home, relay: runtime.relay, publicKey: loadSecrets(home).public_key, agentName: runtime.config.name, urlScheme: runtime.config.url_scheme, now });
+    if (command === 'pair-waiter') {
+      const current = () => pairing.currentPairing({ includeCompleted: true, graceMs: PAIR_WAITER_GRACE_MS });
+      const started = current();
+      if (!started || started.pairing_id !== positionals[0] || started.version !== 2) return 0;
+      const isCurrent = () => {
+        if (current()?.pairing_id !== started.pairing_id) return false;
+        const state = readHomeState(home), member = state.members[state.pairings[started.pairing_id]?.member_id];
+        if (member?.state === 'confirmed') {
+          const receipt = confirmationReceipt(runtime, member.member_id);
+          return Boolean(member.confirmation || (receipt && receipt.state !== 'sent'));
+        }
+        return !member || (member.state === 'joined' && !member.proof_invalidated);
+      };
+      const deadline = Date.parse(started.expires_at) + PAIR_WAITER_GRACE_MS, controller = new AbortController();
+      const waiterSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
+      const timer = setTimeout(() => controller.abort(), Math.max(0, deadline - now().getTime()));
+      logger.info('pair_waiter_started', { pid: process.pid });
+      try {
+        await waitPair(runtime, pairing, started, { now, sleep, signal: waiterSignal, deadline, isCurrent, retryRelayErrors: true });
+        logger.info('pair_waiter_finished');
+      } catch { logger.info('pair_waiter_stopped'); }
+      finally { clearTimeout(timer); }
+      return 0;
+    }
     if (['confirm','reject','revoke','forget'].includes(command)) {
       const [id, ...fingerprint] = positionals;
       if (!isMemberId(id)) throw new UsageError('phone member id required');
@@ -184,6 +242,7 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
     if (command === 'pair' && !flags.wait) {
       if (flags.json) json(started);
       else { print(started.uri + '\n'); if (!flags['no-qr']) print(renderTerminalQr(started.uri)); if (started.code) print('Pairing code: ' + started.code + '\n'); }
+      if (started.version === 2) spawnPairWaiter(home, started.pairing_id, { spawn, env, logger, flags });
       return 0;
     }
     if (command === 'pair') {

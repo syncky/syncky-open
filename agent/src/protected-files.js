@@ -106,7 +106,44 @@ export function removePrivateFile(path, { fs = nodeFs } = {}) {
   return exists;
 }
 
-export function acquireHomeLock(home, name, { fs = nodeFs } = {}) {
+export function openPrivateAppend(path, { fs = nodeFs, maxBytes = Infinity } = {}) {
+  privateStat(dirname(path), { fs, directory: true });
+  const prior = privateStat(path, { fs, optional: true });
+  const fd = fs.openSync(path, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_APPEND | fs.constants.O_NOFOLLOW, 0o600);
+  try {
+    if (!prior) fs.fchmodSync(fd, 0o600);
+    const opened = fs.fstatSync(fd);
+    if (!opened.isFile() || opened.nlink !== 1 || (opened.mode & 0o7777) !== 0o600
+      || (process.getuid && opened.uid !== process.getuid())
+      || (prior && (prior.ino !== opened.ino || prior.dev !== opened.dev))) throw unsafe();
+    if (opened.size > maxBytes) fs.ftruncateSync(fd, 0);
+    return fd;
+  } catch (error) { fs.closeSync(fd); throw error; }
+}
+
+function lockOwner(path, { fs = nodeFs } = {}) {
+  privateStat(path, { fs, directory: true });
+  const files = fs.readdirSync(path);
+  if (files.length !== 1 || !/^[1-9]\d*-[a-f0-9]{24}\.json$/.test(files[0])) throw new LocalStateError("home_locked", "home lock needs operator recovery");
+  const old = parsePrivateJson(readPrivateFile(join(path, files[0]), { fs }));
+  if (!Number.isSafeInteger(old.pid) || old.pid <= 0) throw new LocalStateError("home_locked", "invalid home lock owner");
+  return { pid: old.pid, role: old.role, file: join(path, files[0]) };
+}
+
+function livePid(pid) {
+  try { process.kill(pid, 0); return true; }
+  catch (error) { return error.code !== "ESRCH"; }
+}
+
+export function receiverLockHeld(home, { fs = nodeFs } = {}) {
+  try {
+    privateStat(home, { fs, directory: true });
+    const owner = lockOwner(join(home, ".receiver.lock"), { fs });
+    return owner.role !== "once" && livePid(owner.pid);
+  } catch (error) { return error.code !== "ENOENT"; }
+}
+
+export function acquireHomeLock(home, name, { fs = nodeFs, role = name } = {}) {
   if (!["state", "receiver"].includes(name)) throw new LocalStateError("invalid_input", "unknown home lock");
   privateStat(home, { fs, directory: true });
   const path = join(home, `.${name}.lock`);
@@ -115,24 +152,17 @@ export function acquireHomeLock(home, name, { fs = nodeFs } = {}) {
     try { fs.mkdirSync(path, { mode: 0o700 }); fs.chmodSync(path, 0o700); }
     catch (e) {
       if (e.code !== "EEXIST") throw e;
-      let files;
-      try { privateStat(path, { fs, directory: true }); files = fs.readdirSync(path); }
-      catch (race) { if (race.code === "ENOENT") continue; throw race; }
-      if (files.length !== 1 || !/^[1-9]\d*-[a-f0-9]{24}\.json$/.test(files[0])) throw new LocalStateError("home_locked", "home lock needs operator recovery");
       let old;
-      try { old = parsePrivateJson(readPrivateFile(join(path, files[0]), { fs })); }
+      try { old = lockOwner(path, { fs }); }
       catch (race) { if (race.code === "ENOENT") continue; throw race; }
-      if (!Number.isSafeInteger(old.pid) || old.pid <= 0) throw new LocalStateError("home_locked", "invalid home lock owner");
-      try { process.kill(old.pid, 0); }
-      catch (error) {
-        if (error.code !== "ESRCH") throw new LocalStateError("home_locked", "home lock is held");
-        try { fs.unlinkSync(join(path, files[0])); fs.rmdirSync(path); }
+      if (!livePid(old.pid)) {
+        try { fs.unlinkSync(old.file); fs.rmdirSync(path); }
         catch (race) { if (!["ENOENT", "ENOTEMPTY"].includes(race.code)) throw race; }
         continue;
       }
       throw new LocalStateError("home_locked", "home lock is held");
     }
-    try { atomicPrivateWrite(join(path, owner), JSON.stringify({ pid: process.pid }), { fs }); syncDirectory(home, { fs }); }
+    try { atomicPrivateWrite(join(path, owner), JSON.stringify({ pid: process.pid, role }), { fs }); syncDirectory(home, { fs }); }
     catch (e) { try { removePrivateFile(join(path, owner), { fs }); fs.rmdirSync(path); } catch {} throw e; }
     let released = false;
     return { release() {

@@ -43,7 +43,7 @@ export function createOutbox({ home, relay, fs, now = () => new Date(), maxAttem
       } catch (err) {
         const limited = err.status === 429, failures = (claimed.failures ?? 0) + (limited ? 0 : 1);
         const retryable = limited || err.status === 0 || err.status >= 500 || ["timeout", "network_error"].includes(err.code) || signal?.aborted;
-        const retryAt = now().getTime() + (limited && Number.isFinite(err.retryAfterS) && err.retryAfterS >= 0 ? err.retryAfterS * 1000 : Math.min(60000, 1000 * 2 ** Math.min(failures, 10)));
+        const retryAt = now().getTime() + (retryable && Number.isFinite(err.retryAfterS) && err.retryAfterS >= 0 ? err.retryAfterS * 1000 : Math.min(60000, 1000 * 2 ** Math.min(failures, 10)));
         if (limited) await retryHomeLock(() => updateHomeState(home, s => { s.transport.send_lanes ??= {}; s.transport.send_lanes[laneId] = Math.max(s.transport.send_lanes[laneId] ?? 0, retryAt); }, { fs }));
         await change(entry.msg_id, { state: retryable && failures < maxAttempts ? "pending" : "failed", failures, code: limited ? "rate_limited" : retryable ? "send_retry" : "send_failed",
           next_attempt_at: retryAt, retry_after_until: limited ? retryAt : 0, lease_owner: null, lease_until: 0 }, owned);

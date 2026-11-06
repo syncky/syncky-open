@@ -15,7 +15,9 @@ syncky selftest
 syncky init --name 'My agent'
 ```
 
-Init refuses initialized homes. Use a fresh home only with owner intent; never overwrite an existing identity. SYNCKY_RELAY_URL and SYNCKY_URL_SCHEME select the matching environment. Production uses syncky://, relay-dev.syncky.app uses syncky-dev:// and relay-staging.syncky.app uses syncky-staging://. Only these schemes are allowed; --url-scheme overrides environment/config. Never silently change environments to bypass an error.
+This link selects Syncky Health from the App Store, relay.syncky.app and syncky://. Do not ask the owner which app build is installed. If the app reports untrusted_relay, the phone runs another build: tell the owner, do not switch environments.
+
+Init refuses initialized homes. Use a fresh home only with owner intent; never overwrite an existing identity. SYNCKY_RELAY_URL and SYNCKY_URL_SCHEME can set the relay and URL scheme; --url-scheme overrides environment/config. Never silently change environments to bypass an error.
 
 ## 4. Run continuously
 
@@ -143,7 +145,7 @@ Run only one `receive` per home, including manual sessions and services: a recei
 
 ## 5. Pair the owner's iPhone
 
-The phone pairs with one agent at a time. Ask the owner to unpair its previous connection first. `syncky pair` immediately prints a private QR and code. Show those only to the requesting owner; never copy the credential-bearing URI to reports/logs. Scanning alone does not confirm trust. A running receive loop watches joins and reads the authenticated proof after the owner picks the code. Otherwise use `syncky wait --timeout 600` or `syncky receive --once` after the pick. MCP does not start receiving.
+The phone pairs with one agent at a time. Ask the owner to unpair its previous connection first. `syncky pair` immediately prints a private QR and code. Show those only to the requesting owner; never copy the credential-bearing URI to reports/logs. Scanning alone does not confirm trust. After the owner picks the code, pairing completes by itself: a short-lived background waiter or the running receive loop reads the authenticated proof. Optionally use `syncky wait --timeout 600` to see the result. MCP does not start receiving.
 
 After pairing, ask the owner: **Should the agent receive continuously in the background (recommended, `receive`), or only when you ask (on-demand `receive --once`)?** Explain the missed its expected check-in / **Needs attention** warning: uploads wait without continuous receiving. The answer **continuous** is the explicit request to install and start a service with the same home, login startup and restart on failure. **Only when you ask** means run `syncky receive --once`; do not install a service or schedule. If the owner has not answered, ask and wait before installing anything.
 

@@ -58,7 +58,7 @@ export function localStatus(home, updater) {
     skill: updater.status(), legacy_files: detectLegacyFiles(home) };
 }
 
-export function createRuntime({ home, flags = {}, env = process.env, fetch, sleep, random, now = () => new Date(), logger, onRecord, createPoller = createThinPoller } = {}) {
+export function createRuntime({ home, flags = {}, env = process.env, fetch, sleep, random, now = () => new Date(), logger, onRecord, outboxMaxAttempts, createPoller = createThinPoller } = {}) {
   const state = readHomeState(home), secrets = loadSecrets(home);
   if (state.identity.public_key !== secrets.public_key) throw new LocalStateError('key_mismatch', 'home identity and secrets disagree');
   const config = loadConfig(home, { env, flags: { relay_url: flags.relay, url_scheme: flags['url-scheme'], poll_interval_s: flags['poll-interval'] } });
@@ -72,7 +72,7 @@ export function createRuntime({ home, flags = {}, env = process.env, fetch, slee
   const transport = new Proxy({}, { get: (_, key) => (...args) => latest()[key](...args) });
   const self = { memberId: state.identity.member_id, privateKey: secrets.privateKeyBytes };
   const relay = createRelayClient({ baseUrl: config.relay_url, token: secrets.token, fetch, sleep, random, now: () => now().getTime(), logger, pollIntervalS: config.poll_interval_s });
-  const outbox = createOutbox({ home, relay, now });
+  const outbox = createOutbox({ home, relay, now, maxAttempts: outboxMaxAttempts });
   const inbound = createThinInbound({ home, transport, self, relay, now, onRecord });
   const pairing = createPairingService({ home, relay, publicKey: secrets.public_key, agentName: config.name, urlScheme: config.url_scheme, now });
   let checking = false, checkedAt = -Infinity;
