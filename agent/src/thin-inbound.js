@@ -61,26 +61,34 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
   }
   async function queueConfirmations(context) {
     check(context);
-    const state = readHomeState(home, options);
+    const state = await locked(() => readHomeState(home, options), context);
     for (const member of Object.values(state.members).filter(m => m.state === "confirmed" && m.confirmation)) {
       const pending = member.confirmation;
       let entry = (await locked(() => outbox.list(), context)).find(e => e.msg_id === pending.msg_id);
-      if (entry) {
-        await locked(() => withHomeLock(home, () => syncPrivateFile(join(home, "outbox", `${pending.msg_id}.json`), options), options), context);
-      } else {
+      if (!entry) {
         const envelope = await transport.sealMessage({ hubId: state.identity.hub_id, from: self.memberId, senderPrivateKey: self.privateKey,
           recipients: [{ memberId: member.member_id, publicKey: b64uDecode(member.public_key) }], innerText: '{"v":1,"type":"confirmed"}', msgId: pending.msg_id, createdAt: pending.created_at });
         entry = { msg_id: envelope.msg_id, kind: envelope.kind, type: "confirmed", to: [member.member_id], lane: transport.lane(envelope), body: transport.serialize(envelope), state: "pending", attempts: 0, next_attempt_at: 0 };
-        await locked(() => outbox.put(entry), context);
       }
-      await mutate(s => { if (s.members[member.member_id]?.confirmation?.msg_id === pending.msg_id) delete s.members[member.member_id].confirmation; }, context);
+      await locked(() => withHomeLock(home, () => {
+        const current = readHomeState(home, options);
+        if (current.members[member.member_id]?.confirmation?.msg_id !== pending.msg_id) return;
+        const prior = cipherEntries(home, "outbox", options).find(e => e.msg_id === pending.msg_id);
+        if (prior) syncPrivateFile(join(home, "outbox", `${prior.msg_id}.json`), options);
+        else {
+          privateDirectory(join(home, "outbox"), options);
+          atomicPrivateWrite(join(home, "outbox", `${entry.msg_id}.json`), JSON.stringify(entry) + "\n", options);
+        }
+        delete current.members[member.member_id].confirmation;
+        atomicPrivateWrite(join(home, STATE_FILE), JSON.stringify(validateHomeState(current)) + "\n", options);
+      }, options), context);
     }
   }
   async function queueAgentInfo(context) {
     const eligible = (state, member) => member?.role === "device" && member.state === "confirmed" && member.unpair_reason == null
       && member.agent_info_version !== version && ![true, "1"].includes(state.transport.hub_revoked) && ![true, "1"].includes(state.transport.hub_deleted);
     const matches = (entry, id) => entry.type === "agent_info" && entry.agent_version === version && entry.to?.length === 1 && entry.to[0] === id;
-    const state = readHomeState(home, options);
+    const state = await locked(() => readHomeState(home, options), context);
     for (const member of Object.values(state.members).filter(m => eligible(state, m))) {
       check(context);
       let entry = (await locked(() => outbox.list(), context)).find(e => matches(e, member.member_id));
@@ -128,7 +136,7 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
     if (message.event === "member_revoked" && !member) {
       await releaseHeld({ ...context, beforeSeq: message.seq });
       if (id === self.memberId) await mutate(s => { s.transport.hub_revoked = true; }, context);
-      else if (readHomeState(home, options).members[id]) await locked(() => pairing.revoke(id), context);
+      else if ((await locked(() => readHomeState(home, options), context)).members[id]) await locked(() => pairing.revoke(id), context);
     }
     return { status: "metadata", code: "relay_event" };
   }
@@ -138,7 +146,7 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
     if (message.kind === "system") return transport.hasMarker(message) ? poison("malformed") : system(message, context);
     const { seq, ...envelope } = message;
     if (!isUuidV7(envelope.msg_id) || transport.validateShape(envelope, { caller: envelope.from, allowUnknown: true }).status !== 201) return poison("malformed");
-    const state = readHomeState(home, options), member = state.members[envelope.from];
+    const state = await locked(() => readHomeState(home, options), context), member = state.members[envelope.from];
     if (!member || ["revoked", "rejected"].includes(member.state) || [true, "1"].includes(state.transport.hub_revoked) || [true, "1"].includes(state.transport.hub_deleted)) return poison("unknown_sender");
     let parsed;
     if (member.state === "joined") {
@@ -169,7 +177,7 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
     } catch (e) { if (e instanceof EnvelopeError) return poison(e.code); throw e; }
     check(context);
     const { inner, innerText } = parsed;
-    const fresh = readHomeState(home, options).members[envelope.from];
+    const fresh = (await locked(() => readHomeState(home, options), context)).members[envelope.from];
     if (fresh?.state !== "confirmed" || fresh.public_key !== member.public_key) return poison("unknown_sender");
     await appendRecord({ seq, from: envelope.from, kind: envelope.kind, type: inner.type, received_at: receivedAt, inner }, innerText, context);
     if (inner.type === "unpair" && inner.v === 1 && ["user", "reset", "replaced", "delete_relay_data"].includes(inner.reason)) {
@@ -193,7 +201,7 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
     for (const entry of entries) {
       check(context);
       if (entry.seq >= beforeSeq) continue;
-      const state = readHomeState(home, options), member = state.members[entry.from];
+      const state = await locked(() => readHomeState(home, options), context), member = state.members[entry.from];
       if (entry.kind !== "system" && entry.legacy_state !== "new" && member?.state === "joined") continue;
       let message, result;
       try { message = JSON.parse(entry.body); }

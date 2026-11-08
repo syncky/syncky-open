@@ -12,6 +12,8 @@ const SOURCE = existsSync(join(PUBLIC, "agent/package.json")) ? PUBLIC : dirname
 const json = (path) => JSON.parse(readFileSync(path, "utf8"));
 const hash = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
 const config = { command: "npx", args: ["-y", "@syncky/agent", "mcp"] };
+const description = "Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone.";
+const registryDescription = "Apple Health data, end-to-end encrypted between iPhone and local Syncky agent, allowed write-back";
 const offline = { npm_config_offline: "true", npm_config_audit: "false", npm_config_fund: "false", npm_config_update_notifier: "false" };
 const assets = ["syncky-agent.mjs", "syncky-agent.mjs.sha256", "syncky-health.mcpb", "syncky-health.mcpb.sha256", "SHA256SUMS", "server.json",
   ...["claude-code", "codex", "clawhub", "skills"].map((name) => `syncky-agent-${name}.tar.gz`)].sort();
@@ -24,17 +26,25 @@ function manifests(root) {
   const pkg = json(join(SOURCE, "agent/package.json"));
   const marketplace = json(join(root, ".claude-plugin/marketplace.json"));
   assert.equal(marketplace.name, "syncky");
-  assert.deepEqual(marketplace.plugins, [{ name: "syncky", source: "./plugins/syncky", description: "Apple Health data through your local Syncky agent." }]);
+  assert.deepEqual(marketplace.plugins, [{ name: "syncky", source: "./plugins/syncky", description }]);
   const pluginRoot = resolve(root, marketplace.plugins[0].source);
   assert.ok(!relative(root, pluginRoot).startsWith(".."));
   const plugin = json(join(pluginRoot, ".claude-plugin/plugin.json"));
   assert.equal(plugin.name, "syncky");
+  assert.equal(plugin.description, description);
   assert.equal(plugin.version, pkg.version);
   assert.equal(plugin.mcpServers, "./.mcp.json");
   assert.equal(plugin.skills, "./skills/");
+  assert.deepEqual(plugin.author, { name: "Syncky", email: "support@syncky.app", url: "https://syncky.app" });
+  const icon = readFileSync(join(pluginRoot, ".claude-plugin/icon.png"));
+  assert.ok(icon.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) && icon.toString("latin1", 12, 16) === "IHDR", "plugin icon is not a PNG");
+  const [width, height] = [icon.readUInt32BE(16), icon.readUInt32BE(20)];
+  assert.ok(width === height && width >= 512 && width <= 2048, `plugin icon is ${width}x${height}`);
+  assert.ok(icon.length < 2 * 1024 * 1024, "plugin icon exceeds 2 MB");
   assert.deepEqual(json(join(pluginRoot, plugin.mcpServers)).mcpServers, { syncky: config });
   assert.ok(!relative(pluginRoot, resolve(pluginRoot, plugin.skills)).startsWith(".."));
   const skill = readFileSync(join(root, "SKILL.md"), "utf8");
+  assert.equal(/^description: (.+)$/m.exec(skill)[1], description);
   assert.equal(readFileSync(join(pluginRoot, plugin.skills, "syncky/SKILL.md"), "utf8"), skill);
   for (const phrase of ['npx -y @syncky/agent mcp','Use Syncky and start onboarding with a QR code.','SYNCKY_INVITE','Scanning alone does not confirm trust','one receiver per home','untrusted data','Never force registration','exclusive creation','relay sees delivery metadata','Needs attention','uploads wait']) assert.ok(skill.includes(phrase), `skill missing ${phrase}`);
   for (const pattern of [/Without an answer, wait before installing services or schedules/, /continuous explicitly authorizes installation\/start/, /login startup and restart on failure/, /receive --once/, /Do not automatically schedule writes or reports/, /never quote the token-bearing URI/, /explicit owner approval/, /Never overwrite or append/, /permission to write Health values/i]) assert.match(skill,pattern);
@@ -43,11 +53,14 @@ function manifests(root) {
   assert.match(skill, /syncky_run\(\) \{ npx -y @syncky\/agent/);
   const gemini = json(join(root, "gemini-extension.json"));
   assert.equal(gemini.name, "syncky");
+  assert.equal(gemini.description, description);
   assert.equal(gemini.version, pkg.version);
   assert.deepEqual(gemini.mcpServers, { syncky: config });
   assert.equal(gemini.contextFileName, "SKILL.md");
   const registry = json(join(root, "server.json"));
   assert.equal(registry.$schema, "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json");
+  assert.equal(registry.description, registryDescription);
+  assert.ok([...registry.description].length <= 100);
   assert.equal(registry.name, pkg.mcpName);
   assert.equal(registry.version, pkg.version);
   assert.equal(registry.repository.url, "https://github.com/syncky/syncky-open");
@@ -60,6 +73,18 @@ function manifests(root) {
 }
 
 describe("public installation manifests", () => {
+  it("opens both READMEs with user-facing copy and preserves privacy and installation links", () => {
+    const lede = "Syncky Health sends the Apple Health data you choose from your iPhone to your own AI agent (local MCP server) or your own server. The AI agent route is end-to-end encrypted. Your agent and your server can both write entries back into Health once you allow writing on the iPhone.";
+    const readme = readFileSync(join(PUBLIC, "README.md"), "utf8");
+    const agentReadme = readFileSync(join(SOURCE, "agent/README.md"), "utf8");
+    for (const text of [readme, agentReadme]) assert.equal(text.split("\n\n")[1], lede);
+    assert.equal(readme.split("\n\n")[2], "Client health-data envelopes are end-to-end encrypted (HPKE Auth + ChaCha20-Poly1305): the relay sees delivery metadata and emits plaintext hub notices, but sees no health values. The app can also send straight to a server the user runs, with no relay at all. The user's agent or server receives plaintext, and a chosen model sees what the agent supplies.");
+    assert.match(agentReadme.split("\n\n")[2], /^A Node.js ≥22.15 encrypted transport/);
+    assert.ok(readme.includes("https://syncky.app"));
+    assert.ok(readme.includes("https://apps.apple.com/app/id6827472070"));
+    assert.ok(!readme.includes("Once the owner has published"));
+  });
+
   it("registers contained plugin/skill paths, canonical MCP commands and both Registry distributions", () => manifests(PUBLIC));
 
   it("passes command arrays unchanged to a stub npx", (t) => {
@@ -88,14 +113,25 @@ describe("public installation manifests", () => {
     assert.match(workflow, /persist-credentials: false/);
     assert.match(workflow, /node-version: '22\.18\.0'/);
     assert.match(workflow, /npm install --global npm@11\.5\.2/);
-    const commands = ["npm ci", "npm run build", "npm test", "npm run test:bundle", "node --test test/*.test.mjs", 'node release.mjs prepare "$RUNNER_TEMP/syncky-release"', 'node release.mjs publish "$RUNNER_TEMP/syncky-release"'];
+    const install = 'node release.mjs install-publisher "$RUNNER_TEMP/mcp-publisher"';
+    const validate = 'mcp-publisher validate "$RUNNER_TEMP/syncky-release/server.json"';
+    const release = 'node release.mjs publish "$RUNNER_TEMP/syncky-release"';
+    const registry = 'node release.mjs registry "$RUNNER_TEMP/syncky-release"';
+    const commands = ["npm ci", "npm run build", "npm test", "npm run test:bundle", "node --test test/*.test.mjs", 'node release.mjs prepare "$RUNNER_TEMP/syncky-release"', install, validate, release, registry];
     const [build, publish] = workflow.split("\n  build:\n")[1].split("\n  publish:\n");
     assert.match(build, /permissions:\n      contents: read/);
-    assert.doesNotMatch(build, /id-token:|contents: write|GH_TOKEN|release\.mjs publish/);
+    assert.doesNotMatch(build, /id-token:|contents: write|GH_TOKEN|release\.mjs (?:publish|registry)|mcp-publisher (?:login|publish)/);
     assert.match(publish, /needs: build/);
     assert.match(publish, /permissions:\n      contents: write\n      id-token: write/);
-    assert.deepEqual([...build.matchAll(/^ +run: (.+)$/gm)].map((match) => match[1]), ["npm ci --no-audit --no-fund", ...commands.slice(1, -1)]);
-    assert.deepEqual([...publish.matchAll(/^ +run: (.+)$/gm)].map((match) => match[1]), ["npm install --global npm@11.5.2 --ignore-scripts --no-audit --no-fund", commands.at(-1)]);
+    assert.deepEqual([...build.matchAll(/^ +run: (.+)$/gm)].map((match) => match[1]), ["npm ci --no-audit --no-fund", ...commands.slice(1, 5), "npm ci --no-audit --no-fund", "npm test", "npm run build:worker", ...commands.slice(5, -2)]);
+    assert.deepEqual([...publish.matchAll(/^ +run: (.+)$/gm)].map((match) => match[1]), ["npm install --global npm@11.5.2 --ignore-scripts --no-audit --no-fund", release, install, registry]);
+    assert.ok(build.indexOf(validate) < build.indexOf("uses: actions/upload-artifact"));
+    assert.doesNotMatch(publish, /mcp-publisher validate|working-directory: (?:agent|examples\/own-server)|npm (?:ci|test|run)|own-server/);
+    const packageGates = [...build.matchAll(/working-directory: examples\/own-server\n(?: +env:\n(?: +[A-Z_]+: '[^']*'\n)+)? +run: (.+)/g)].map(m => m[1]);
+    assert.deepEqual(packageGates, ["npm ci --no-audit --no-fund", "npm test", "npm run build:worker"]);
+    assert.ok(build.lastIndexOf("npm run build:worker") < build.indexOf('node release.mjs prepare'));
+    assert.doesNotMatch(readFileSync(join(PUBLIC, "release.mjs"), "utf8"), /own-server/);
+    assert.match(publish, /name: Publish MCP Registry entry/);
     for (const job of [build, publish]) {
       assert.match(job, /if: github.repository == 'syncky\/syncky-open'/);
       assert.match(job, /name: syncky-release\n +path: \$\{\{ runner.temp \}\}\/syncky-release/);
@@ -109,12 +145,12 @@ describe("public installation manifests", () => {
     }
     assert.match(workflow, /working-directory: agent/);
     assert.match(workflow, /GH_TOKEN: \$\{\{ github.token \}\}/);
-    assert.ok(!/NODE_AUTH_TOKEN|NPM_TOKEN|secrets\.|workflow_dispatch|pull_request|mcp-publisher|deploy|public\/agent/.test(workflow));
+    assert.ok(!/NODE_AUTH_TOKEN|NPM_TOKEN|secrets\.|workflow_dispatch|pull_request|deploy|public\/agent|continue-on-error|always\(\)/.test(workflow));
   });
 });
 
 describe("Registry generation and release gates", () => {
-  let base, source, env;
+  let base, source, env, prepared;
   before(async () => {
     base = mkdtempSync(join(tmpdir(), "syncky-release-contract-"));
     source = join(base, "source");
@@ -133,6 +169,8 @@ describe("Registry generation and release gates", () => {
     const { buildAgent } = await import(pathToFileURL(join(source, "agent/build.mjs")));
     await buildAgent();
     env = { GITHUB_REPOSITORY: "syncky/syncky-open", GITHUB_REF_TYPE: "tag", GITHUB_REF_NAME: `v${pkg.version}` };
+    prepared = run(["release.mjs", "prepare", join(base, "prepared")], source, env);
+    assert.equal(prepared.status, 0, prepared.stderr);
   });
   after(() => { if (base) rmSync(base, { recursive: true, force: true }); });
 
@@ -213,9 +251,34 @@ if (command === 'npm' && args[0] === 'view') {
   once('publish-after');
 } else if (command === 'gh' && args[1] === 'download') {
   copyFileSync(join(dirname(file), 'remote-' + args[args.indexOf('--pattern') + 1]), args[args.indexOf('--output') + 1]);
+} else if (command === 'curl') {
+  if (state.downloadError === args.at(-1).split('/').at(-1)) {
+    process.stderr.write('private curl diagnostic\\n');
+    fail({ message: 'private download output' });
+  }
+  if (state.downloads) {
+    copyFileSync(state.downloads[args.at(-1).split('/').at(-1)], args[args.indexOf('--output') + 1]);
+  } else {
+    if (state.registryError) fail({ message: 'lookup transport failed' });
+    process.stdout.write(String(state.registryStatus ?? 404));
+  }
+} else if (command === 'mcp-publisher') {
+  if (args[0] === 'login') {
+    process.stdout.write('sensitive authentication output\\n');
+    process.stderr.write('sensitive authentication output\\n');
+  } else {
+    process.stdout.write('Registry publish response\\n');
+    process.stderr.write('Registry validation issue: mcpName mismatch (HTTP 422)\\n');
+  }
+  if (state.publisherError === args[0]) process.exit(1);
+  if (args[0] === 'publish') {
+    if (!state.npm || state.release?.draft !== false) fail({ message: 'npm and GitHub release must be published first' });
+    state.registryStatus = 200;
+    save();
+  }
 } else fail({ message: 'unexpected stub command' });
 `;
-    for (const name of ["npm", "gh"]) {
+    for (const name of ["npm", "gh", "curl", "mcp-publisher"]) {
       writeFileSync(join(bin, name), stub);
       chmodSync(join(bin, name), 0o755);
     }
@@ -223,10 +286,122 @@ if (command === 'npm' && args[0] === 'view') {
     return { root, release: join(root, "release"), log, state, env: { ...env, PATH: `${bin}:${process.env.PATH}`, EFFECTS: log, REMOTE: state } };
   }
 
-  const prepare = (fx) => run(["release.mjs", "prepare", fx.release], fx.root, env);
+  const prepare = (fx) => {
+    cpSync(join(base, "prepared"), fx.release, { recursive: true });
+    return prepared;
+  };
   const publish = (fx) => run(["release.mjs", "publish", fx.release], fx.root, fx.env);
+  const registry = (fx) => run(["release.mjs", "registry", fx.release], fx.root, fx.env);
   const calls = (fx) => readFileSync(fx.log, "utf8").trim().split("\n").map(JSON.parse);
   const updateRemote = (fx, patch) => writeFileSync(fx.state, JSON.stringify({ ...json(fx.state), ...patch }));
+
+  it("pins the publisher release, archive and independent SHA-256", async () => {
+    const { MCP_PUBLISHER } = await import(pathToFileURL(join(source, "release.mjs")));
+    assert.deepEqual(MCP_PUBLISHER, { version: "v1.8.7", asset: "mcp-publisher_linux_amd64.tar.gz",
+      checksums: "registry_1.8.7_checksums.txt", sha256: "00b21004149a4ce66f0782508ae4a2bce67d1bea395a8da0bd8028159fb59579" });
+  });
+
+  for (const asset of ["mcp-publisher_linux_amd64.tar.gz", "registry_1.8.7_checksums.txt"]) {
+    it(`names the failed publisher download without exposing command output (${asset})`, (t) => {
+      const fx = fixture(t);
+      const payload = join(fx.root, "download-fixture");
+      writeFileSync(payload, "download fixture");
+      updateRemote(fx, { downloadError: asset, downloads: {
+        "mcp-publisher_linux_amd64.tar.gz": payload, "registry_1.8.7_checksums.txt": payload,
+      } });
+      const result = run(["release.mjs", "install-publisher", join(fx.root, "publisher-bin")], fx.root, fx.env);
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, "");
+      assert.equal(result.stderr, `release: publisher download failed: ${asset}\n`);
+    });
+  }
+
+  for (const failure of [null, "checksums", "archive", "swapped-release"]) {
+    it(`verifies both publisher checksums before extraction (${failure ?? "valid"})`, (t) => {
+      const fx = fixture(t);
+      const archive = join(fx.root, "mcp-publisher_linux_amd64.tar.gz"), sums = join(fx.root, "registry_1.8.7_checksums.txt");
+      const unpack = join(fx.root, "publisher-fixture"), install = join(fx.root, "publisher-bin"), githubPath = join(fx.root, "github-path");
+      mkdirSync(unpack);
+      writeFileSync(join(unpack, "mcp-publisher"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+      assert.equal(spawnSync("tar", ["-czf", archive, "-C", unpack, "mcp-publisher"]).status, 0);
+      const expected = hash(archive);
+      if (failure === "archive" || failure === "swapped-release") writeFileSync(archive, "swapped archive");
+      writeFileSync(sums, `${failure === "checksums" ? "0".repeat(64) : failure === "swapped-release" ? hash(archive) : expected}  mcp-publisher_linux_amd64.tar.gz\n`);
+      updateRemote(fx, { downloads: { "mcp-publisher_linux_amd64.tar.gz": archive, "registry_1.8.7_checksums.txt": sums } });
+      const script = `import { installPublisher, MCP_PUBLISHER } from './release.mjs'; installPublisher(process.cwd(), ${JSON.stringify(install)}, process.env, { ...MCP_PUBLISHER, sha256: ${JSON.stringify(expected)} });`;
+      const result = run(["--input-type=module", "-e", script], fx.root, { ...fx.env, GITHUB_PATH: githubPath });
+      assert.equal(result.status === 0, failure === null, result.stderr);
+      assert.equal(existsSync(join(install, "mcp-publisher")), failure === null);
+      assert.equal(existsSync(githubPath), failure === null);
+      if (failure === null) assert.equal(readFileSync(githubPath, "utf8"), `${install}\n`);
+      else assert.match(result.stderr, failure === "archive" ? /publisher archive hash mismatch/ : /publisher checksum entry mismatch/);
+      assert.deepEqual(calls(fx).map((call) => call.at(-1)), [
+        "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.7/mcp-publisher_linux_amd64.tar.gz",
+        "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.7/registry_1.8.7_checksums.txt",
+      ]);
+      assert.ok(calls(fx).every((call) => call.includes("--fail") && call.includes("--location")));
+    });
+  }
+
+  it("logs in through OIDC and publishes only the generated Registry file after npm and GitHub", (t) => {
+    const fx = fixture(t);
+    assert.equal(prepare(fx).status, 0);
+    assert.equal(publish(fx).status, 0);
+    const offset = calls(fx).length;
+    const result = registry(fx);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Registry publish response/);
+    assert.match(result.stderr, /Registry validation issue: mcpName mismatch \(HTTP 422\)/);
+    assert.doesNotMatch(result.stdout + result.stderr, /sensitive authentication output/);
+    const generated = json(join(fx.release, "server.json"));
+    assert.deepEqual(calls(fx).slice(offset), [
+      ["curl", "--silent", "--show-error", "--output", "/dev/null", "--write-out", "%{http_code}", "--max-time", "30",
+        `https://registry.modelcontextprotocol.io/v0/servers/${encodeURIComponent(generated.name)}/versions/${encodeURIComponent(generated.version)}`],
+      ["mcp-publisher", "login", "github-oidc"],
+      ["mcp-publisher", "publish", join(fx.release, "server.json")],
+    ]);
+    assert.equal(generated.packages[1].fileSha256, hash(join(fx.release, "syncky-health.mcpb")));
+    const completed = calls(fx).length;
+    const resumed = registry(fx);
+    assert.equal(resumed.status, 0, resumed.stderr);
+    assert.match(resumed.stdout, /already exists.*skip/i);
+    assert.equal(calls(fx).slice(completed).length, 1);
+    assert.equal(calls(fx).at(-1)[0], "curl");
+  });
+
+  for (const patch of [{ registryStatus: 401 }, { registryStatus: 403 }, { registryStatus: 429 }, { registryStatus: 500 }, { registryStatus: 302 }, { registryError: true }, { publisherError: "login" }, { publisherError: "publish" }]) {
+    it(`fails Registry errors without rolling back npm or GitHub: ${JSON.stringify(patch)}`, (t) => {
+      const fx = fixture(t);
+      assert.equal(prepare(fx).status, 0);
+      assert.equal(publish(fx).status, 0);
+      const published = json(fx.state);
+      updateRemote(fx, patch);
+      const offset = calls(fx).length;
+      const result = registry(fx);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /MCP Registry .*failed/);
+      assert.doesNotMatch(result.stdout + result.stderr, /sensitive authentication output/);
+      if (patch.publisherError === "publish") {
+        assert.match(result.stdout, /Registry publish response/);
+        assert.match(result.stderr, /Registry validation issue: mcpName mismatch \(HTTP 422\)/);
+      }
+      const effects = calls(fx).slice(offset);
+      assert.ok(effects.every((call) => ["curl", "mcp-publisher"].includes(call[0])));
+      assert.equal(effects.length, patch.publisherError === "publish" ? 3 : patch.publisherError === "login" ? 2 : 1);
+      assert.deepEqual(json(fx.state).npm, published.npm);
+      assert.deepEqual(json(fx.state).release, published.release);
+      updateRemote(fx, { registryStatus: 404, registryError: false, publisherError: null });
+      assert.equal(registry(fx).status, 0);
+    });
+  }
+
+  it("rejects a tampered Registry asset before lookup or authentication", (t) => {
+    const fx = fixture(t);
+    assert.equal(prepare(fx).status, 0);
+    writeFileSync(join(fx.release, "server.json"), readFileSync(join(fx.root, "server.json")));
+    assert.notEqual(registry(fx).status, 0);
+    assert.equal(existsSync(fx.log), false);
+  });
 
   it("generates deterministic Registry bytes from actual MCPB bytes outside the build output", (t) => {
     const fx = fixture(t);
@@ -237,6 +412,7 @@ if (command === 'npm' && args[0] === 'view') {
     assert.equal(run(args, fx.root).status, 0);
     assert.ok(first.equals(readFileSync(output)));
     const generated = json(output);
+    assert.equal(generated.description, registryDescription);
     assert.equal(generated.packages.length, 2);
     assert.equal(generated.packages[0].version, generated.version);
     assert.equal(generated.packages[1].fileSha256, hash(join(fx.root, "agent/dist/syncky-health.mcpb")));
@@ -248,6 +424,8 @@ if (command === 'npm' && args[0] === 'view') {
   });
 
   for (const [label, mutate] of [
+    ["overlong description", (fx) => { const file = join(fx.root, "server.json"); const value = json(file); value.description = "a".repeat(101); writeFileSync(file, JSON.stringify(value)); }],
+    ["non-string description", (fx) => { const file = join(fx.root, "server.json"); const value = json(file); value.description = 100; writeFileSync(file, JSON.stringify(value)); }],
     ["draft version", (fx) => { const file = join(fx.root, "server.json"); const value = json(file); value.version = "9.0.0"; writeFileSync(file, JSON.stringify(value)); }],
     ["npm version", (fx) => { const file = join(fx.root, "server.json"); const value = json(file); value.packages[0].version = "9.0.0"; writeFileSync(file, JSON.stringify(value)); }],
     ["release URL", (fx) => { const file = join(fx.root, "server.json"); const value = json(file); value.packages[1].identifier = value.packages[1].identifier.replace("/v", "/wrong-v"); writeFileSync(file, JSON.stringify(value)); }],

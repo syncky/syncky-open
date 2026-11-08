@@ -8,7 +8,7 @@ export function sendReceipt(entry) {
   return Object.fromEntries(["msg_id", "kind", "type", "to", "state", "seq", "attempts", "next_attempt_at", "retry_after_until", "code"].filter(k => entry[k] !== undefined).map(k => [k, entry[k]]));
 }
 
-export function createOutbox({ home, relay, fs, now = () => new Date(), maxAttempts = 5, timeoutMs = 15000 }) {
+export function createOutbox({ home, relay, fs, now = () => new Date(), maxAttempts = 5, timeoutMs = 15000, timers = globalThis }) {
   const queue = createCipherFiles(home, "outbox", { fs }), active = new Map();
   const owner = `${process.pid}:${randomUUID()}`;
   const laneOf = entry => {
@@ -34,7 +34,7 @@ export function createOutbox({ home, relay, fs, now = () => new Date(), maxAttem
         e.state === "pending" && (typeof e.next_attempt_at === "string" ? Date.parse(e.next_attempt_at) : e.next_attempt_at ?? 0) <= at && (e.retry_after_until ?? 0) <= at && (e.lease_until ?? 0) <= at);
       if (!claimed) continue;
       const owned = e => e.state === "pending" && e.lease_owner === owner;
-      const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
+      const controller = new AbortController(), timer = timers.setTimeout(() => controller.abort(), timeoutMs);
       let result;
       try {
         const timeout = new Promise((_, reject) => controller.signal.addEventListener("abort", () => reject({ code: "timeout", status: 0 }), { once: true }));
@@ -48,7 +48,7 @@ export function createOutbox({ home, relay, fs, now = () => new Date(), maxAttem
         await change(entry.msg_id, { state: retryable && failures < maxAttempts ? "pending" : "failed", failures, code: limited ? "rate_limited" : retryable ? "send_retry" : "send_failed",
           next_attempt_at: retryAt, retry_after_until: limited ? retryAt : 0, lease_owner: null, lease_until: 0 }, owned);
         break;
-      } finally { clearTimeout(timer); }
+      } finally { timers.clearTimeout(timer); }
       await change(entry.msg_id, { state: "sent", seq: result.seq, sent_at: now().toISOString(), code: null, lease_owner: null, lease_until: 0 }, owned);
     }
   }

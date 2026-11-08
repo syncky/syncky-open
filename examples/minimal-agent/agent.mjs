@@ -306,13 +306,13 @@ export async function handleMessage(home, state, msg) {
       for (const c of Object.values(state.commands)) if (msg.event === "message_expired" && c.msg_id === b.msg_id && ["pending", "sent"].includes(c.state)) c.state = "expired";
       return console.log(`${tag}: ${clean(msg.event)}${typeof b.member_id === "string" ? ` ${clean(b.member_id)}` : ""}`);
     }
-    const list = (x) => (Array.isArray(x) ? x : []);
-    const types = list(inner.samples).map((s) => (/^[a-z0-9_]{1,64}$/.test(s?.type) ? s.type : "unknown"));
+    const list = (x) => (Array.isArray(x) ? x : []), types = list(inner.samples).map((s) => (/^[a-z0-9_]{1,64}$/.test(s?.type) ? s.type : "unknown"));
     for (const a of list(inner.acks)) {
       const c = Object.hasOwn(state.commands, a?.command_id) ? state.commands[a.command_id] : null;
       if (c?.to !== msg.from || (a.version ?? 1) !== c.version || !(["pending", "sent", "expired"].includes(c.state) || (c.state === "applied" && a.status === "deleted_by_user"))) continue;
-      if (["applied", "rejected", "deleted_by_user"].includes(a.status)) c.state = a.status;
+      if (["applied", "rejected", "deleted_by_user"].includes(a.status)) { c.state = a.status; delete c.reason; delete c.detail; }
       if (a.status === "rejected") c.reason = /^[a-z_]{1,32}$/.test(a.reason) ? a.reason : "unknown";
+      if (a.status === "rejected" && typeof a.detail === "string" && /^[a-z_]{1,32}$/.test(a.detail)) c.detail = a.detail;
     }
     const counts = [...new Set(types)].map((t) => `${t}=${types.filter((x) => x === t).length}`).join(" ") || "none";
     console.log(`${tag}: sync from ${msg.from}: samples ${counts}; deleted ${list(inner.deleted).length}; acks ${list(inner.acks).length}`);
@@ -388,7 +388,7 @@ async function sendWater(home, state, { liters, to }) {
 function status(state) {
   console.log(`relay ${state.relay}\nhub ${state.hub_id}, this agent ${state.member_id} "${clean(state.name)}"\nlast seq ${state.last_seq}`);
   for (const [id, m] of Object.entries(state.members)) console.log(`member ${id} "${clean(m.name)}": ${m.state === "joined" ? "not confirmed" : m.state}`);
-  for (const [id, c] of Object.entries(state.commands)) console.log(`command ${id} v${c.version} dietary_water to ${c.to}: ${c.state}${c.reason ? ` (${c.reason})` : ""}`);
+  for (const [id, c] of Object.entries(state.commands)) console.log(`command ${id} v${c.version} dietary_water to ${c.to}: ${c.state}${c.reason ? ` (${c.reason}${c.detail ? `/${c.detail}` : ""})` : ""}`);
 }
 
 // CLI

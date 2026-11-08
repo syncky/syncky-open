@@ -1,10 +1,14 @@
 # Syncky: open protocol, reference agent and reference server
 
-Syncky Health is an iPhone app that moves Apple Health data to the user's own server or AI agent and writes records back to Health. Client health-data envelopes are end-to-end encrypted (HPKE Auth + ChaCha20-Poly1305): the relay sees delivery metadata and emits plaintext hub notices, but sees no health values. The app can also send straight to a server the user runs, with no relay at all. The user's agent or server receives plaintext, and a chosen model sees what the agent supplies.
+Syncky Health sends the Apple Health data you choose from your iPhone to your own AI agent (local MCP server) or your own server. The AI agent route is end-to-end encrypted. Your agent and your server can both write entries back into Health once you allow writing on the iPhone.
+
+Client health-data envelopes are end-to-end encrypted (HPKE Auth + ChaCha20-Poly1305): the relay sees delivery metadata and emits plaintext hub notices, but sees no health values. The app can also send straight to a server the user runs, with no relay at all. The user's agent or server receives plaintext, and a chosen model sees what the agent supplies.
+
+Get [Syncky Health on the App Store](https://apps.apple.com/app/id6827472070) or visit [syncky.app](https://syncky.app).
 
 ## Install for an MCP client
 
-Requires Node.js ≥22.15 and npm. The npm package embeds its runtime packages and has no runtime dependencies. Once the owner has published the npm package, start the local stdio server with:
+Requires Node.js ≥22.15 and npm. The npm package embeds its runtime packages and has no runtime dependencies. Start the local stdio server with:
 
 ```sh
 npx -y @syncky/agent mcp
@@ -108,20 +112,21 @@ node prepare-registry.mjs server.json agent/package.json agent/dist "$release_di
 node --test test/*.test.mjs
 ```
 
-The helper computes the actual MCPB SHA-256 and requires agreement with its sidecar and checksum list. The tag workflow builds, tests and prepares the release with read-only repository permissions, then uploads the prepared directory as an artifact. A separate publish job with OIDC and release-write permissions downloads it, rechecks versions, manifests, package metadata, inventories and hashes using `release.mjs`, publishes the tested tarball with npm OIDC/provenance and attaches the verified assets. Only the build job runs agent dependencies and the packed runtime selftest; the publish job neither installs agent dependencies nor executes the bundle. An empty successful npm version lookup means the version is unpublished; lookup failures remain errors. It never publishes to the MCP Registry.
+The helper computes the actual MCPB SHA-256 and requires agreement with its sidecar and checksum list. The tag workflow builds, tests and prepares the release with read-only repository permissions, then uploads the prepared directory as an artifact. A separate publish job with OIDC and release-write permissions downloads it, rechecks versions, manifests, package metadata, inventories and hashes using `release.mjs`, publishes the tested tarball with npm OIDC/provenance and attaches the verified assets. The read-only build job also runs `npm ci`, `npm test` and `npm run build:worker` in `examples/own-server` before preparing or uploading release assets. Only the build job runs agent/template dependencies and the packed runtime selftest; the publish job neither installs those dependencies nor executes their runtime code. The own-server template remains source in the tag, without a separate npm or Registry package or release asset. An empty successful npm version lookup means the version is unpublished; lookup failures remain errors. The build job validates the generated `server.json` with a pinned, checksum-verified `mcp-publisher`. After npm publication and the GitHub release, the publish job publishes that generated file to the MCP Registry through GitHub OIDC without a stored token, skipping a version the Registry already has.
 
-The Registry schema `2025-12-11` and package fields are draft assumptions until the owner reconciles them with `mcp-publisher init`. MCPB format `0.3` is a compatibility assumption; local ZIP/manifest/runtime tests do not prove Claude Desktop acceptance. Only the generated release `server.json`, after schema reconciliation, is a candidate for owner Registry publication. Neither distribution is claimed to be available before the owner opens this repository and completes its first release.
+The Registry schema `2025-12-11` and package fields were used for the manual publication of version `0.1.1`. MCPB format `0.3` is a compatibility assumption; local ZIP/manifest/runtime tests do not prove Claude Desktop acceptance. Only the generated release `server.json` is published to the Registry.
 
-Before configuring npm trust or creating the first tag, the owner must check whether `@syncky/agent` exists and whether workflow-only trusted publishing can perform its first publication. Account/2FA, ownership of the `syncky` organization, public repository availability and trust bound to `syncky/syncky-open` / `release.yml` are owner gates. If package creation needs another authentication route, that decision remains unresolved: no token bootstrap is authorized here. Actual Desktop verification, Registry publication and extension/plugin client acceptance are also owner checks.
+`@syncky/agent` is published on npm; later versions are published only by the tag workflow through npm trusted publishing (OIDC) with provenance and no stored token. The owner must keep npm trusted publishing bound to `syncky/syncky-open` / `release.yml`, with no token bootstrap. Actual desktop-client verification and extension/plugin client acceptance remain owner checks.
 
 This repository holds everything a developer needs to build the other end:
 
 | Folder | What it is |
 | --- | --- |
 | [`protocol/`](protocol/README.md) | the schemas, the type catalog `types.json`, the unit table `units.json` and the test vectors every implementation checks itself against; the [server integration guide](protocol/server.md); the [HealthKit data kind inventory](protocol/healthkit-inventory.md) |
-| [`agent/`](agent/README.md) | `syncky-agent`, the Syncky agent (Node 22): pairing, end-to-end encryption, a 30-day local inbox of what the iPhone sends, sending messages to the iPhone (Health writes, diagnostics and access requests the owner approves on the phone) and an MCP server for local clients. The integration guide for your own agent in any language is [`agent/AGENTS.md`](agent/AGENTS.md), the operator guide for an AI agent that runs it is [`agent/SETUP.md`](agent/SETUP.md), and every error code and limit is in [`agent/docs/REFERENCE.md`](agent/docs/REFERENCE.md) |
+| [`agent/`](agent/README.md) | `syncky-agent`, the Syncky agent (Node 22): pairing, end-to-end encryption, a 30-day local inbox of what the iPhone sends, sending messages to the iPhone (a Health write, applied at the next sync when the owner has allowed writing for that type and iOS Health permits it, or a diagnostics or access request, which the owner approves on the phone) and an MCP server for local clients. The integration guide for your own agent in any language is [`agent/AGENTS.md`](agent/AGENTS.md), the operator guide for an AI agent that runs it is [`agent/SETUP.md`](agent/SETUP.md), and every error code and limit is in [`agent/docs/REFERENCE.md`](agent/docs/REFERENCE.md) |
 | [`examples/minimal-agent/`](examples/minimal-agent/README.md) | one Node file that walks the whole relay flow, from registration to the phone's acknowledgement of a write |
 | [`examples/browser-demo/`](examples/browser-demo/README.md) | the demo agent that runs only in a browser tab, served at https://demo.syncky.app: pair the app, watch decrypted samples arrive, send a write; it stores nothing |
+| [`examples/own-server/`](examples/own-server/README.md) | self-hosted Worker or Docker storage, server-local OAuth consent and bounded remote MCP over the direct-server route |
 | [`examples/minimal-server/`](examples/minimal-server/README.md) | one Node file, no dependencies, that receives the app's direct deliveries in every format, checks auth and signatures and writes back |
 
 Not in this repository: the iOS app, the Syncky core that generates `types.json`, `units.json` and the vectors, and the relay. The generated files are not edited by hand here; when a vector and prose disagree, the vector wins.
@@ -139,10 +144,19 @@ Node 22.15 or later in the 22 line.
 (cd examples/minimal-agent && npm ci && npm test)    # its tests use agent/ helpers: install agent/ first
 (cd examples/minimal-server && npm test)             # no dependencies
 (cd examples/browser-demo && npm ci && npm test)
+(cd examples/own-server && npm ci && npm test && npm run build:worker)
 ```
 
 ## Licence and security
 
 Apache License 2.0, see [LICENSE](LICENSE). Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
-The current thin runtime exposes exactly `syncky_status`, `syncky_inbox`, `syncky_send`, `syncky_ack` and `syncky_skill`, plus the verified `syncky://skill` resource. Status, inbox and skill read local state offline without contacting the relay or fetching updates. Read-only clients disable both send and ack. Only generic send carries writes, diagnostics requests and access requests, after explicit owner approval; phone consent, selection, agent scope, Allow writing to Health and iOS permissions remain authoritative. Request approval is separate from permission to write Health values. Raw results and every per-version phone outcome are read through inbox; queued/sent is not applied. Start one receive service per home separately; MCP starts no receiver, heartbeat or background retries. History is raw JSONL retained for 30 days, with no local policy, ledger, summary, unit conversion or series reassembly. A requested report needs explicit destination approval. See the [operator security rules](https://github.com/syncky/syncky-open/blob/main/agent/SETUP.md#6-security-rules).
+The current thin runtime exposes exactly `syncky_status`, `syncky_inbox`, `syncky_send`, `syncky_ack` and `syncky_skill`, plus the verified `syncky://skill` resource. Status, inbox and skill read local state offline without contacting the relay or fetching updates. Read-only clients disable both send and ack. Only generic send carries Health writes, diagnostics requests and access requests. A write is applied at the next sync when the owner has allowed writing for that type and iOS Health permits it. Diagnostics reports and access requests require explicit owner approval on the phone; Health selection, the app's write allowance, agent scope and iOS permissions remain authoritative. Request approval is separate from permission to write Health values. Raw results and every per-version phone outcome are read through inbox; queued/sent is not applied. Start one receive service per home separately; MCP starts no receiver, heartbeat or background retries. History is raw JSONL retained for 30 days, with no local policy, ledger, summary, unit conversion or series reassembly. A requested report needs explicit destination approval. See the [operator security rules](https://github.com/syncky/syncky-open/blob/main/agent/SETUP.md#6-security-rules).
+
+## You operate it
+
+You operate the template in your own hosting account, under your provider contract and chosen location, including possible United States processing. The EU Durable Object setting limits its execution/storage, not the edge Worker, object metadata/logs or AI providers. It does not guarantee EU-only processing. The template has no telemetry and no update channel: review a new source tag, back up and redeploy manually.
+
+Keep upload/HMAC credentials private; rotate them in the admin page and re-import the one-time setup link on the phone. The server requires explicit OAuth consent identifying the client, exact Health types and health/fitness purpose before AI disclosure. Review training/privacy settings and revoke access on Granted clients. Revocation cannot recall an emitted reply or erase AI-provider copies. Use local export pages, erase server data and remove the Worker plus Durable Object storage, or Docker volume, and all exports/backups/recovery copies under your provider's retention rules. Deleting code or a container alone does not delete storage.
+
+The template is outside the Syncky service, freely available without a subscription gate, with best-effort help through support@syncky.app and no SLA. Hosting and AI-provider accounts/costs are yours. Other people's data requires your own legal basis. Mandatory consumer rights and statutory liability remain unaffected.

@@ -8,6 +8,7 @@ import { test } from 'node:test';
 import { commandNames, generalHelp } from '../../src/cli.js';
 import { createPairingService, readPairingFile } from '../../src/pairing.js';
 import { createRuntime } from '../../src/runtime.js';
+import { createThinPoller } from '../../src/thin-poller.js';
 import { readHomeState, updateHomeState } from '../../src/home-state.js';
 import { acquireHomeLock } from '../../src/protected-files.js';
 import { createFakePhone } from '../support/fake-phone.js';
@@ -182,9 +183,19 @@ for (const bytes of [256 * 1024, 256 * 1024 + 1]) test(`pair caps its existing $
 for (const status of [503, 429, 'reset']) test(`waiter retries confirmation delivery after repeated ${status} failures`, async t => {
   const f = await fixture(t), started = await f.pairing.startPairing(), phone = createFakePhone({ relayUrl: f.relay.url });
   await phone.pair(started.uri); await phone.sendPairProof();
-  const posts = [];
+  const posts = [], pendingTimers = new Map(), timers = {
+    setTimeout(callback, ms) {
+      const timer = Symbol();
+      pendingTimers.set(timer, { callback, at: f.now().getTime() + ms });
+      return timer;
+    },
+    clearTimeout: timer => pendingTimers.delete(timer),
+  };
   const result = await runCli(['--home', f.home, 'pair-waiter', started.pairing_id], {
-    now: f.now, sleep: async ms => f.advance(ms), fetch: (url, options) => {
+    now: f.now, timers, sleep: async ms => {
+      f.advance(ms);
+      for (const [timer, { callback, at }] of pendingTimers) if (at <= f.now().getTime()) { pendingTimers.delete(timer); callback(); }
+    }, fetch: (url, options) => {
       if (options.method === 'POST' && new URL(url).pathname === '/v1/messages'
         && JSON.parse(options.body).msg_id === f.runtime.outbox.receipts().find(e => e.type === 'confirmed')?.msg_id) {
         posts.push({ at: f.now().getTime(), body: options.body });
@@ -198,7 +209,8 @@ for (const status of [503, 429, 'reset']) test(`waiter retries confirmation deli
   });
   assert.equal(result.code, 0); assert.match(result.stderr, /pair_waiter_finished/);
   const receipt = f.runtime.outbox.receipts().find(e => e.type === 'confirmed');
-  assert.equal(receipt.state, 'sent'); assert.equal(receipt.attempts, 7);
+  assert.equal(receipt.state, 'sent'); assert.equal(receipt.attempts, 7, JSON.stringify({ posts: posts.map(p => p.at), receipt }));
+  assert.equal(posts.length, 7); assert.equal(pendingTimers.size, 0);
   for (let n = 1; n <= 6; n++) {
     assert.ok(posts[n].at - posts[n - 1].at >= (status === 'reset' ? Math.min(60000, 1000 * 2 ** n) : 17000));
     assert.ok(posts[n].body === posts[0].body, 'confirmation ciphertext changed during retry');
@@ -257,10 +269,10 @@ test('waiter stops early when post-join polling revokes authentication', async t
 test('waiter retries after the bounded receive cycle aborts a stalled poll', async t => {
   const f = await fixture(t), started = await f.pairing.startPairing(), phone = createFakePhone({ relayUrl: f.relay.url });
   await phone.pair(started.uri); await phone.sendPairProof();
-  t.mock.timers.enable({ apis: ['setTimeout'] });
-  const entered = Promise.withResolvers(); let polls = 0;
+  const entered = Promise.withResolvers(), cycleTimers = []; let polls = 0;
+  const setCycleTimer = (abort, ms) => { cycleTimers.push({ abort, ms }); };
   const waiter = runCli(['--home', f.home, 'pair-waiter', started.pairing_id], {
-    now: f.now, sleep: async ms => f.advance(ms), fetch: (url, options) => {
+    now: f.now, sleep: async ms => f.advance(ms), createPoller: options => createThinPoller({ ...options, setCycleTimer }), fetch: (url, options) => {
       if (options.method === 'GET' && new URL(url).pathname === '/v1/messages' && !polls++) {
         entered.resolve();
         return new Promise((resolve, reject) => options.signal.addEventListener('abort', () => reject(options.signal.reason), { once: true }));
@@ -268,7 +280,7 @@ test('waiter retries after the bounded receive cycle aborts a stalled poll', asy
       return fetch(url, options);
     },
   });
-  await entered.promise; f.advance(15000); t.mock.timers.tick(15000);
+  await entered.promise; assert.equal(cycleTimers.at(-1).ms, 15000); f.advance(15000); cycleTimers.at(-1).abort();
   const result = await waiter;
   assert.equal(result.code, 0); assert.equal(polls, 2); assert.match(result.stderr, /pair_waiter_finished/);
   assert.equal(f.runtime.outbox.receipts().find(e => e.type === 'confirmed').state, 'sent');

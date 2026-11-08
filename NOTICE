@@ -1,6 +1,9 @@
 Syncky open protocol, reference agent and reference server
 Copyright 2026 Syncky (https://syncky.app)
 
+Apple, iPhone, HealthKit and App Store are trademarks of Apple Inc., registered in the U.S. and other countries.
+Apple Health is a trademark of Apple Inc.
+
 Licensed under the Apache License, Version 2.0 (the "License"); you may not
 use these files except in compliance with the License. You may obtain a copy
 of the License at http://www.apache.org/licenses/LICENSE-2.0 or in the file
@@ -36,3 +39,11 @@ examples/minimal-agent/ (not vendored here) carry their own licences:
 The file protocol/test-vectors/rfc9180-auth-x25519-sha256-chacha20poly1305.json
 reproduces test data from RFC 9180 (IETF Trust and the persons identified as the
 document authors; see the RFC's copyright notice).
+
+You operate it
+
+You operate the template in your own hosting account, under your provider contract and chosen location, including possible United States processing. The EU Durable Object setting limits its execution/storage, not the edge Worker, object metadata/logs or AI providers. It does not guarantee EU-only processing. The template has no telemetry and no update channel: review a new source tag, back up and redeploy manually.
+
+Keep upload/HMAC credentials private; rotate them in the admin page and re-import the one-time setup link on the phone. The server requires explicit OAuth consent identifying the client, exact Health types and health/fitness purpose before AI disclosure. Review training/privacy settings and revoke access on Granted clients. Revocation cannot recall an emitted reply or erase AI-provider copies. Use local export pages, erase server data and remove the Worker plus Durable Object storage, or Docker volume, and all exports/backups/recovery copies under your provider's retention rules. Deleting code or a container alone does not delete storage.
+
+The template is outside the Syncky service, freely available without a subscription gate, with best-effort help through support@syncky.app and no SLA. Hosting and AI-provider accounts/costs are yours. Other people's data requires your own legal basis. Mandatory consumer rights and statutory liability remain unaffected.

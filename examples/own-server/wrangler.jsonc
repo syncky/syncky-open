@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "own-syncky-server",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": true,
+  "send_metrics": false,
+  "observability": { "enabled": false },
+  "secrets": { "required": ["ADMIN_PASSWORD"] },
+  "vars": { "DO_JURISDICTION": "eu" },
+  "durable_objects": {
+    "bindings": [{ "name": "OWN_SERVER", "class_name": "OwnServer" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["OwnServer"] }]
+}

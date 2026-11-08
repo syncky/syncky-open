@@ -23,7 +23,7 @@ async function cancellable(work, signal) {
   finally { signal.removeEventListener("abort", abort); }
 }
 
-export function createThinPoller({ home, transport, self, relay, fs, now = () => new Date(), intervalS = 300, heartbeat, outbox, sleep, maxPages = 50, onRecord, watchPairing, observeHubState, schedulePoll = (at, interval) => at + interval * 1000 }) {
+export function createThinPoller({ home, transport, self, relay, fs, now = () => new Date(), intervalS = 300, heartbeat, outbox, sleep, maxPages = 50, onRecord, watchPairing, observeHubState, schedulePoll = (at, interval) => at + interval * 1000, timers = globalThis, setCycleTimer = timers.setTimeout }) {
   if (!Number.isSafeInteger(intervalS) || intervalS < POLL_INTERVAL_MIN_S || intervalS > POLL_INTERVAL_MAX_S) throw new LocalStateError("invalid_input", "invalid polling cadence");
   const options = { fs }, inbox = createInbox(home, options), inbound = createThinInbound({ home, transport, self, relay, fs, now, onRecord });
   const mutate = change => retryHomeLock(() => updateHomeState(home, change, options));
@@ -157,7 +157,7 @@ export function createThinPoller({ home, transport, self, relay, fs, now = () =>
       const release = await retryReceiverLock(() => acquire("once"), { signal, sleep, deadline, now }), controller = new AbortController();
       const combined = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
       deadline = Math.min(deadline ?? Infinity, now().getTime() + 15000);
-      const timer = setTimeout(() => controller.abort(), Math.max(0, deadline - now().getTime())), tasks = [];
+      const timer = setCycleTimer(() => controller.abort(), Math.max(0, deadline - now().getTime())), tasks = [];
       try {
         await retryHomeLock(() => inbox.prune(now()));
         if (watchPairing) await watchPairing({ signal: combined, deadline });
@@ -166,7 +166,7 @@ export function createThinPoller({ home, transport, self, relay, fs, now = () =>
         if (outbox) tasks.push(cancellable(() => outbox.flush({ signal: combined }), combined).catch(() => {}));
         const result = await cycle({ signal: combined, deadline });
         await Promise.all(tasks); return result;
-      } finally { controller.abort(); clearTimeout(timer); await Promise.allSettled(tasks); release(); }
+      } finally { controller.abort(); timers.clearTimeout(timer); await Promise.allSettled(tasks); release(); }
     },
     start() {
       const release = acquire("receiver"), controller = new AbortController(), tasks = new Set();

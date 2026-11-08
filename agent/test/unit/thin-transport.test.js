@@ -1,8 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { Readable } from "node:stream";
+import { runCli } from "../support/helpers.js";
+import { saveSecrets } from "../../src/secrets.js";
+import { saveConfig } from "../../src/config.js";
 import { createThinTransport, parseRawInner } from "../../src/thin-transport.js";
 import { b64uDecode, utf8 } from "../../src/encoding.js";
 import { loadVectors } from "../../src/protocol-files.js";
+import { createGenericSender, createLocalValidator } from "../../src/send.js";
+import { createCipherFiles } from "../../src/home-state.js";
+import { createInbox } from "../../src/inbox.js";
+import { loadSchemas } from "../../src/protocol-files.js";
+import { setup, self, now, identity, delivery } from "../support/thin-transport.js";
 import { table, tablePath, keys } from "../support/thin-transport.js";
 
 const transport = createThinTransport({ tablePath });
@@ -93,4 +102,79 @@ test("authenticated type/kind/marker mismatches fail before dispatch; target siz
   const raw = JSON.stringify({ type: "sync", extra: "x".repeat(180010) });
   assert.equal((await receive(await transport.sealMessage({ ...options, innerText: raw }))).innerText, raw);
   await assert.rejects(transport.sealMessage({ ...options, innerText: JSON.stringify({ type: "diagnostics", extra: "x".repeat(180010) }) }), { code: "inner_invalid" });
+});
+
+const accessRequest = () => ({ v: 1, type: "access_request", request_ref: "a".repeat(32),
+  created_at: "2026-11-05T12:00:00Z", expires_at: "2026-11-06T12:00:00Z", read: ["workout", "dietary_water", "workout"], write: ["dietary_water"] });
+test("access validation normalizes lists and requires exactly 24 hours for older phones", () => {
+  const validate = createLocalValidator(loadSchemas());
+  const request = accessRequest(); validate(request);
+  assert.deepEqual(request.read, ["dietary_water", "workout"]);
+  for (const mutate of [r => r.expires_at = r.created_at, r => r.expires_at = "2026-11-06T13:00:00Z",
+    r => r.expires_at = "2026-11-06T00:00:00Z", r => r.expires_at = "2026-11-06T11:59:59.999Z",
+    r => r.expires_at = "2026-11-05T11:00:00Z", r => r.read = ["unknown_type"], r => r.write = ["biological_sex"],
+    r => { r.read = []; r.write = []; }, r => r.reason = "x".repeat(201), r => delete r.read]) {
+    const r = accessRequest(); mutate(r);
+    assert.throws(() => validate(r), { code: "schema_invalid" });
+  }
+});
+test("generic access send seals sorted unique lists for older phones even without validation", async t => {
+  const { home, transport } = setup(t);
+  await createGenericSender({ home, transport, self, now, schemas: loadSchemas() })({ type: "access_request", innerText: JSON.stringify(accessRequest()) });
+  const entry = createCipherFiles(home, "outbox").list()[0];
+  const opened = await transport.receive({ envelope: JSON.parse(entry.body), hubId: identity.hub_id,
+    self: { memberId: keys.dev1.member_id, privateKey: b64uDecode(keys.dev1.sk) }, senderKeyOf: () => b64uDecode(keys.agent.pk) });
+  assert.deepEqual(opened.inner.read, ["dietary_water", "workout"]);
+});
+test("agent validation requires exactly 24 hours even for phone-accepted short TTL vectors", () => {
+  const vector = loadVectors("inner-messages").cases.find(c => c.name === "system_access_short_ttl");
+  assert.equal(vector.expect, "ok");
+  const request = JSON.parse(vector.json), validate = createLocalValidator(loadSchemas());
+  const created = Date.parse(request.created_at);
+  const expires = ttl => new Date(created + ttl).toISOString().replace(".000Z", "Z");
+  for (const ttl of [1, 1800000, 86400000 - 1, 86400000 + 1]) {
+    assert.throws(() => validate({ ...request, expires_at: expires(ttl) }),
+      { code: "schema_invalid", message: "invalid access request: ttl" });
+  }
+  assert.doesNotThrow(() => validate({ ...request, expires_at: expires(86400000) }));
+});
+test("invalid access replies preserve outcome and detail through authenticated receive and raw inbox", async t => {
+  const { home, transport } = setup(t);
+  const inner = { v: 1, type: "access_reply", request_ref: "a".repeat(32), decided_at: "2026-11-05T12:00:00Z",
+    outcome: "invalid", detail: "not_writable", read: [], write: [] };
+  createLocalValidator(loadSchemas())(inner);
+  const delivered = await delivery(transport, 1, inner);
+  const opened = await transport.receive({ envelope: delivered, hubId: identity.hub_id, self, senderKeyOf: () => b64uDecode(keys.dev1.pk) });
+  const inbox = createInbox(home);
+  inbox.append({ seq: 1, from: keys.dev1.member_id, kind: "control", type: "access_reply", received_at: now().toISOString(), inner: opened.inner });
+  assert.deepEqual(createInbox(home).read({ type: "access_reply" })[0].inner, inner);
+});
+
+test("CLI and MCP expose invalid access replies and MCP validates access requests by default", async t => {
+  const { home } = setup(t);
+  saveSecrets(home, { private_key: keys.agent.sk, public_key: keys.agent.pk, token: `sk_${identity.hub_id}_${"T".repeat(40)}`, webhook_secret: `whsec_${"W".repeat(43)}` });
+  saveConfig(home, { relay_url: "http://127.0.0.1:8787", name: "Test" });
+  const inner = { v: 1, type: "access_reply", request_ref: "a".repeat(32), decided_at: "2026-11-05T12:00:00Z",
+    outcome: "invalid", detail: "ttl", read: [], write: [] };
+  createInbox(home).append({ seq: 1, from: keys.dev1.member_id, kind: "control", type: "access_reply", received_at: now().toISOString(), inner });
+  const options = { now, fetch: () => { assert.fail("local inbox and validation must stay offline"); } };
+  const rejected = await runCli(["--home", home, "send", "--type", "access_request", "--json", "-", "--validate"], {
+    ...options, stdin: Readable.from([JSON.stringify({ ...accessRequest(), expires_at: "2026-11-06T00:00:00Z" })]) });
+  assert.equal(rejected.code, 4);
+  assert.equal(JSON.parse(rejected.stderr.trim().split("\n").at(-1)).error, "schema_invalid");
+  const cli = await runCli(["--home", home, "inbox", "--type", "access_reply"], options);
+  assert.equal(cli.code, 0);
+  assert.deepEqual(JSON.parse(cli.stdout).records[0].inner, inner);
+  const rpc = (name, args, id) => JSON.stringify({ jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args } });
+  const input = [rpc("syncky_inbox", { type: "access_reply" }, 1),
+    rpc("syncky_send", { type: "access_request", inner: { ...accessRequest(), write: ["biological_sex"] }, validate: false }, 2),
+    rpc("syncky_send", { type: "access_request", inner: { ...accessRequest(), expires_at: "2026-11-06T00:00:00Z" }, validate: false }, 3)].join("\n") + "\n";
+  const mcp = await runCli(["--home", home, "mcp"], { ...options, stdin: Readable.from([input]) });
+  assert.equal(mcp.code, 0);
+  const replies = mcp.stdout.trim().split("\n").map(line => JSON.parse(line));
+  assert.deepEqual(replies[0].result.structuredContent.records[0].inner, inner);
+  assert.equal(replies[1].result.structuredContent.code, "schema_invalid");
+  assert.equal(replies[2].result.structuredContent.code, "schema_invalid");
+  assert.equal(replies[2].result.isError, true);
+  assert.deepEqual(createCipherFiles(home, "outbox").list(), []);
 });

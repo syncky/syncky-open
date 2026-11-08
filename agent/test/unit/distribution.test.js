@@ -109,7 +109,7 @@ describe("carried distributions", () => {
       const treeRoot = join(unpacked, tree);
       const expectedLeaf = ["SKILL.md", "syncky-agent", "syncky-agent.mjs", "syncky-agent.mjs.sha256", "LICENSE", "NOTICE", "THIRD-PARTY-NOTICES"];
       assert.deepEqual(files(leaf), expectedLeaf.sort());
-      const manifests = tree === "claude-code" ? [".claude-plugin/marketplace.json", "plugins/syncky/.claude-plugin/plugin.json", "plugins/syncky/.mcp.json"] : tree === "codex" ? [".agents/plugins/marketplace.json", "plugins/syncky/.codex-plugin/plugin.json"] : [];
+      const manifests = tree === "claude-code" ? [".claude-plugin/marketplace.json", "plugins/syncky/.claude-plugin/plugin.json", "plugins/syncky/.claude-plugin/icon.png", "plugins/syncky/.mcp.json"] : tree === "codex" ? [".agents/plugins/marketplace.json", "plugins/syncky/.codex-plugin/plugin.json", "plugins/syncky/assets/icon.png"] : [];
       assert.deepEqual(files(treeRoot), [...expectedLeaf.map((f) => `${relativeLeaf}/${f}`), ...manifests].sort());
       for (const path of files(treeRoot)) {
         const expected = readFileSync(join(dist, tree, path));
@@ -149,9 +149,16 @@ describe("carried distributions", () => {
       assert.equal(manifest.name, "syncky");
       assert.equal(manifest.version, json(join(AGENT, "package.json")).version);
       assert.equal(manifest.license, "Apache-2.0");
+      assert.deepEqual(manifest.author, { name: "Syncky", email: "support@syncky.app", url: "https://syncky.app" });
       assert.equal(typeof manifest.description, "string");
       assert.ok(manifest.description.length > 40);
-      if (!claude) assert.equal(manifest.skills, "./skills/");
+      const icon = readFileSync(contained(pluginRoot, claude ? "./.claude-plugin/icon.png" : manifest.interface.logo));
+      assert.ok(icon.equals(readFileSync(join(AGENT, "distribution/icon.png"))));
+      assert.ok(icon.subarray(1, 4).toString("latin1") === "PNG" && icon.readUInt32BE(16) === icon.readUInt32BE(20) && icon.readUInt32BE(16) >= 512 && icon.length < 2 * 1024 * 1024);
+      if (!claude) {
+        assert.equal(manifest.skills, "./skills/");
+        assert.equal(manifest.interface.composerIcon, manifest.interface.logo);
+      }
       else {
         assert.equal(manifest.mcpServers, "./.mcp.json");
         assert.deepEqual(json(contained(pluginRoot, manifest.mcpServers)), {

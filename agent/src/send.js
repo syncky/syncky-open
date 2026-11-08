@@ -3,7 +3,28 @@ import { LocalStateError } from "./config.js";
 import { b64uDecode } from "./encoding.js";
 import { readHomeState, createCipherFiles } from "./home-state.js";
 import { parseRawInner } from "./thin-transport.js";
+import { loadJson } from "./protocol-files.js";
 import { retryHomeLock } from "./thin-lock.js";
+
+export function normalizeAccessRequest(inner) {
+  if (inner.type !== "access_request") return inner;
+  for (const side of ["read", "write"]) {
+    if (Array.isArray(inner[side]) && inner[side].every(name => typeof name === "string")) inner[side] = [...new Set(inner[side])].sort();
+  }
+  return inner;
+}
+
+function validateAccessRequest(inner) {
+  if (inner.type !== "access_request") return;
+  const catalog = loadJson("types.json");
+  const types = new Map([...catalog.types, ...catalog.characteristics, { name: "workout", write: false }].map(t => [t.name, t]));
+  const ttl = Date.parse(inner.expires_at) - Date.parse(inner.created_at);
+  const detail = ttl !== 86400000 ? "ttl"
+    : !Array.isArray(inner.read) || !Array.isArray(inner.write) ? "malformed"
+    : [...inner.read, ...inner.write].some(name => !types.has(name)) ? "unknown_type"
+    : inner.write.some(name => types.get(name).write !== true) ? "not_writable" : null;
+  if (detail) throw new LocalStateError("schema_invalid", `invalid access request: ${detail}`);
+}
 
 export function createLocalValidator(schemas = []) {
   const ajv = new Ajv({ strict: false, validateFormats: false }), definitions = new Map(), compiled = new Map();
@@ -19,6 +40,8 @@ export function createLocalValidator(schemas = []) {
     discover(doc, root, "");
   });
   return inner => {
+    normalizeAccessRequest(inner);
+    validateAccessRequest(inner);
     const matches = definitions.get(inner.type);
     if (!matches) return;
     try {
@@ -36,7 +59,9 @@ export function createGenericSender({ home, transport, self, now = () => new Dat
   return async ({ type, innerText, to, validate = false }) => {
     const { inner } = parseRawInner(innerText);
     if (inner.type !== type) throw new LocalStateError("invalid_input", "send type must match input type");
+    normalizeAccessRequest(inner);
     if (validate) validateLocal(inner);
+    if (inner.type === "access_request") innerText = JSON.stringify(inner);
     const state = readHomeState(home, { fs });
     const targets = to === undefined ? Object.values(state.members).filter(m => m.role === "device" && m.state === "confirmed" && m.unpair_reason == null) : [state.members[to]];
     if (to === undefined && targets.length !== 1) throw new LocalStateError("ambiguous_target", "select one confirmed phone");

@@ -13,6 +13,7 @@ export function registryDraft(draft, pkg) {
   ensure(pkg.name === "@syncky/agent" && pkg.mcpName === MCP_NAME, "package identity mismatch");
   ensure(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(pkg.version), "invalid package version");
   ensure(draft.$schema === "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json", "Registry schema mismatch");
+  ensure(typeof draft.description === "string" && [...draft.description].length <= 100, "Registry description must be at most 100 characters");
   ensure(draft.name === MCP_NAME && draft.version === pkg.version, "Registry version or identity mismatch");
   ensure(draft.repository?.url === `https://github.com/${REPOSITORY}` && draft.repository.source === "github", "Registry repository mismatch");
   ensure(draft.websiteUrl === "https://syncky.app/agents", "Registry website mismatch");

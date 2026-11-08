@@ -1,0 +1,21 @@
+{
+  "name": "@syncky/own-server",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.15"
+  },
+  "scripts": {
+    "build:worker": "node worker/build.js",
+    "test:core": "node --test 'test/core/*.test.js'",
+    "test:worker": "vitest run --config vitest.config.js",
+    "test:docker": "node --test 'test/docker/*.test.js'",
+    "test": "npm run test:core && npm run test:worker && npm run test:docker"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.22.0",
+    "vitest": "4.1.11",
+    "wrangler": "4.124.0"
+  }
+}

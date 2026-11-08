@@ -217,7 +217,7 @@
         "normalized": { "type": "object" },
         "dropped": {
           "type": "array",
-          "items": { "type": "string", "pattern": "^(/(samples|deleted|acks|commands)/(0|[1-9][0-9]*)|/scope|/type)$" }
+          "items": { "type": "string", "pattern": "^(/(samples|deleted|acks|commands)/(0|[1-9][0-9]*)|/acks/(0|[1-9][0-9]*)/detail|/scope|/type)$" }
         }
       },
       "if": { "type": "object", "properties": { "expect": { "type": "string", "const": "ok" } } },
@@ -796,15 +796,17 @@
         "command": { "type": "object" },
         "expect": { "type": "string", "enum": ["allow", "reject"] },
         "scope": { "$ref": "#/$defs/command_policy_scope" },
+        "declined": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$" } },
+        "detail": { "type": "string", "pattern": "^[a-z_]{1,32}$" },
         "reason": { "type": "string", "enum": ["type_not_allowed", "type_not_in_scope", "invalid", "value_out_of_range"] },
         "value": { "type": "number" },
         "unit": { "type": "string", "minLength": 1 }
       },
       "if": { "type": "object", "properties": { "expect": { "type": "string", "const": "reject" } }, "required": ["expect"] },
-      "then": { "type": "object", "properties": { "reason": true, "value": false, "unit": false }, "required": ["reason"] },
+      "then": { "type": "object", "properties": { "reason": true, "detail": true, "value": false, "unit": false }, "required": ["reason"] },
       "else": {
         "type": "object",
-        "properties": { "reason": false },
+        "properties": { "reason": false, "detail": false },
         "dependentRequired": { "value": ["unit"], "unit": ["value"] }
       }
     },

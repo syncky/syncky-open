@@ -5,7 +5,7 @@
     {
       "name": "syncky",
       "source": "./plugins/syncky",
-      "description": "Apple Health data through your local Syncky agent."
+      "description": "Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone."
     }
   ]
 }

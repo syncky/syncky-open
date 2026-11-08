@@ -106,12 +106,13 @@ async function distributions(outdir, payload, hash, notices) {
   if (!description) throw new Error("skill description missing");
   const portable = `---\nname: syncky\ndescription: ${description}\nlicense: Apache-2.0\n---\n${skill.slice(header[0].length)}`;
   const launcher = (await readFile(join(ROOT, "distribution/syncky-agent.sh"), "utf8")).replaceAll("@BUNDLE_SHA256@", hash);
+  const icon = await readFile(join(ROOT, "distribution/icon.png"));
   const license = await readFile(join(ROOT, "LICENSE"));
   const notice = await readFile(join(ROOT, "NOTICE"));
   const pkg = JSON.parse(await readFile(join(ROOT, "package.json"), "utf8"));
   const manifest = {
     manifest_version: "0.3", name: "syncky-health", display_name: "Syncky Health", version: pkg.version,
-    description: "Encrypted JSON transport and private raw Apple Health history with an offline verified skill",
+    description: pkg.description,
     author: { name: "Syncky" }, license: pkg.license,
     server: { type: "node", entry_point: "syncky-agent.mjs", mcp_config: { command: "node", args: ["${__dirname}/syncky-agent.mjs", "mcp"] } },
     compatibility: { runtimes: { node: pkg.engines.node } },
@@ -123,7 +124,7 @@ async function distributions(outdir, payload, hash, notices) {
   const mcpbHash = createHash("sha256").update(mcpb).digest("hex");
   await writePayload(join(outdir, "syncky-health.mcpb"), mcpb);
   await writePayload(join(outdir, "syncky-health.mcpb.sha256"), `${mcpbHash}  syncky-health.mcpb\n`);
-  const plugin = { name: "syncky", version: pkg.version, description, license: "Apache-2.0" };
+  const plugin = { name: "syncky", version: pkg.version, description, author: { name: "Syncky", email: "support@syncky.app", url: "https://syncky.app" }, license: "Apache-2.0" };
   const packages = [
     ["claude-code", "syncky-agent-claude-code.tar.gz", "plugins/syncky/skills/syncky"],
     ["codex", "syncky-agent-codex.tar.gz", "plugins/syncky/skills/syncky"],
@@ -146,11 +147,13 @@ async function distributions(outdir, payload, hash, notices) {
     if (tree === "claude-code") {
       await writeManifest(".claude-plugin/marketplace.json", { name: "syncky-local", owner: { name: "Syncky" }, plugins: [{ name: "syncky", source: "./plugins/syncky" }] });
       await writeManifest("plugins/syncky/.claude-plugin/plugin.json", { ...plugin, mcpServers: "./.mcp.json" });
+      await writePayload(join(base, "plugins/syncky/.claude-plugin/icon.png"), icon);
       await writeManifest("plugins/syncky/.mcp.json", { mcpServers: { syncky: { command: "node", args: ["${CLAUDE_PLUGIN_ROOT}/skills/syncky/syncky-agent.mjs", "mcp"] } } });
     }
     if (tree === "codex") {
       await writeManifest(".agents/plugins/marketplace.json", { name: "syncky-local", plugins: [{ name: "syncky", source: { source: "local", path: "./plugins/syncky" } }] });
-      await writeManifest("plugins/syncky/.codex-plugin/plugin.json", { ...plugin, skills: "./skills/" });
+      await writeManifest("plugins/syncky/.codex-plugin/plugin.json", { ...plugin, skills: "./skills/", interface: { displayName: "Syncky", composerIcon: "./assets/icon.png", logo: "./assets/icon.png" } });
+      await writePayload(join(base, "plugins/syncky/assets/icon.png"), icon);
     }
     const archivePath = join(outdir, name);
     await writePayload(archivePath, await archiveTree(outdir, tree));

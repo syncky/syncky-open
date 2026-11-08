@@ -7,7 +7,7 @@ import { createThinInbound } from './thin-inbound.js';
 import { createThinPoller } from './thin-poller.js';
 import { createGenericSender } from './send.js';
 import { createPairingService } from "./pairing.js";
-import { createOutbox } from './outbox.js';
+import { createOutbox, sendReceipt } from './outbox.js';
 import { createSkillUpdater } from './skill-update.js';
 import { createRelayClient } from './relay-client.js';
 import { createHubObserver } from './hub-state.js';
@@ -45,20 +45,22 @@ export function readInbox(home, { member, type, after_seq = -1, since, until, li
 
 export function localStatus(home, updater) {
   const state = readHomeState(home), entries = createCipherFiles(home, 'outbox').list(), transport = state.transport;
+  const sendLanes = { ...transport.send_lanes };
+  if (Number(transport.commands_retry_at) > 0) sendLanes.data = Math.max(sendLanes.data ?? 0, Number(transport.commands_retry_at));
   const members = Object.values(state.members).map(m => ({ member_id: m.member_id, role: m.role, name: m.name ?? null,
     state: m.state, fingerprint: m.fingerprint ?? null, confirmation_method: m.confirmation_method ?? null,
     code_check: Boolean(m.pair_proof) || m.proof_invalidated === true, pairing_id: m.pairing_id ?? null, scope: m.scope ?? null, unpair_reason: m.unpair_reason ?? null }));
-  return { ...state.identity, members, transport: Object.fromEntries(['cursor','acked_seq','pending_ack','last_poll_at','last_ack_at','next_poll_at','poll_interval_s','poll_retry_at','ack_retry_at','heartbeat_day','hub_revoked','hub_deleted','hub_state','hub_state_error','fast_poll'].filter(k => transport[k] !== undefined).map(k => [k, transport[k]])),
+  return { ...state.identity, members, transport: { ...Object.fromEntries(['cursor','acked_seq','pending_ack','last_poll_at','last_ack_at','next_poll_at','poll_interval_s','poll_retry_at','ack_retry_at','heartbeat_day','hub_revoked','hub_deleted','hub_state','hub_state_error','fast_poll'].filter(k => transport[k] !== undefined).map(k => [k, transport[k]])), send_lanes: sendLanes },
     operator_notice: transport.hub_revoked ? 'Relay identity refused; tell the owner and retain local history.' :
       transport.hub_state?.state === 'unpaid' ? 'Choose a relay plan on the phone before sending data.' :
       transport.hub_state?.state === 'suspended' ? 'Relay data is paused; review the plan and retention deadline on the phone.' : null,
     held: createCipherFiles(home, 'held').list().length,
     outbox: Object.fromEntries(['pending','sent','failed'].map(s => [s, entries.filter(e => e.state === s).length])),
-    sends: entries.slice(-100).map(({ msg_id, type, state, seq, code }) => ({ msg_id, type, state, seq, code })),
+    sends: entries.filter((e, i) => e.state === 'pending' || i >= entries.length - 100).map(sendReceipt),
     skill: updater.status(), legacy_files: detectLegacyFiles(home) };
 }
 
-export function createRuntime({ home, flags = {}, env = process.env, fetch, sleep, random, now = () => new Date(), logger, onRecord, outboxMaxAttempts, createPoller = createThinPoller } = {}) {
+export function createRuntime({ home, flags = {}, env = process.env, fetch, sleep, random, now = () => new Date(), logger, onRecord, outboxMaxAttempts, createPoller = createThinPoller, timers = globalThis } = {}) {
   const state = readHomeState(home), secrets = loadSecrets(home);
   if (state.identity.public_key !== secrets.public_key) throw new LocalStateError('key_mismatch', 'home identity and secrets disagree');
   const config = loadConfig(home, { env, flags: { relay_url: flags.relay, url_scheme: flags['url-scheme'], poll_interval_s: flags['poll-interval'] } });
@@ -71,8 +73,8 @@ export function createRuntime({ home, flags = {}, env = process.env, fetch, slee
   };
   const transport = new Proxy({}, { get: (_, key) => (...args) => latest()[key](...args) });
   const self = { memberId: state.identity.member_id, privateKey: secrets.privateKeyBytes };
-  const relay = createRelayClient({ baseUrl: config.relay_url, token: secrets.token, fetch, sleep, random, now: () => now().getTime(), logger, pollIntervalS: config.poll_interval_s });
-  const outbox = createOutbox({ home, relay, now, maxAttempts: outboxMaxAttempts });
+  const relay = createRelayClient({ baseUrl: config.relay_url, token: secrets.token, fetch, sleep, random, now: () => now().getTime(), logger, pollIntervalS: config.poll_interval_s, timers });
+  const outbox = createOutbox({ home, relay, now, maxAttempts: outboxMaxAttempts, timers });
   const inbound = createThinInbound({ home, transport, self, relay, now, onRecord });
   const pairing = createPairingService({ home, relay, publicKey: secrets.public_key, agentName: config.name, urlScheme: config.url_scheme, now });
   let checking = false, checkedAt = -Infinity;
@@ -83,7 +85,7 @@ export function createRuntime({ home, flags = {}, env = process.env, fetch, slee
     checking = true; checkedAt = now().getTime();
     try { await pairing.refreshPairing(pending.pairing_id, context); } finally { checking = false; }
   }
-  const poller = createPoller({ home, transport, self, relay, now, intervalS: config.poll_interval_s, sleep, onRecord, watchPairing, observeHubState: createHubObserver({ home, relay, now }),
+  const poller = createPoller({ home, transport, self, relay, now, intervalS: config.poll_interval_s, sleep, onRecord, watchPairing, timers, observeHubState: createHubObserver({ home, relay, now }),
     heartbeat: config.heartbeat === 'off' ? undefined : async ({ signal }) => {
       const reply = await relay.heartbeat({ version: AGENT_VERSION, platform: ['darwin','linux','win32'].includes(process.platform) ? process.platform : 'other' }, { signal, attempts: 1 });
       updater.observeHeartbeat(reply);

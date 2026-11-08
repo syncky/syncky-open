@@ -35,7 +35,14 @@ describe("README.md", () => {
     assert.throws(() => parseCommand(["serve"]), /unknown command/);
     assert.match(README, /0 ok, 1 relay or protocol error, 2 bad arguments, 3 not initialized/);
     assert.match(README, /`send-water` does not resend/);
-    assert.match(README, /`send-water` posts one command per call, so run it at most once every 5 minutes/);
+    assert.match(README, /`send-water` posts one command per call/);
+    assert.match(README, /burst of up to 60 data envelopes per agent, then about one a minute \(about 60 data envelopes per hour per agent sustained\)/);
+    assert.match(README, /per-token limit of 60 requests a minute.*polling, ACKs and heartbeats/);
+    assert.match(README, /send several entries in ONE `send` with a `commands` array/);
+    assert.match(README, /complete serialized UTF-8 JSON.*base64 ciphertext and recipient metadata/);
+    assert.match(README, /inner `commands` JSON.*roughly 191 KiB for one recipient, less with more recipients/);
+    assert.match(README, /429 `rate_limited` from either limit.*retried automatically by the outbox after `Retry-After`/);
+    assert.match(README, /status --json.*send_lanes.*pending entries/);
   });
 
   it("links the integration guide and cites no planning documents", () => {

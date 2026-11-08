@@ -47,8 +47,48 @@ describe("thin feature skill", () => {
       assert.equal(Date.parse(inner.expires_at) - Date.parse(inner.created_at), 86400000);
     }
   });
+  it('skill and setup require commands-array batching and explain the hourly budget and retries', () => {
+    for (const document of [SKILL, readFileSync(join(AGENT_DIR, 'SETUP.md'), 'utf8')]) {
+      assert.match(document, /[Ss]end several entries in [Oo][Nn][Ee] `send` with a `commands` array/);
+      assert.match(document, /60 data envelopes per hour per agent/);
+      assert.match(document, /burst of up to 60 data envelopes/);
+      assert.match(document, /one a minute.*60 data envelopes per hour per agent sustained/);
+      assert.match(document, /per-token limit of 60 requests a minute.*polling, ACKs and heartbeats/);
+      assert.match(document, /262144 bytes/);
+      assert.match(document, /complete serialized UTF-8 JSON.*base64 ciphertext and recipient metadata/);
+      assert.match(document, /inner `commands` JSON.*roughly 191 KiB for one recipient, less with more recipients/);
+      assert.match(document, /429 `rate_limited` from either limit.*retried automatically.*Retry-After/);
+      assert.match(document, /caller does not resend/);
+      assert.match(document, /status --json.*send_lanes.*pending/);
+    }
+  });
+  it('skill and setup bound daily totals and separate access recovery from format and save failures', () => {
+    for (const document of [SKILL, readFileSync(join(AGENT_DIR, 'SETUP.md'), 'utf8')]) {
+      for (const pattern of [
+        /`end` must not be later than now \+ 1 h.*`invalid`/,
+        /`start` to local day start and `end` to now or the last diary entry time/,
+        /Never use the end of the day/,
+        /same `command_id` with `version` \+ 1/,
+        /all nutrients of one day in one `send` with several `commands`/,
+        /`access_request` is an optional ask-ahead, not a required step before writes/,
+        /`type_not_in_scope`, `type_not_allowed` or `healthkit_denied`/,
+        /tell the owner to allow that type on the phone/,
+        /`access_request` for exactly those write types if the phone has not asked yet/,
+        /Resend only after the next ordinary sync shows the effective write scope/,
+        /On an `invalid` ack, check the command format first \(`--validate`\): fix timestamps, units or JSON\./,
+        /Schema validation does not cover phone policy; check interval bounds and units, then report an unexplained rejection without looping\./,
+        /Never ask for access on `invalid`\./,
+        /After a phone rejection, keep the same `command_id` and increment `version` before retrying; the phone caches completed rejections\./,
+        /A refused write creates no access request or automatic system consent prompt; its Home card may offer an owner-tapped Allow action\./,
+        /No phone app version or access-request capability is exposed in sync or status/,
+        /If no matching `access_reply` arrives after an `access_request`, have the owner open Syncky and sync; if it remains missing, check whether consent is still pending on the phone and whether the request expired, then suggest the owner check for an app update without looping\./,
+        /Missing replies do not prove an old app/,
+      ]) assert.match(document, pattern);
+    }
+  });
   it("has the OpenClaw header and names only real commands", () => {
     checkedHeader(SKILL, true);
+    assert.equal(frontmatter(SKILL).description, "Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone.");
     const commands = [...SKILL.matchAll(/"\$SYNCKY_RUNNER" ([a-z]+)/g)].map(m => m[1]);
     assert.ok(commands.length > 0); assert.deepEqual(commands.filter(c => !commandNames().includes(c)), []);
     assert.doesNotMatch(SKILL, /syncky_(?:samples|summary|write|commands|request_access|request_diagnostics)/);
@@ -104,8 +144,12 @@ describe("format-specific carried skills", () => {
     for (const [path, openclaw] of [["claude-code/plugins/syncky/skills/syncky", false], ["codex/plugins/syncky/skills/syncky", false], ["clawhub/syncky", true], ["agent-skills/skills/syncky", false]]) {
       const skill = readFileSync(join(dist, path, "SKILL.md"), "utf8");
       assert.equal(checkedHeader(skill, openclaw), sourceBody);
+      assert.equal(frontmatter(skill).description, frontmatter(SKILL).description);
       const commands = [...skill.matchAll(/`syncky-agent ([a-z]+)/g)].map((m) => m[1]);
       assert.ok(commands.every((c) => commandNames().includes(c)), "packaged skill contains an invalid command");
+    }
+    for (const path of ["claude-code/plugins/syncky/.claude-plugin/plugin.json", "codex/plugins/syncky/.codex-plugin/plugin.json"]) {
+      assert.equal(JSON.parse(readFileSync(join(dist, path), "utf8")).description, frontmatter(SKILL).description);
     }
   });
 

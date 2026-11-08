@@ -1,5 +1,7 @@
 # Syncky agent
 
+Syncky Health sends the Apple Health data you choose from your iPhone to your own AI agent (local MCP server) or your own server. The AI agent route is end-to-end encrypted. Your agent and your server can both write entries back into Health once you allow writing on the iPhone.
+
 A Node.js ≥22.15 encrypted transport with a 30-day raw JSON inbox and a verified skill. The iPhone enforces Health policy and consent. The agent has no local Health database, command ledger, summaries, HTTP server or binary auto-update.
 
 Use `syncky-agent` or its `syncky` alias. The source-kit runner is `node bin/syncky-agent.js` from this directory. Carried skill packages include a checksum-verifying launcher and an offline bundle; use its absolute path. npm uses `npx -y @syncky/agent`.
@@ -53,4 +55,4 @@ Access requests use generic `send --type access_request`; explicit owner approva
 
 Allow adds only approved types to Health selection, without selecting their categories. Existing selected categories and individually allowed types are preserved. **Choose Health data** shows partial selection as **Individually allowed: …** under an unchecked category; Allow texts name the exact types. Existing read `all` stays `all` and follows later Health selection changes. Approved reads turn `none` into a chosen list and are unioned into existing read lists.
 
-Allowed writes turn on the global **Allow writing to Health** toggle for all selected writable types; agent scope and iOS write permission still apply. If writing was off or the agent's effective write allowance was empty, its write scope becomes only the approved write types, even from `all` or an absent scope; otherwise existing write scope is unioned as before. Decline revokes nothing. The reply alone never updates cached scope; wait for the next ordinary sync. Health read authorization is unobservable. No local admission/cooldown policy exists.
+Allowed writes add only the approved write types to the app allowance and request Health sharing only for those exact types, without adding reads; agent scope and iOS write permission still apply. If writing was off or the agent's effective write allowance was empty, its write scope becomes only the approved write types, even from `all` or an absent scope; otherwise existing write scope is unioned as before. Decline revokes nothing. The reply alone never updates cached scope; wait for the next ordinary sync. Health read authorization is unobservable. No local admission/cooldown policy exists.

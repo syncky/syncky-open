@@ -33,8 +33,25 @@ jobs:
         run: npm run test:bundle
       - name: Test public manifests and release guards
         run: node --test test/*.test.mjs
+      - name: Install pinned own-server dependencies
+        working-directory: examples/own-server
+        run: npm ci --no-audit --no-fund
+      - name: Test own-server
+        working-directory: examples/own-server
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: npm test
+      - name: Dry-run own-server Worker build
+        working-directory: examples/own-server
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: npm run build:worker
       - name: Pack and verify release assets
         run: node release.mjs prepare "$RUNNER_TEMP/syncky-release"
+      - name: Install verified MCP publisher
+        run: node release.mjs install-publisher "$RUNNER_TEMP/mcp-publisher"
+      - name: Validate generated Registry entry
+        run: mcp-publisher validate "$RUNNER_TEMP/syncky-release/server.json"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: syncky-release
@@ -66,3 +83,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node release.mjs publish "$RUNNER_TEMP/syncky-release"
+      - name: Install verified MCP publisher
+        run: node release.mjs install-publisher "$RUNNER_TEMP/mcp-publisher"
+      - name: Publish MCP Registry entry
+        run: node release.mjs registry "$RUNNER_TEMP/syncky-release"

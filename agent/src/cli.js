@@ -99,7 +99,7 @@ async function waitPair(runtime, pairing, started, { timeout = 900, signal, slee
   }
   while (now().getTime() < deadline) {
     signal?.throwIfAborted();
-    if (isCurrent && !isCurrent()) return;
+    if (isCurrent && !await isCurrent()) return;
     let delayMs = 2000;
     try {
       if (!outcome) {
@@ -108,7 +108,7 @@ async function waitPair(runtime, pairing, started, { timeout = 900, signal, slee
         if (result.status === 'completed') outcome = result;
       }
       if (outcome) {
-        if (isCurrent && !isCurrent()) return;
+        if (isCurrent && !await isCurrent()) return;
         if (started.version === 1) return outcome;
         const confirmed = confirmation();
         if (!confirmed) await runtime.poller.once({ signal, deadline });
@@ -149,7 +149,7 @@ function spawnPairWaiter(home, id, { spawn, env, logger, flags }) {
   } catch { logger.warn('pair_waiter_spawn_failed'); }
   finally { if (fd !== undefined) { try { fs.closeSync(fd); } catch { logger.warn('pair_waiter_spawn_failed'); } } }
 }
-export async function main(argv, { env = process.env, stdout = process.stdout, stderr = process.stderr, stdin = process.stdin, fetch = globalThis.fetch, now = () => new Date(), sleep, random, signal, spawn = nodeSpawn } = {}) {
+export async function main(argv, { env = process.env, stdout = process.stdout, stderr = process.stderr, stdin = process.stdin, fetch = globalThis.fetch, now = () => new Date(), sleep, random, signal, spawn = nodeSpawn, createPoller, timers = globalThis } = {}) {
   const print = text => stdout.write(text), json = value => print(JSON.stringify(value) + '\n');
   let parsed;
   try {
@@ -182,11 +182,12 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
     if (command === 'mcp') {
       const runtime = () => createRuntime({ home, flags, env, fetch, now, sleep, random, logger });
       await runMcp({ input: stdin, write: print, version: AGENT_VERSION, logger, handlers: {
-        syncky_status: () => retryHomeLock(() => runtime().status()), syncky_inbox: args => retryHomeLock(() => runtime().inbox(args)), syncky_send: args => runtime().send(args),
-        syncky_ack: args => runtime().poller.ack(args.up_to_seq), syncky_skill: args => readSkill(createSkillUpdater({ home }), args),
+        syncky_status: () => retryHomeLock(() => runtime().status()), syncky_inbox: args => retryHomeLock(() => runtime().inbox(args)),
+        syncky_send: async args => (await retryHomeLock(runtime)).send({ ...args, validate: args.type === 'access_request' || args.validate === true }),
+        syncky_ack: async args => (await retryHomeLock(runtime)).poller.ack(args.up_to_seq), syncky_skill: args => readSkill(createSkillUpdater({ home }), args),
       } }); return 0;
     }
-    const runtime = createRuntime({ home, flags, env, fetch, now, sleep, random, logger, outboxMaxAttempts: command === 'pair-waiter' ? Infinity : undefined, onRecord: command === 'receive' ? json : undefined });
+    const runtime = await retryHomeLock(() => createRuntime({ home, flags, env, fetch, now, sleep, random, logger, outboxMaxAttempts: command === 'pair-waiter' ? Infinity : undefined, createPoller, timers, onRecord: command === 'receive' ? json : undefined }));
     if (command === 'status') { json(await retryHomeLock(() => runtime.status())); return 0; }
     if (command === 'inbox') { json(await retryHomeLock(() => runtime.inbox(inboxArgs(flags)))); return 0; }
     if (command === 'send') {
@@ -199,7 +200,7 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
       const receiver = await retryReceiverLock(() => runtime.poller.start(), { signal, sleep });
       const stop = () => { receiver.stop(); };
       process.once('SIGINT', stop); process.once('SIGTERM', stop); signal?.addEventListener('abort', stop, { once: true });
-      logger.info('receive_ready', { hub_id: readHomeState(home).identity.hub_id, member_id: runtime.self.memberId });
+      logger.info('receive_ready', { hub_id: (await retryHomeLock(() => readHomeState(home))).identity.hub_id, member_id: runtime.self.memberId });
       try { const result = await receiver.done; return result.reason === 'invalid_token' ? 3 : 0; }
       finally { process.off('SIGINT', stop); process.off('SIGTERM', stop); signal?.removeEventListener('abort', stop); }
     }
@@ -208,7 +209,7 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
       const current = () => pairing.currentPairing({ includeCompleted: true, graceMs: PAIR_WAITER_GRACE_MS });
       const started = current();
       if (!started || started.pairing_id !== positionals[0] || started.version !== 2) return 0;
-      const isCurrent = () => {
+      const isCurrent = () => retryHomeLock(() => {
         if (current()?.pairing_id !== started.pairing_id) return false;
         const state = readHomeState(home), member = state.members[state.pairings[started.pairing_id]?.member_id];
         if (member?.state === 'confirmed') {
@@ -216,16 +217,16 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
           return Boolean(member.confirmation || (receipt && receipt.state !== 'sent'));
         }
         return !member || (member.state === 'joined' && !member.proof_invalidated);
-      };
+      });
       const deadline = Date.parse(started.expires_at) + PAIR_WAITER_GRACE_MS, controller = new AbortController();
       const waiterSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
-      const timer = setTimeout(() => controller.abort(), Math.max(0, deadline - now().getTime()));
+      const timer = timers.setTimeout(() => controller.abort(), Math.max(0, deadline - now().getTime()));
       logger.info('pair_waiter_started', { pid: process.pid });
       try {
         await waitPair(runtime, pairing, started, { now, sleep, signal: waiterSignal, deadline, isCurrent, retryRelayErrors: true });
         logger.info('pair_waiter_finished');
       } catch { logger.info('pair_waiter_stopped'); }
-      finally { clearTimeout(timer); }
+      finally { timers.clearTimeout(timer); }
       return 0;
     }
     if (['confirm','reject','revoke','forget'].includes(command)) {

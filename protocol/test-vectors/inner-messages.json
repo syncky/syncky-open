@@ -447,6 +447,146 @@
       "dropped": []
     },
     {
+      "name": "sync_ack_detail_kept",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"acks\":[{\"command_id\":\"c_1\",\"version\":1,\"status\":\"rejected\",\"reason\":\"invalid\",\"detail\":\"bad_value\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [
+          {
+            "command_id": "c_1",
+            "version": 1,
+            "status": "rejected",
+            "reason": "invalid",
+            "detail": "bad_value"
+          }
+        ],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_ack_detail_unknown_kept",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"acks\":[{\"command_id\":\"c_1\",\"version\":1,\"status\":\"rejected\",\"reason\":\"invalid\",\"detail\":\"future_rule\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [
+          {
+            "command_id": "c_1",
+            "version": 1,
+            "status": "rejected",
+            "reason": "invalid",
+            "detail": "future_rule"
+          }
+        ],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_ack_detail_dropped_non_string",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"acks\":[{\"command_id\":\"c_1\",\"version\":1,\"status\":\"rejected\",\"reason\":\"invalid\",\"detail\":1}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [
+          {
+            "command_id": "c_1",
+            "version": 1,
+            "status": "rejected",
+            "reason": "invalid"
+          }
+        ],
+        "more": false
+      },
+      "dropped": [
+        "/acks/0/detail"
+      ]
+    },
+    {
+      "name": "sync_ack_detail_dropped_bad_pattern",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"acks\":[{\"command_id\":\"c_1\",\"version\":1,\"status\":\"rejected\",\"reason\":\"invalid\",\"detail\":\"Bad-Value\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [
+          {
+            "command_id": "c_1",
+            "version": 1,
+            "status": "rejected",
+            "reason": "invalid"
+          }
+        ],
+        "more": false
+      },
+      "dropped": [
+        "/acks/0/detail"
+      ]
+    },
+    {
+      "name": "sync_ack_detail_dropped_applied",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"acks\":[{\"command_id\":\"c_1\",\"version\":1,\"status\":\"applied\",\"detail\":\"bad_value\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [
+          {
+            "command_id": "c_1",
+            "version": 1,
+            "status": "applied"
+          }
+        ],
+        "more": false
+      },
+      "dropped": [
+        "/acks/0/detail"
+      ]
+    },
+    {
+      "name": "sync_ack_declined_by_user",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"acks\":[{\"command_id\":\"c_1\",\"version\":1,\"status\":\"rejected\",\"reason\":\"type_not_in_scope\",\"detail\":\"declined_by_user\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [
+          {
+            "command_id": "c_1",
+            "version": 1,
+            "status": "rejected",
+            "reason": "type_not_in_scope",
+            "detail": "declined_by_user"
+          }
+        ],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
       "name": "sync_ack_without_version_kept",
       "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"acks\":[{\"command_id\":\"c_1\",\"status\":\"applied\"}]}",
       "expect": "ok",
@@ -3274,13 +3414,125 @@
       "name": "system_access_duplicate",
       "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"read\":[\"workout\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
       "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_request",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-10-11T08:00:00Z",
+        "expires_at": "2026-10-12T08:00:00Z",
+        "read": [
+          "workout"
+        ],
+        "write": [
+          "dietary_water"
+        ],
+        "reason": "literal <b>💧</b>"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_short_ttl",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-11T08:30:00Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_request",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-10-11T08:00:00Z",
+        "expires_at": "2026-10-11T08:30:00Z",
+        "read": [
+          "biological_sex",
+          "dietary_water",
+          "workout"
+        ],
+        "write": [
+          "dietary_water"
+        ],
+        "reason": "literal <b>💧</b>"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_zero_ttl",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-11T08:00:00Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "control",
       "expect": "invalid"
     },
     {
-      "name": "system_access_bad_expiry",
-      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-11T08:30:00Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "name": "system_access_negative_ttl",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-11T07:00:00Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
       "kind": "control",
       "expect": "invalid"
+    },
+    {
+      "name": "system_access_unsorted",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T08:00:00Z\",\"read\":[\"workout\",\"dietary_water\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_request",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-10-11T08:00:00Z",
+        "expires_at": "2026-10-12T08:00:00Z",
+        "read": [
+          "dietary_water",
+          "workout"
+        ],
+        "write": [
+          "dietary_water"
+        ],
+        "reason": "literal <b>💧</b>"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_twelve_hours",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-11T20:00:00Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_request",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-10-11T08:00:00Z",
+        "expires_at": "2026-10-11T20:00:00Z",
+        "read": [
+          "biological_sex",
+          "dietary_water",
+          "workout"
+        ],
+        "write": [
+          "dietary_water"
+        ],
+        "reason": "literal <b>💧</b>"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_ttl_overflow",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00Z\",\"expires_at\":\"2026-10-12T09:00:00Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_invalid",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"invalid\",\"read\":[],\"write\":[],\"detail\":\"ttl\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-11T08:00:00Z",
+        "outcome": "invalid",
+        "read": [],
+        "write": [],
+        "detail": "ttl"
+      },
+      "dropped": []
     },
     {
       "name": "system_access_reply_mixed",

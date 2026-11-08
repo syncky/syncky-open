@@ -106,6 +106,14 @@ describe("public npm package", () => {
       assert.equal(Object.hasOwn(metadata, "private"), false);
       assert.equal(metadata.version, source.version);
       assert.equal(metadata.mcpName, "io.github.syncky/syncky-health");
+      assert.match(metadata.description, /Apple Health/);
+      assert.match(metadata.description, /MCP/);
+      assert.match(metadata.description, /AI agent/);
+      assert.match(metadata.description, /end-to-end encrypted between your iPhone and the local Syncky agent/);
+      assert.ok(metadata.description.length <= 200);
+      assert.equal(metadata.description, source.description);
+      assert.deepEqual(metadata.keywords, ["apple-health", "healthkit", "mcp", "mcp-server", "model-context-protocol", "ai-agent", "quantified-self", "e2ee", "hpke"]);
+      assert.equal(metadata.homepage, "https://syncky.app/agents");
       assert.deepEqual(metadata.repository, REPOSITORY);
       assert.deepEqual(metadata.bin, { "syncky-agent": "dist/syncky-agent.mjs", "syncky": "dist/syncky-agent.mjs" });
       assert.deepEqual(metadata.files, ALLOWLIST);

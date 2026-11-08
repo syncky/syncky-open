@@ -15,14 +15,17 @@ import { waitForSend } from "../support/send-receipt.js";
 const RELAY = process.env.SYNCKY_E2E_RELAY;
 const INVITE = process.env.SYNCKY_E2E_INVITE || "dev-invite";
 const INTERVAL_S = Number(process.env.SYNCKY_E2E_SEND_INTERVAL_S);
-const BURST = 3;
+const BURST = Number(process.env.SYNCKY_E2E_SEND_BURST);
+if (process.env.SYNCKY_E2E_SEND_INTERVAL_S !== undefined) {
+  assert.ok(Number.isInteger(BURST) && BURST > 0, "SYNCKY_E2E_SEND_BURST must be a positive integer when SYNCKY_E2E_SEND_INTERVAL_S is set");
+}
 const BIN = process.env.SYNCKY_E2E_AGENT_BIN || agentBin();
 const agentSpawn = (args) => (/\.m?js$/.test(BIN) ? [process.execPath, [BIN, ...args]] : [BIN, args]);
 const RECEIVE_FIXTURE = fileURLToPath(new URL('../support/receive-fixture.js', import.meta.url));
 const TEST_TIMEOUT_MS = 60_000 + INTERVAL_S * 5000;
 const WAIT = { timeoutMs: 30_000, intervalMs: 250 };
 
-const SKIP = RELAY && INTERVAL_S > 0 ? false : "SYNCKY_E2E_RELAY and SYNCKY_E2E_SEND_INTERVAL_S (the relay's AGENT_SEND_INTERVAL_S) are not set";
+const SKIP = RELAY && INTERVAL_S > 0 ? false : "SYNCKY_E2E_RELAY and SYNCKY_E2E_SEND_INTERVAL_S are not set";
 
 describe("the relay's agent send budget and the thin agent's ciphertext retries (wrangler dev)", { skip: SKIP }, () => {
   const homes = [];
@@ -48,7 +51,10 @@ describe("the relay's agent send budget and the thin agent's ciphertext retries 
       child.on("error", reject);
       child.on("close", (code) => {
         clearTimeout(timer);
-        if (code !== 0) return reject(new Error(`agent ${args[0]} exited ${code}`));
+        if (code !== 0) {
+          const lastLine = stderr.split(/\r?\n/).filter(line => line.trim()).at(-1);
+          return reject(new Error(`agent ${args[0]} exited ${code}${lastLine ? `: ${lastLine}` : ""}`));
+        }
         resolve(args[0] === "receive" ? {} : JSON.parse(stdout));
       });
     });
@@ -104,7 +110,7 @@ describe("the relay's agent send budget and the thin agent's ciphertext retries 
       sends.push(await rawAgentSend(home, phone));
       await delay(1000);
     }
-    assert.deepEqual(sends.map((s) => s.status), [201, 201, 201, 429, 429]);
+    assert.deepEqual(sends.map((s) => s.status), [...Array(BURST).fill(201), 429, 429]);
     for (const refused of sends.slice(BURST)) {
       assert.equal(refused.body.error, "rate_limited");
       const wait = Number(refused.retryAfter);
@@ -125,7 +131,7 @@ describe("the relay's agent send budget and the thin agent's ciphertext retries 
   it("caller batches stay explicit and rate-limited ciphertext is retried without changing command versions", { timeout: TEST_TIMEOUT_MS }, async () => {
     const { home, phone } = await pairedAgent("Ciphertext retry agent");
     await confirmByProof(home, phone);
-    const commands = [0.25, 0.5, 0.75, 1].map((value, i) => ({ command_id: `budget_${i}`, version: 1, op: "write", type: "dietary_water", value, unit: "L", start: "2026-11-05T12:00:00Z", end: "2026-11-05T12:00:00Z" }));
+    const commands = Array.from({ length: BURST + 1 }, (_, i) => (i + 1) / (BURST + 1)).map((value, i) => ({ command_id: `budget_${i}`, version: 1, op: "write", type: "dietary_water", value, unit: "L", start: "2026-11-05T12:00:00Z", end: "2026-11-05T12:00:00Z" }));
     const receipts = [];
     for (const command of commands) receipts.push(await run(home, ["send", "--type", "commands", "--to", phone.memberId, "--json", "-"], JSON.stringify({ v: 1, type: "commands", commands: [command] })));
     assert.ok(receipts.some(r => r.state === "pending"));

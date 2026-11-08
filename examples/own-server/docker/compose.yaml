@@ -1,0 +1,20 @@
+services:
+  own-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Choose an admin password}
+      PUBLIC_URL: ${PUBLIC_URL:?Set your canonical HTTPS origin}
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - own-server-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+volumes:
+  own-server-data:

@@ -975,7 +975,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_unit"
     },
     {
       "name": "count_unit_for_percent_type",
@@ -991,7 +992,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_unit"
     },
     {
       "name": "percent_unit_for_count_type",
@@ -1007,7 +1009,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_unit"
     },
     {
       "name": "unit_lowercase_ml",
@@ -1023,7 +1026,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_unit"
     },
     {
       "name": "unit_small_calorie",
@@ -1039,7 +1043,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_unit"
     },
     {
       "name": "unit_mmol_without_molar_mass",
@@ -1055,7 +1060,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_unit"
     },
     {
       "name": "unit_null",
@@ -1071,7 +1077,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_unit"
     },
     {
       "name": "unit_number",
@@ -1087,7 +1094,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_unit"
     },
     {
       "name": "value_null",
@@ -1103,7 +1111,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_value"
     },
     {
       "name": "value_string",
@@ -1119,7 +1128,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_value"
     },
     {
       "name": "value_missing",
@@ -1134,7 +1144,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_value"
     },
     {
       "name": "start_after_end",
@@ -1150,7 +1161,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_interval"
     },
     {
       "name": "start_missing",
@@ -1165,7 +1177,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_interval"
     },
     {
       "name": "op_unknown",
@@ -1181,7 +1194,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "unknown_op"
     },
     {
       "name": "category_with_unit",
@@ -1197,7 +1211,8 @@
         "unit": "count"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_unit"
     },
     {
       "name": "category_value_unknown",
@@ -1212,7 +1227,8 @@
         "end": "2026-10-11T08:30:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_category_value"
     },
     {
       "name": "unit_checked_before_range",
@@ -1228,7 +1244,8 @@
         "end": "2026-10-11T08:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "bad_unit"
     },
     {
       "name": "water_negative",
@@ -1405,7 +1422,8 @@
         "end": "2026-10-11T10:00:00.001Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "end_in_future"
     },
     {
       "name": "category_end_after_skew",
@@ -1420,7 +1438,8 @@
         "end": "2026-10-11T10:00:00.001Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "end_in_future"
     },
     {
       "name": "quantity_span_at_cap",
@@ -1453,7 +1472,8 @@
         "end": "2026-10-11T09:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "span_too_long"
     },
     {
       "name": "category_span_over_cap",
@@ -1468,7 +1488,8 @@
         "end": "2026-10-11T09:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "span_too_long"
     },
     {
       "name": "pregnancy_long_span_allowed",
@@ -1497,7 +1518,8 @@
         "end": "2026-10-11T09:00:00Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "span_too_long"
     },
     {
       "name": "year_9999_rejected",
@@ -1513,7 +1535,8 @@
         "end": "9999-12-31T23:59:59Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "end_in_future"
     },
     {
       "name": "interval_wins_over_range",
@@ -1529,7 +1552,35 @@
         "end": "2026-10-11T10:00:00.001Z"
       },
       "expect": "reject",
-      "reason": "invalid"
+      "reason": "invalid",
+      "detail": "end_in_future"
+    },
+    {
+      "name": "scope_write_declined_by_user",
+      "now": "2026-10-11T09:00:00Z",
+      "command": {
+        "command_id": "c_1",
+        "version": 1,
+        "op": "write",
+        "type": "steps",
+        "value": 1200,
+        "unit": "count",
+        "start": "2026-10-11T08:00:00Z",
+        "end": "2026-10-11T08:00:00Z"
+      },
+      "scope": {
+        "read": "all",
+        "write": [
+          "body_mass",
+          "dietary_water"
+        ]
+      },
+      "declined": [
+        "steps"
+      ],
+      "expect": "reject",
+      "reason": "type_not_in_scope",
+      "detail": "declined_by_user"
     },
     {
       "name": "scope_write_inside_selected",

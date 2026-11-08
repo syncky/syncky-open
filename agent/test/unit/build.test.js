@@ -119,11 +119,13 @@ describe("release bundle", () => {
     const manifest = JSON.parse(unzip(["-p", archive, "manifest.json"]));
     assert.deepEqual(manifest, {
       manifest_version: "0.3", name: "syncky-health", display_name: "Syncky Health", version: pkg.version,
-      description: "Encrypted JSON transport and private raw Apple Health history with an offline verified skill",
+      description: pkg.description,
       author: { name: "Syncky" }, license: "Apache-2.0",
       server: { type: "node", entry_point: "syncky-agent.mjs", mcp_config: { command: "node", args: ["${__dirname}/syncky-agent.mjs", "mcp"] } },
       compatibility: { runtimes: { node: pkg.engines.node } },
     });
+    assert.match(manifest.description, /Apple Health/);
+    assert.match(manifest.description, /MCP/);
     assert.ok(names.includes(manifest.server.entry_point));
     assert.equal(unzip(["-p", archive, manifest.server.entry_point]), readFileSync(result.bundlePath, "utf8"));
     for (const name of ["LICENSE", "NOTICE"]) assert.equal(unzip(["-p", archive, name]), readFileSync(join(AGENT, name), "utf8"));

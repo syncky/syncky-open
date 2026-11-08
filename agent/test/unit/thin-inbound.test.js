@@ -5,12 +5,25 @@ import { createThinInbound, THIN_HELD_LIMITS } from "../../src/thin-inbound.js";
 import { createInbox } from "../../src/inbox.js";
 import { createCipherFiles, readHomeState, updateHomeState } from "../../src/home-state.js";
 import { pairProof } from "../../src/pair-code.js";
-import { acquireHomeLock } from "../../src/protected-files.js";
+import { acquireHomeLock, atomicPrivateWrite } from "../../src/protected-files.js";
 import { b64uDecode } from "../../src/encoding.js";
 import { readInbox } from "../../src/runtime.js";
 import { loadVectors } from "../../src/protocol-files.js";
 import { diskFailure, syncTrace } from "../support/thin-home.js";
 import { setup, delivery, identity, self, now, keys, messageId } from "../support/thin-transport.js";
+
+for (const name of ["sync_ack_detail_kept", "sync_ack_detail_unknown_kept", "sync_ack_detail_dropped_non_string", "sync_ack_detail_dropped_bad_pattern", "sync_ack_detail_dropped_applied", "sync_ack_declined_by_user"]) {
+  test(`thin inbound preserves ${name} verbatim in inbox JSONL`, async t => {
+    const { home, transport } = setup(t), inbound = createThinInbound({ home, transport, self, now });
+    const vector = loadVectors("inner-messages").cases.find(c => c.name === name);
+    assert.ok(vector);
+    const raw = vector.json;
+    assert.deepEqual(await inbound.receive(await delivery(transport, 1, raw)), { status: "stored", type: "sync", releasing: false });
+    assert.deepEqual(createInbox(home).read().map(r => r.inner), [JSON.parse(raw)]);
+    const line = fs.readFileSync(`${home}/inbox/2026-11-05.jsonl`, "utf8").trimEnd();
+    assert.equal(line.slice(line.indexOf(',"inner":') + ',"inner":'.length, -1), raw);
+  });
+}
 
 test("authenticated legacy diagnostics are stored while stripped current markers stay poison", async t => {
   const { home, transport } = setup(t), inbound = createThinInbound({ home, transport, self, now });
@@ -71,6 +84,27 @@ test('held release retries contention after trimming without losing raw records'
   finally { clearTimeout(timer); transaction?.release(); }
   assert.ok(transaction); assert.ok(acquisitions > 2);
   assert.deepEqual(createInbox(home).read(), before);
+});
+
+test("held release retries transient state replacements during reads", async t => {
+  const { home, transport, pairing } = setup(t, { confirmed: false });
+  await createThinInbound({ home, transport, self, now }).receive(await delivery(transport, 1));
+  pairing.confirmFingerprint("m_dev_1", readHomeState(home).members.m_dev_1.fingerprint);
+  let replacements = 0;
+  const io = new Proxy(fs, { get(target, key) {
+    if (key !== "openSync") return target[key];
+    return (path, ...args) => {
+      if (path === `${home}/state.json` && replacements < 3) {
+        replacements++;
+        atomicPrivateWrite(path, target.readFileSync(path));
+      }
+      return target.openSync(path, ...args);
+    };
+  } });
+  await createThinInbound({ home, transport, self, now, fs: io }).releaseHeld();
+  assert.equal(replacements, 3);
+  assert.deepEqual(createInbox(home).read().map(r => r.seq), [1]);
+  assert.equal(createCipherFiles(home, "held").list().length, 0);
 });
 
 for (const method of ['fingerprint', 'proof']) test(`${method} confirmation automatically queues agent_info once per version across restarts`, async t => {
@@ -181,6 +215,56 @@ test("confirmation recovery preserves concurrent outbox receipt progress", async
   assert.equal(queue.list().length, 2); assert.deepEqual(queue.list().map(e => e.type).sort(), ["agent_info", "confirmed"]);
   const recovered = queue.list().find(e => e.msg_id === queued.msg_id);
   assert.equal(recovered.body, queued.body); assert.equal(recovered.state, "sent"); assert.equal(recovered.seq, 10);
+});
+
+test("confirmation adopts an outbox file written by another process while sealing", async t => {
+  const { home, transport, pairing } = setup(t, { confirmed: false });
+  pairing.confirmFingerprint("m_dev_1", readHomeState(home).members.m_dev_1.fingerprint);
+  const pending = readHomeState(home).members.m_dev_1.confirmation, queue = createCipherFiles(home, "outbox");
+  const sealMessage = transport.sealMessage;
+  const envelope = await sealMessage({ hubId: identity.hub_id, from: self.memberId, senderPrivateKey: self.privateKey,
+    recipients: [{ memberId: keys.dev1.member_id, publicKey: b64uDecode(keys.dev1.pk) }],
+    innerText: '{"v":1,"type":"confirmed"}', msgId: pending.msg_id, createdAt: pending.created_at });
+  const prior = { msg_id: envelope.msg_id, kind: envelope.kind, type: "confirmed", to: [keys.dev1.member_id], lane: transport.lane(envelope),
+    body: transport.serialize(envelope), state: "sent", attempts: 1, next_attempt_at: 0, seq: 10 };
+  let priorBytes, candidateBody;
+  transport.sealMessage = async options => {
+    const candidate = await sealMessage(options);
+    if (options.msgId === pending.msg_id) {
+      candidateBody = transport.serialize(candidate);
+      queue.put(prior);
+      priorBytes = fs.readFileSync(`${home}/outbox/${pending.msg_id}.json`);
+    }
+    return candidate;
+  };
+  await createThinInbound({ home, transport, self, now }).releaseHeld();
+  assert.ok(candidateBody && candidateBody !== prior.body);
+  assert.deepEqual(queue.list().filter(e => e.msg_id === pending.msg_id), [prior]);
+  assert.ok(fs.readFileSync(`${home}/outbox/${pending.msg_id}.json`).equals(priorBytes));
+  assert.equal(Object.hasOwn(readHomeState(home).members.m_dev_1, "confirmation"), false);
+});
+
+test("concurrent held releases queue one confirmation after both callers seal", async t => {
+  const { home, transport, pairing } = setup(t, { confirmed: false });
+  pairing.confirmFingerprint("m_dev_1", readHomeState(home).members.m_dev_1.fingerprint);
+  const pending = readHomeState(home).members.m_dev_1.confirmation, sealMessage = transport.sealMessage;
+  let sealed = 0, release;
+  const barrier = new Promise(resolve => { release = resolve; });
+  transport.sealMessage = async options => {
+    const envelope = await sealMessage(options);
+    if (options.msgId === pending.msg_id) {
+      if (++sealed === 2) release();
+      await barrier;
+    }
+    return envelope;
+  };
+  const results = await Promise.allSettled(Array.from({ length: 2 }, () => createThinInbound({ home, transport, self, now }).releaseHeld()));
+  assert.equal(sealed, 2);
+  assert.deepEqual(results.map(r => r.status === "rejected" ? r.reason.code : r.status), ["fulfilled", "fulfilled"]);
+  const entries = createCipherFiles(home, "outbox").list().filter(e => e.msg_id === pending.msg_id);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].type, "confirmed");
+  assert.equal(Object.hasOwn(readHomeState(home).members.m_dev_1, "confirmation"), false);
 });
 
 test("unknown controls and every command version survive replay/restart in either order", async t => {

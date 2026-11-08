@@ -6,6 +6,8 @@ Syncky Health is an iPhone app. It can send Apple Health data straight from the 
 
 The quickest start is the example server in [`examples/minimal-server`](../examples/minimal-server/README.md). It is one file with no dependencies, it implements every section of this guide, and its tests replay the same vectors.
 
+For native storage and OAuth-protected remote MCP on Worker or Docker, follow the [own-server recipe](../examples/own-server/README.md).
+
 ## 1. What you are building
 
 The app calls your server a **server** (in the data, a destination with an id like `wh_…`). Your server:
@@ -26,7 +28,7 @@ In the app, open Settings › Connections › **+**. Then choose one of these:
 - **Server or automation**, or one of the templates under "Start from a template" (Home Assistant, InfluxDB, n8n, Node-RED, Health Auto Export server). A template fills in the format and the URL path. You add the address and the token.
 - **Paste a setup link**. Your server prints a webhook setup link (default `syncky://webhook?…`) or a QR code, and the app fills in everything for review and confirmation (section 9).
 
-Then tap **Check connection**. The app sends one test request with every header, auth and signature included, and no health data. There is no handshake or challenge step: this test is an ordinary request. Setting up and checking is free. Sending data needs a plan: **Manual** sends when you tap **Sync now**, **Sync** also sends automatically and is needed for writes to Health.
+Then tap **Check connection**. The app sends one test request with every header, auth and signature included, and no health data. There is no handshake or challenge step: this test is an ordinary request. Setting up and checking is free. **Free during launch; plans are coming later.** See [launch access and pricing](https://syncky.app/pricing).
 
 The server screen also has these settings:
 
@@ -120,7 +122,7 @@ Older receivers may ignore this additive field and continue handling raw samples
 
 ### Full-depth periods and local files
 
-The direct-server and file pickers default to two calendar years and allow an earlier From without an app history-depth floor. They require an entitled Manual, Sync or Sync + Relay plan, including entitled free launch; file periods inside the current sync history window remain free. Agent replay and incremental sync keep their history-window limits. Full history never goes through relay or agents.
+The direct-server and file pickers default to two calendar years and allow an earlier From without an app history-depth floor. **Free during launch; plans are coming later.** See [launch access and pricing](https://syncky.app/pricing). Agent replay and incremental sync keep their history-window limits. Full history never goes through relay or agents.
 
 Mixed native history keeps the last 90 calendar days raw, relative to confirmation time in the captured time zone. Older complete quantity days use summaries; partial boundary days and quantities crossing the summary-span boundary stay whole and raw without overlapping summary coverage. Workouts, sleep, other categories, characteristics, raw activity summaries and series retain their raw forms across the whole period. HAE, CSV and Influx always collect quantities raw. An empty readable day advances progress without inventing zero summaries; an empty query does not prove read permission.
 

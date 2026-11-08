@@ -141,6 +141,24 @@ describe("request handling", () => {
 });
 
 describe("write-back", () => {
+  it("accepts rejected results with optional details and completes their queued commands", async (t) => {
+    const { dir, server } = await signedServer(t);
+    const results = [
+      { command_id: "c_1", version: 1, status: "rejected", reason: "invalid", detail: "end_in_future" },
+      { command_id: "c_2", version: 1, status: "rejected", reason: "type_not_in_scope", detail: "declined_by_user" },
+      { command_id: "c_3", version: 1, status: "rejected", reason: "invalid", detail: "future_detail" },
+      { command_id: "c_4", version: 1, status: "rejected", reason: "invalid" },
+    ];
+    queue(dir, results.map((_, i) => water(i + 1)));
+    const request = resultsRequest({ token: TOKEN, hmac: HMAC, t: NOW, results });
+    assert.equal((await send(server.port, request)).status, 200);
+    assert.deepEqual(lines(join(dir, "results.jsonl")).map(JSON.parse), results.map(({ detail, ...r }) => ({ at: new Date(NOW * 1000).toISOString(), ...r })));
+    assert.equal((await data(server.port)).body, "");
+    const recorded = lines(join(dir, "results.jsonl"));
+    assert.equal((await send(server.port, request)).status, 200);
+    assert.deepEqual(lines(join(dir, "results.jsonl")), recorded);
+  });
+
   it("a queued write comes back as signed commands that verify independently", async (t) => {
     const { dir, server } = await signedServer(t);
     queue(dir, [water(1)]);

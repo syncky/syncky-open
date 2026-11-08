@@ -169,7 +169,6 @@
         },
         "read": {
           "type": "array",
-          "uniqueItems": true,
           "items": {
             "type": "string",
             "pattern": "^[a-z][a-z0-9_]{1,63}$"
@@ -177,7 +176,6 @@
         },
         "write": {
           "type": "array",
-          "uniqueItems": true,
           "items": {
             "type": "string",
             "pattern": "^[a-z][a-z0-9_]{1,63}$"
@@ -243,7 +241,8 @@
             "resolved",
             "expired",
             "pending_limit",
-            "rate_limited"
+            "rate_limited",
+            "invalid"
           ]
         },
         "read": {
@@ -300,6 +299,19 @@
         },
         "next_available_at": {
           "$ref": "#/$defs/timestamp"
+        },
+        "detail": {
+          "type": "string",
+          "enum": [
+            "unknown_type",
+            "not_writable",
+            "ttl",
+            "empty",
+            "reason_too_long",
+            "malformed",
+            "created_in_future",
+            "too_large"
+          ]
         }
       },
       "oneOf": [
@@ -355,7 +367,10 @@
           "properties": {
             "outcome": {
               "type": "string",
-              "const": "expired"
+              "enum": [
+                "expired",
+                "invalid"
+              ]
             },
             "read": {
               "type": "array",
@@ -392,6 +407,25 @@
           "required": [
             "next_available_at"
           ]
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "required": [
+              "detail"
+            ],
+            "properties": { "detail": true }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "outcome": {
+                "const": "invalid"
+              }
+            }
+          }
         }
       ]
     },

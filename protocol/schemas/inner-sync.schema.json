@@ -345,11 +345,12 @@
         "command_id": { "$ref": "#/$defs/command_id" },
         "version": { "$ref": "#/$defs/version" },
         "status": { "type": "string", "enum": ["applied", "rejected", "deleted_by_user"] },
-        "reason": { "type": "string", "enum": ["type_not_allowed", "type_not_in_scope", "value_out_of_range", "healthkit_denied", "invalid"] }
+        "reason": { "type": "string", "enum": ["type_not_allowed", "type_not_in_scope", "value_out_of_range", "healthkit_denied", "invalid"] },
+        "detail": { "type": "string", "pattern": "^[a-z_]{1,32}$" }
       },
       "if": { "type": "object", "properties": { "status": { "type": "string", "const": "rejected" } } },
       "then": { "type": "object", "properties": { "reason": { "type": "string" } }, "required": ["reason"] },
-      "else": { "type": "object", "not": { "type": "object", "properties": { "reason": true }, "required": ["reason"] } }
+      "else": { "type": "object", "properties": { "reason": false, "detail": false } }
     },
     "source": {
       "type": "object",

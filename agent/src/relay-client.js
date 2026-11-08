@@ -125,6 +125,7 @@ export function createRelayClient({
   logger = noopLogger,
   retry = RETRY_POLICY,
   pollIntervalS = CONFIG_DEFAULTS.poll_interval_s,
+  timers = globalThis,
 } = {}) {
   if (typeof baseUrl !== "string" || !/^https?:\/\//.test(baseUrl)) throw new TypeError("baseUrl must be an http(s) URL");
   const base = baseUrl.replace(/\/+$/, "");
@@ -183,7 +184,7 @@ export function createRelayClient({
 
   async function attemptOnce(method, url, init, secrets, maxBytes, signal, requestTimeoutMs) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
+    const timer = timers.setTimeout(() => controller.abort(), requestTimeoutMs);
     try {
       const res = await fetch(url, { ...init, method, signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal });
       return { res, ...(await readCapped(res, maxBytes)) };
@@ -198,7 +199,7 @@ export function createRelayClient({
         }),
       };
     } finally {
-      clearTimeout(timer);
+      timers.clearTimeout(timer);
     }
   }
 

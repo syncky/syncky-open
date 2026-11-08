@@ -54,8 +54,9 @@ export function createPairingService({ home, relay, publicKey, agentName, urlSch
   return {
     async startPairing({ v1 = false } = {}) {
       if (!isPairUriName(agentName)) throw new LocalStateError('invalid_config', 'agent name cannot fit pairing URI');
-      const result = await relay.createPairing(), hubId = result?.hub_id ?? readHomeState(home, options).identity.hub_id;
-      if (!isHubId(hubId) || hubId !== readHomeState(home, options).identity.hub_id || !isPairingId(result?.pairing_id) || !isPairingToken(result.pairing_token) || !isTimestamp(result.expires_at)) throw new RelayError({ status: 200, code: 'invalid_response', message: 'malformed pairing response' });
+      const result = await relay.createPairing(), state = await retryHomeLock(() => readHomeState(home, options));
+      const hubId = result?.hub_id ?? state.identity.hub_id;
+      if (!isHubId(hubId) || hubId !== state.identity.hub_id || !isPairingId(result?.pairing_id) || !isPairingToken(result.pairing_token) || !isTimestamp(result.expires_at)) throw new RelayError({ status: 200, code: 'invalid_response', message: 'malformed pairing response' });
       const pairSecret = v1 ? undefined : b64uEncode(randomBytes(PAIR_SECRET_BYTES));
       registerSecret(pairSecret); registerSecret(result.pairing_token);
       const uri = buildPairUri({ relayBase: relay.baseUrl, hubId, pairingToken: result.pairing_token, agentPublicKey: publicKey, agentName,

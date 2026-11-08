@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.syncky/syncky-health",
   "title": "Syncky Health",
-  "description": "Apple Health data in your MCP client, end-to-end encrypted from your iPhone, with write-back",
-  "version": "0.1.1",
+  "description": "Apple Health data, end-to-end encrypted between iPhone and local Syncky agent, allowed write-back",
+  "version": "0.1.2",
   "repository": {
     "url": "https://github.com/syncky/syncky-open",
     "source": "github"
@@ -14,14 +14,14 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@syncky/agent",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "runtimeHint": "npx",
       "packageArguments": [{ "type": "positional", "value": "mcp" }],
       "transport": { "type": "stdio" }
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/syncky/syncky-open/releases/download/v0.1.1/syncky-health.mcpb",
+      "identifier": "https://github.com/syncky/syncky-open/releases/download/v0.1.2/syncky-health.mcpb",
       "transport": { "type": "stdio" }
     }
   ]

@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -8,11 +8,32 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { checksumEntries, ensure, prepareRegistry, readJSON, registryAsset, registryDraft, REPOSITORY, sha256 } from "./prepare-registry.mjs";
 
 const ROOT = fileURLToPath(new URL("./", import.meta.url));
+export const MCP_PUBLISHER = Object.freeze({ version: "v1.8.7", asset: "mcp-publisher_linux_amd64.tar.gz",
+  checksums: "registry_1.8.7_checksums.txt", sha256: "00b21004149a4ce66f0782508ae4a2bce67d1bea395a8da0bd8028159fb59579" });
 export const ASSETS = ["syncky-agent.mjs", "syncky-agent.mjs.sha256", "syncky-health.mcpb", "syncky-health.mcpb.sha256", "SHA256SUMS", "server.json",
   ...["claude-code", "codex", "clawhub", "skills"].map((name) => `syncky-agent-${name}.tar.gz`)].sort();
 const INVENTORY = ["LICENSE", "NOTICE", "README.md", "dist/syncky-agent.mjs", "dist/syncky-agent.mjs.sha256", "package.json"].map((name) => `package/${name}`).sort();
 const digest = (path) => sha256(readFileSync(path));
-const execute = (command, args, cwd) => execFileSync(command, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 8 * 1024 * 1024, timeout: 120_000 });
+const execute = (command, args, cwd, stdio = ["ignore", "pipe", "pipe"]) => execFileSync(command, args, { cwd, encoding: "utf8", stdio, maxBuffer: 8 * 1024 * 1024, timeout: 120_000 });
+
+export function installPublisher(root, installDir, env = process.env, publisher = MCP_PUBLISHER) {
+  const output = resolve(installDir);
+  ensure(!existsSync(output), "publisher directory must be fresh");
+  mkdirSync(output, { recursive: true });
+  const base = `https://github.com/modelcontextprotocol/registry/releases/download/${publisher.version}`;
+  for (const file of [publisher.asset, publisher.checksums]) {
+    try {
+      execute("curl", ["--fail", "--silent", "--show-error", "--location", "--max-time", "90", "--output", join(output, file), `${base}/${file}`], root);
+    } catch { throw new Error(`publisher download failed: ${file}`); }
+  }
+  const entries = readFileSync(join(output, publisher.checksums), "utf8").split(/\r?\n/).filter((line) => line.endsWith(`  ${publisher.asset}`));
+  ensure(entries.length === 1 && entries[0] === `${publisher.sha256}  ${publisher.asset}`, "publisher checksum entry mismatch");
+  const archive = join(output, publisher.asset);
+  ensure(digest(archive) === publisher.sha256, "publisher archive hash mismatch");
+  execute("tar", ["-xzf", archive, "-C", output, "mcp-publisher"], root);
+  chmodSync(join(output, "mcp-publisher"), 0o755);
+  if (env.GITHUB_PATH) appendFileSync(env.GITHUB_PATH, `${output}\n`);
+}
 
 export function validateManifests(root, env) {
   ensure(env.GITHUB_REPOSITORY === REPOSITORY, "release repository mismatch");
@@ -156,11 +177,32 @@ export function publishRelease(root, releaseDir, env = process.env) {
   if (release.draft) execute("gh", ["release", "edit", tag, "--repo", REPOSITORY, "--draft=false"], root);
 }
 
+export function publishRegistry(root, releaseDir, env = process.env) {
+  const output = resolve(releaseDir);
+  verifyRelease(root, output, env);
+  const file = join(output, "server.json");
+  const { name, version } = readJSON(file);
+  const url = `https://registry.modelcontextprotocol.io/v0/servers/${encodeURIComponent(name)}/versions/${encodeURIComponent(version)}`;
+  let status;
+  try {
+    status = execute("curl", ["--silent", "--show-error", "--output", "/dev/null", "--write-out", "%{http_code}", "--max-time", "30", url], root).trim();
+  } catch { throw new Error("MCP Registry lookup failed"); }
+  if (status === "200") {
+    process.stdout.write(`MCP Registry ${name}@${version} already exists; skipping publish\n`);
+    return;
+  }
+  ensure(status === "404", `MCP Registry lookup failed (HTTP ${status})`);
+  for (const args of [["login", "github-oidc"], ["publish", file]]) {
+    try { execute("mcp-publisher", args, root, args[0] === "publish" ? "inherit" : undefined); }
+    catch { throw new Error(`MCP Registry ${args[0]} failed`); }
+  }
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
     const [command, output] = process.argv.slice(2);
-    ensure(process.argv.length === 4 && ["prepare", "verify", "publish"].includes(command), "usage: node release.mjs <prepare|verify|publish> <release-dir>");
-    ({ prepare: prepareRelease, verify: verifyRelease, publish: publishRelease })[command](ROOT, resolve(output));
+    ensure(process.argv.length === 4 && ["prepare", "verify", "publish", "install-publisher", "registry"].includes(command), "usage: node release.mjs <prepare|verify|publish|install-publisher|registry> <output-dir>");
+    ({ prepare: prepareRelease, verify: verifyRelease, publish: publishRelease, "install-publisher": installPublisher, registry: publishRegistry })[command](ROOT, resolve(output));
   } catch (error) {
     process.stderr.write(`release: ${error.status === undefined ? error.message : "local command failed"}\n`);
     process.exitCode = 1;

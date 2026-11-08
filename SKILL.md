@@ -1,6 +1,6 @@
 ---
 name: syncky
-description: Read private Apple Health JSON and send explicitly approved writes or requests through Syncky.
+description: Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone.
 license: Apache-2.0
 ---
 
@@ -67,6 +67,14 @@ When the phone says the relay was not told, run `revoke <member_id>` only with t
 
 **When:** Only after the owner explicitly asks for the exact value/time, or approves a standing rule. Confirm inferred entries first. The caller owns stable `command_id` and `version`, timestamps, units and batching. No local policy, command ledger, unit conversion or automatic version generation exists.
 
+`end` must not be later than now + 1 h; the phone rejects a later `end` with `invalid`. For a running daily total, set `start` to local day start and `end` to now or the last diary entry time. Never use the end of the day. When a total changes, resend the same `command_id` with `version` + 1.
+
+Put all nutrients of one day in one `send` with several `commands`. Send several entries in ONE `send` with a `commands` array; the transport does not combine separate calls. The 256 KiB (262144 bytes) data-envelope cap counts the complete serialized UTF-8 JSON, including base64 ciphertext and recipient metadata. The inner `commands` JSON can be up to roughly 191 KiB for one recipient, less with more recipients. The relay allows a burst of up to 60 data envelopes per agent, then about one a minute (about 60 data envelopes per hour per agent sustained), within the per-token limit of 60 requests a minute shared with polling, ACKs and heartbeats. A 429 `rate_limited` from either limit is retried automatically by the outbox after `Retry-After` when the receiver runs, so the caller does not resend. `status --json` shows `transport.send_lanes` (lane id to next allowed Unix time in milliseconds, including any legacy data-lane deadline) and pending `sends` with `code`, `next_attempt_at` and `retry_after_until`.
+
+`access_request` is an optional ask-ahead, not a required step before writes. For a catalog-writable type, a phone ack of `type_not_in_scope`, `type_not_allowed` or `healthkit_denied` means: tell the owner to allow that type on the phone (including Health Settings for iOS denial). With explicit owner approval, send an `access_request` for exactly those write types if the phone has not asked yet. Resend only after the next ordinary sync shows the effective write scope. A refused write creates no access request or automatic system consent prompt; its Home card may offer an owner-tapped Allow action. Unknown or read-only types cannot be enabled; correct the type instead.
+
+On an `invalid` ack, check the command format first (`--validate`): fix timestamps, units or JSON. Schema validation does not cover phone policy; check interval bounds and units, then report an unexplained rejection without looping. Never ask for access on `invalid`. After a phone rejection, keep the same `command_id` and increment `version` before retrying; the phone caches completed rejections.
+
 **JSON:** This executable example is illustrative; replace its value/time with the owner's approved entry before sending. Do not execute a historical example as a new write.
 
 ```sh
@@ -77,6 +85,8 @@ syncky_run inbox --type sync --limit 100
 ```
 
 **Phone reply:** Correlate every `sync.acks` entry by command_id **and version**, preserving applied/rejected/deleted_by_user outcomes and reasons. A change/delete explicitly increments version; resending the identical command uses its same id/version. Never infer application from relay ACK or a `sent` receipt. A timed-out send may already be queued; consult status/receipts before sending again. The phone enforces writable types, ranges, scope, permissions and plan limits.
+
+For optional rejection `detail` meanings and fixes, see the [REFERENCE table](https://github.com/syncky/syncky-open/blob/main/agent/docs/REFERENCE.md#rejected-write-details).
 
 **Tell the owner:** Distinguish queued, relay delivery and actual phone outcome. Explain rejection; do not bypass limits or repeat writes to make an error disappear. Results for superseded versions remain separate raw messages.
 
@@ -100,9 +110,9 @@ syncky_run inbox --type diagnostics
 
 ## Access request
 
-**When:** Explain which additional Health access is needed and obtain explicit approval for the exact read/write arrays and optional reason. Never silently expand them. Permission to request access is separate from permission to write Health values. The phone presents each item for consent; the authenticated permissions marker is part of transport validation.
+**When:** Optional ask-ahead for additional Health access. Explain which additional Health access is needed and obtain explicit approval for the exact read/write arrays and optional reason. Never silently expand them. Permission to request access is separate from permission to write Health values. The phone presents each item for consent; the authenticated permissions marker is part of transport validation.
 
-**JSON:** Generate a fresh request_ref and timestamps as above. Empty arrays are explicit; at least one side must request a type. Use catalog names and writable write types. Reason is literal plain text, at most 200 Unicode code points.
+**JSON:** Generate a fresh request_ref and timestamps as above. Empty arrays are explicit; at least one side must request a type. Use sorted, unique catalog names and writable write types. Reason is literal plain text, at most 200 Unicode code points.
 
 ```sh
 syncky_run send --type access_request --validate --json - <<'JSON'
@@ -113,7 +123,7 @@ syncky_run inbox --type sync
 syncky_run status --json
 ```
 
-**Phone reply:** Correlate access_reply.request_ref, per-item allowed/declined/needs_health_settings outcomes and the next ordinary sync's effective scope. Existing read `all` stays all; if effective write allowance was empty, the first approval grants only approved write types. The phone enforces one pending request per agent, one admission per rolling day, 24-hour expiry and a seven-day wait for declined types. A phone running an app version older than this feature cannot show the request; without a phone reply, explain expiry from the request timestamps. Never invent a local reply.
+**Phone reply:** Correlate access_reply.request_ref, per-item allowed/declined/needs_health_settings outcomes and the next ordinary sync's effective scope. Existing read `all` stays all; if effective write allowance was empty, the first approval grants only approved write types. The phone enforces one pending request per agent, one admission per rolling day, 24-hour expiry and a seven-day wait for declined types. No phone app version or access-request capability is exposed in sync or status. If no matching `access_reply` arrives after an `access_request`, have the owner open Syncky and sync; if it remains missing, check whether consent is still pending on the phone and whether the request expired, then suggest the owner check for an app update without looping. Missing replies do not prove an old app: the phone may be offline or consent pending. A phone running an app version older than this feature cannot show the request; explain expiry from the timestamps rather than inventing a reply. `access_request` lists are sorted and deduplicated before sealing. `--validate` / `syncky_send` validation checks known types and writable writes; use exactly 24 h (`expires_at - created_at == 24h`) for compatibility with phones 0.1.1/0.1.2. An `access_reply` with outcome `invalid` carries an optional value-free `detail` (`unknown_type`, `not_writable`, `ttl`, `empty`, `reason_too_long`, `malformed`, `created_in_future`, `too_large`); read it in the raw inbox, correct the request and use a new `request_ref`. It grants no access.
 
 **Tell the owner:** State actual item outcomes, any Health Settings action and whether next-sync scope confirms the grant. Read authorization cannot be inferred from an empty result. Do not automatically retry declined requests.
 

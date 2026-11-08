@@ -44,7 +44,7 @@ async function main() {
 }
 
 export async function runFixture() {
-  try { await main(); } catch { process.stderr.write('receiver fixture failed\n'); process.exitCode = 1; }
+  try { await main(); } catch (error) { process.stderr.write(JSON.stringify({ event: 'receiver_fixture_failed', code: error.code ?? error.name }) + '\n'); process.exitCode = 1; }
 }
 
 if (process.argv[1] && existsSync(process.argv[1]) && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {

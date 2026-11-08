@@ -11,7 +11,7 @@ import { saveSecrets } from '../../src/secrets.js';
 import { saveConfig } from '../../src/config.js';
 import { acquireHomeLock } from '../../src/protected-files.js';
 import { createRuntime } from '../../src/runtime.js';
-import { setup, keys, identity, now, delivery } from '../support/thin-transport.js';
+import { setup, keys, identity, now, delivery, messageId } from '../support/thin-transport.js';
 
 function homeFixture(t) {
   const fixture = setup(t);
@@ -81,6 +81,51 @@ test('CLI and MCP status expose the durable ACK retry deadline offline', async t
   assert.equal(mcp.code, 0, mcp.stderr);
   assert.equal(mcp.json.result.structuredContent.transport.ack_retry_at, retryAt);
   assert.deepEqual(fs.readFileSync(join(home, 'state.json')), before);
+});
+
+for (const legacyLater of [false, true]) test(`CLI and MCP expose pending send deadlines and effective lanes (legacy later: ${legacyLater}) offline`, async t => {
+  const { home } = homeFixture(t), retryAt = now().getTime() + 120000;
+  const legacyAt = retryAt + (legacyLater ? 1000 : -1000);
+  updateHomeState(home, s => {
+    s.transport.send_lanes = { data: retryAt, control: retryAt + 2000 };
+    s.transport.commands_retry_at = String(legacyAt);
+  });
+  const queue = createCipherFiles(home, 'outbox');
+  queue.put({ msg_id: messageId(1), kind: 'data', type: 'commands', state: 'pending', code: 'rate_limited',
+    next_attempt_at: retryAt, retry_after_until: retryAt, body: 'PRIVATE_CIPHERTEXT_CANARY' });
+  const before = fs.readFileSync(join(home, 'state.json'));
+  const status = await cli(home, ['status','--json']);
+  const request = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'syncky_status', arguments: {} } };
+  const mcp = await cli(home, ['mcp'], JSON.stringify(request) + '\n');
+  for (const [output, result] of [[status, status.json], [mcp, mcp.json.result.structuredContent]]) {
+    assert.equal(output.code, 0, output.stderr);
+    assert.deepEqual(result.transport.send_lanes, { data: Math.max(retryAt, legacyAt), control: retryAt + 2000 });
+    assert.deepEqual(result.sends, [{ msg_id: messageId(1), kind: 'data', type: 'commands', state: 'pending', code: 'rate_limited',
+      next_attempt_at: retryAt, retry_after_until: retryAt }]);
+    assert.doesNotMatch(output.stdout + output.stderr, /PRIVATE_CIPHERTEXT_CANARY/);
+  }
+  assert.deepEqual(fs.readFileSync(join(home, 'state.json')), before);
+});
+
+test('status keeps pending sends visible beyond the last 100 entries', async t => {
+  const { home } = homeFixture(t), queue = createCipherFiles(home, 'outbox');
+  for (let i = 1; i <= 101; i++) queue.put({ msg_id: messageId(i), kind: 'data', body: 'PRIVATE_CIPHERTEXT_CANARY',
+    state: 'pending', code: 'rate_limited', next_attempt_at: now().getTime() + 60000, retry_after_until: now().getTime() + 60000 });
+  const status = await cli(home, ['status', '--json']);
+  assert.equal(status.code, 0, status.stderr);
+  assert.equal(status.json.outbox.pending, 101);
+  assert.equal(status.json.sends.length, 101);
+  assert.equal(status.json.sends[0].msg_id, messageId(1));
+  assert.equal(status.json.sends[0].code, 'rate_limited');
+  assert.doesNotMatch(status.stdout, /PRIVATE_CIPHERTEXT_CANARY/);
+});
+
+test('status includes a legacy-only data lane deadline', async t => {
+  const { home } = homeFixture(t), retryAt = now().getTime() + 120000;
+  updateHomeState(home, s => { s.transport.commands_retry_at = String(retryAt); });
+  const status = await cli(home, ['status','--json']);
+  assert.equal(status.code, 0, status.stderr);
+  assert.deepEqual(status.json.transport.send_lanes, { data: retryAt });
 });
 
 for (const surface of ['cli', 'mcp']) for (const command of ['status', 'inbox']) {
