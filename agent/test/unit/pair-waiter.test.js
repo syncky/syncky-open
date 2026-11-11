@@ -11,9 +11,168 @@ import { createRuntime } from '../../src/runtime.js';
 import { createThinPoller } from '../../src/thin-poller.js';
 import { readHomeState, updateHomeState } from '../../src/home-state.js';
 import { acquireHomeLock } from '../../src/protected-files.js';
+import { maintainResponseWaits } from '../../src/response-waits.js';
+import { keys } from '../support/thin-home.js';
 import { createFakePhone } from '../support/fake-phone.js';
 import { startRelayDouble } from '../support/relay-double.js';
 import { runCli, tempHome, waitFor } from '../support/helpers.js';
+import { b64uDecode } from '../../src/encoding.js';
+
+test('waiter startup retries state renames before its first current pairing snapshot', async t => {
+  const f = await fixture(t), started = await f.pairing.startPairing();
+  let armed = false, writing = false, writes = 0;
+  const openSync = fs.openSync;
+  t.mock.method(fs, 'openSync', (...args) => {
+    const fd = openSync(...args);
+    if (armed && !writing && writes < 3 && args[0] === join(f.home, 'state.json')) {
+      writing = true;
+      try { updateHomeState(f.home, s => { s.transport.heartbeat_day = `receiver-${++writes}`; }); }
+      finally { writing = false; }
+    }
+    return fd;
+  });
+  const result = await runCli(['--home', f.home, 'pair-waiter', started.pairing_id], {
+    now: f.now, createPoller: options => { armed = true; return createThinPoller(options); },
+    sleep: async () => { updateHomeState(f.home, s => { s.pairings[started.pairing_id].status = 'expired'; }); },
+  });
+  assert.equal(result.code, 0, result.stderr.trim());
+  assert.match(result.stderr, /pair_waiter_started/); assert.match(result.stderr, /pair_waiter_finished/);
+  assert.equal(writes, 3);
+});
+
+for (const stage of ['access maintenance', 'join', 'expiry']) test(`waiter startup retries a live state lock during ${stage}`, async t => {
+  const f = await fixture(t), started = await f.pairing.startPairing({ read: ['steps'] });
+  updateHomeState(f.home, s => {
+    const row = s.pairings[started.pairing_id];
+    if (stage === 'join') {
+      s.members[keys.dev1.member_id] = { member_id: keys.dev1.member_id, public_key: keys.dev1.pk,
+        role: 'device', state: 'joined', pairing_id: started.pairing_id };
+      Object.assign(row, { status: 'completed', member_id: keys.dev1.member_id, public_key: keys.dev1.pk });
+      Object.assign(row.access, { joined_at: f.now().toISOString(), deadline_at: new Date(f.now().getTime() + 900000).toISOString() });
+    } else {
+      row.status = 'expired';
+      if (stage === 'expiry') row.access.state = 'cancelled';
+    }
+    maintainResponseWaits(s, f.now().getTime());
+  });
+  let lock, timer, receiver, stderr = '', released = false;
+  const result = await runCli(['--home', f.home, 'pair-waiter', started.pairing_id], {
+    now: f.now, createPoller: options => {
+      lock = acquireHomeLock(f.home, 'state');
+      timer = setTimeout(() => { lock.release(); released = true; }, 30);
+      return createThinPoller(options);
+    },
+    stderr: { write(line) {
+      stderr += line;
+      if (JSON.parse(line).event === 'pair_waiter_started') receiver = acquireHomeLock(f.home, 'receiver');
+    } },
+    sleep: async ms => f.advance(ms),
+  }).finally(() => { clearTimeout(timer); lock?.release(); receiver?.release(); });
+  assert.equal(result.code, 0, stderr.trim()); assert.equal(released, true);
+  assert.equal(readPairingFile(f.home), null);
+  const state = readHomeState(f.home), row = state.pairings[started.pairing_id];
+  if (stage === 'join') {
+    assert.equal(row.status, 'completed'); assert.equal(row.access.state, 'awaiting');
+    assert.ok(state.members[keys.dev1.member_id].pair_proof);
+  } else { assert.equal(row.status, 'expired'); assert.equal(row.access.state, 'cancelled'); }
+});
+
+for (const command of ['pair', 'wait']) test(`scoped foreground ${command} returns confirmed with an awaiting notice at its timeout`, { timeout: 10000 }, async t => {
+  const f = await fixture(t), phone = createFakePhone({ relayUrl: f.relay.url });
+  if (command === 'wait') await f.pairing.startPairing({ read: ['steps'] });
+  const at = f.now().getTime();
+  let picked = false, sleeps = 0;
+  const result = await runCli(['--home', f.home, command, '--timeout', '10',
+    ...(command === 'pair' ? ['--read', 'steps', '--wait', '--json'] : [])], {
+    now: f.now, sleep: async ms => {
+      assert.ok(++sleeps <= 6, 'foreground wait must be bounded');
+      f.advance(ms);
+      if (!picked) {
+        picked = true;
+        await phone.pair(readPairingFile(f.home).uri); await phone.sendPairProof();
+      }
+    },
+  });
+  assert.equal(result.code, 0);
+  const completed = JSON.parse(result.stdout.trim().split('\n').at(-1));
+  assert.equal(completed.status, 'completed'); assert.equal(completed.member.state, 'confirmed');
+  assert.equal(completed.member.pairing_access.state, 'awaiting');
+  assert.match(completed.member.pairing_access.notice, /Pairing confirmed.*send --type access_request/);
+  assert.ok(Date.parse(completed.member.pairing_access.deadline_at) > f.now().getTime());
+  assert.equal(f.now().getTime(), at + 10000);
+  assert.doesNotMatch(JSON.stringify(completed) + result.stderr, /"request_ref":|syncky:\/\/|https:\/\//);
+  await phone.fetchCommands(); assert.ok(!phone.controlReceived.some(r => r.type === 'access_request'));
+});
+
+test('scoped waiter continues after proof until the held reply resolves without requesting access', async t => {
+  const f = await fixture(t), started = await f.pairing.startPairing({ read: ['steps'], write: ['body_mass'] });
+  const scope = readPairingFile(f.home).requested_scope, phone = createFakePhone({ relayUrl: f.relay.url });
+  await phone.pair(started.uri); await phone.sendPairProof();
+  let replied = false;
+  const result = await runCli(['--home', f.home, 'pair-waiter', started.pairing_id], {
+    now: f.now, sleep: async ms => {
+      f.advance(ms);
+      if (!replied && readHomeState(f.home).members[phone.memberId]?.state === 'confirmed') {
+        replied = true;
+        await phone.postEnvelope(await f.runtime.transport.sealMessage({ hubId: phone.hubId, from: phone.memberId,
+          senderPrivateKey: phone.keys.privateKey, recipients: [{ memberId: phone.agentMemberId, publicKey: b64uDecode(phone.agentPublicKey) }],
+          innerText: JSON.stringify({ v: 1, type: 'access_reply', request_ref: scope.request_ref, decided_at: f.now().toISOString(),
+            outcome: 'resolved', read: [{ type: 'steps', outcome: 'declined' }], write: [{ type: 'body_mass', outcome: 'needs_health_settings' }] }) }));
+      }
+    },
+  });
+  assert.equal(result.code, 0); assert.equal(replied, true);
+  assert.equal(readHomeState(f.home).pairings[started.pairing_id].access.state, 'resolved');
+  await phone.fetchCommands(); assert.ok(!phone.controlReceived.some(r => r.type === 'access_request'));
+  assert.doesNotMatch(result.stdout + result.stderr, new RegExp(scope.request_ref));
+});
+
+test('scoped waiter reconciles a timely join first observed after link expiry and restart', async t => {
+  const f = await fixture(t), started = await f.pairing.startPairing({ read: ['steps'] });
+  const scope = readPairingFile(f.home).requested_scope, phone = createFakePhone({ relayUrl: f.relay.url });
+  await phone.pair(started.uri);
+  await phone.postEnvelope(await f.runtime.transport.sealMessage({ hubId: phone.hubId, from: phone.memberId,
+    senderPrivateKey: phone.keys.privateKey, recipients: [{ memberId: phone.agentMemberId, publicKey: b64uDecode(phone.agentPublicKey) }],
+    innerText: JSON.stringify({ v: 1, type: 'access_reply', request_ref: scope.request_ref, decided_at: f.now().toISOString(),
+      outcome: 'resolved', read: [{ type: 'steps', outcome: 'declined' }], write: [] }) }));
+  await phone.sendPairProof();
+  f.advance(Date.parse(started.expires_at) + 5000 - f.now().getTime());
+  const result = await runCli(['--home', f.home, 'pair-waiter', started.pairing_id], { now: f.now, sleep: async ms => f.advance(ms) });
+  assert.equal(result.code, 0); assert.match(result.stderr, /pair_waiter_finished/);
+  const row = readHomeState(f.home).pairings[started.pairing_id];
+  assert.equal(row.status, 'completed'); assert.equal(row.access.state, 'resolved');
+  assert.equal(readHomeState(f.home).members[phone.memberId].state, 'confirmed');
+  assert.equal(readPairingFile(f.home), null);
+});
+
+test('old phone leaves a durable no-reply notice at the post-confirmation deadline across waiter restarts', async t => {
+  const f = await fixture(t), started = await f.pairing.startPairing({ read: ['steps'] });
+  const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri); await phone.sendPairProof();
+  await f.pairing.refreshPairing(started.pairing_id); await f.runtime.poller.once(); await f.runtime.outbox.flush();
+  const access = readHomeState(f.home).pairings[started.pairing_id].access;
+  f.advance(Date.parse(started.expires_at) + 61000 - f.now().getTime());
+  const result = await runCli(['--home', f.home, 'pair-waiter', started.pairing_id], { now: f.now, sleep: async ms => f.advance(ms) });
+  assert.equal(result.code, 0); assert.equal(f.now().getTime(), Date.parse(access.deadline_at));
+  const member = f.runtime.status().members.find(m => m.member_id === phone.memberId);
+  assert.equal(member.pairing_access.state, 'no_reply'); assert.equal(member.scope, null);
+  assert.match(member.pairing_access.notice, /older app.*send --type access_request/);
+  await phone.fetchCommands(); assert.deepEqual(phone.controlReceived.map(r => r.type), ['confirmed', 'agent_info']);
+});
+
+test('scoped waiter hands off to a continuous receiver without losing the expected reply', async t => {
+  const f = await fixture(t), started = await f.pairing.startPairing({ read: ['steps'] });
+  const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri); await phone.sendPairProof();
+  let receiver, sleeps = 0;
+  try {
+    const result = await runCli(['--home', f.home, 'pair-waiter', started.pairing_id], { now: f.now, sleep: async ms => {
+      if (++sleeps > 1) throw Error('waiter did not yield');
+      f.advance(ms); receiver = acquireHomeLock(f.home, 'receiver');
+    } });
+    assert.equal(result.code, 0); assert.equal(sleeps, 1);
+    assert.equal(readHomeState(f.home).pairings[started.pairing_id].access.state, 'awaiting');
+    assert.equal(readHomeState(f.home).members[phone.memberId].state, 'confirmed');
+  } finally { receiver?.release(); }
+});
 
 async function fixture(t) {
   const tmp = tempHome(), relay = await startRelayDouble({ invite: 'waiter-fixture' });
@@ -200,8 +359,8 @@ for (const status of [503, 429, 'reset']) test(`waiter retries confirmation deli
         && JSON.parse(options.body).msg_id === f.runtime.outbox.receipts().find(e => e.type === 'confirmed')?.msg_id) {
         posts.push({ at: f.now().getTime(), body: options.body });
         if (posts.length <= 6) {
-          if (status === 'reset') throw new TypeError('fixture network failure');
-          return Promise.resolve(Response.json({ error: status === 429 ? 'rate_limited' : 'internal_error' }, { status, headers: { 'Retry-After': '17' } }));
+          // Synthetic replies starve real socket timers while the fake clock advances.
+          f.relay.failNext('postMessage', status, { 'Retry-After': '17' });
         }
       }
       return fetch(url, options);
@@ -211,8 +370,9 @@ for (const status of [503, 429, 'reset']) test(`waiter retries confirmation deli
   const receipt = f.runtime.outbox.receipts().find(e => e.type === 'confirmed');
   assert.equal(receipt.state, 'sent'); assert.equal(receipt.attempts, 7, JSON.stringify({ posts: posts.map(p => p.at), receipt }));
   assert.equal(posts.length, 7); assert.equal(pendingTimers.size, 0);
+  assert.equal(f.relay.state.requests.filter(r => r.route === 'postMessage' && JSON.parse(r.body).msg_id === receipt.msg_id).length, 7);
   for (let n = 1; n <= 6; n++) {
-    assert.ok(posts[n].at - posts[n - 1].at >= (status === 'reset' ? Math.min(60000, 1000 * 2 ** n) : 17000));
+    assert.equal(posts[n].at - posts[n - 1].at, status === 'reset' ? Math.min(60000, 1000 * 2 ** n) : 17000);
     assert.ok(posts[n].body === posts[0].body, 'confirmation ciphertext changed during retry');
   }
   await phone.fetchCommands(); assert.deepEqual(phone.controlReceived.map(r => r.type).sort(), ['agent_info', 'confirmed']);
@@ -299,8 +459,8 @@ for (const command of ['wait', 'pair']) test(`foreground ${command} preserves po
   assert.equal(result.code, 2); assert.equal(readHomeState(f.home).members[phone.memberId].state, 'joined');
 });
 
-test('waiter exits at the relay expiry plus 60 seconds rather than restarting the TTL', async t => {
-  const f = await fixture(t), started = await f.pairing.startPairing(), sleeps = [];
+for (const scoped of [false, true]) test(`${scoped ? 'scoped' : 'legacy'} waiter exits at the relay expiry plus 60 seconds rather than restarting the TTL`, async t => {
+  const f = await fixture(t), started = await f.pairing.startPairing(scoped ? { read: ['steps'] } : {}), sleeps = [];
   f.advance(Date.parse(started.expires_at) + 59000 - f.now().getTime());
   const result = await runCli(['--home', f.home, 'pair-waiter', started.pairing_id], { now: f.now, sleep: async ms => { sleeps.push(ms); f.advance(ms); } });
   assert.equal(result.code, 0); assert.deepEqual(sleeps, [1000]);

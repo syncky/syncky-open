@@ -73,7 +73,6 @@ export async function generateKeys() {
   const raw = async (bytes) => b64u(new Uint8Array(await bytes));
   return { sk: await raw(suite.kem.serializePrivateKey(privateKey)), pk: await raw(suite.kem.serializePublicKey(publicKey)) };
 }
-
 export function uuidv7(now = Date.now()) {
   const b = randomBytes(16);
   b.set(Buffer.from(now.toString(16).padStart(12, "0"), "hex"));
@@ -87,7 +86,6 @@ export function pairCode(c) {
   const d = createHash("sha256").update(`syncky-code-v2|${c}`).digest();
   return [0, 2, 4].map((i) => String(d.readUInt16BE(i) % 1000).padStart(3, "0")).join(" ");
 }
-
 export const pairProof = (c, agentPk, devicePk) => b64u(createHmac("sha256", unb64u(c, 16)).update(`syncky-pair-v2|${agentPk}|${devicePk}`).digest());
 
 // Envelopes: one random CEK encrypts the inner JSON; each recipient gets the CEK through HPKE Auth mode.
@@ -158,15 +156,24 @@ const pctEncode = (v) => encodeURIComponent(v).replace(/[!'()*]/g, (c) => `%${c.
 
 export function parsePairUri(uri, allowInsecure = false) {
   const bad = (param) => ({ ok: false, error: "invalid_uri", param });
-  const prefix = typeof uri === "string" && PAIR_SCHEMES.find((s) => uri.startsWith(`${s}://`));
-  if (!prefix) return bad("scheme");
-  const rest = uri.slice(prefix.length + 3);
-  const query = rest.search(/[?#]/);
-  const end = query < 0 ? rest.length : query;
-  if (rest.slice(0, end) !== "pair") return bad("host");
-  if (rest.includes("#")) return bad("fragment");
+  let payload;
+  if (typeof uri === "string" && uri.startsWith("https://")) {
+    const rest = uri.slice(8), end = rest.search(/[/?#]/), authorityEnd = end < 0 ? rest.length : end;
+    if (!["syncky.app", "dev.syncky.app", "staging.syncky.app"].includes(rest.slice(0, authorityEnd))) return bad("host");
+    const path = rest.slice(authorityEnd).split(/[?#]/, 1)[0], pathEnd = authorityEnd + path.length;
+    if (path !== "/pair") return bad("path");
+    if (rest[pathEnd] === "?") return bad("query");
+    payload = rest.slice(pathEnd + 1);
+  } else {
+    const prefix = typeof uri === "string" && PAIR_SCHEMES.find((s) => uri.startsWith(`${s}://`));
+    if (!prefix) return bad("scheme");
+    const rest = uri.slice(prefix.length + 3), query = rest.search(/[?#]/), end = query < 0 ? rest.length : query;
+    if (rest.slice(0, end) !== "pair") return bad("host");
+    if (rest.includes("#")) return bad("fragment");
+    payload = rest.slice(end + 1);
+  }
   const p = {};
-  for (const segment of rest.slice(end + 1).split("&")) {
+  for (const segment of payload.split("&")) {
     const eq = segment.indexOf("=");
     const key = segment.slice(0, eq);
     if (eq < 0 || !PAIR_KEYS.has(key)) continue;
@@ -186,13 +193,14 @@ export function parsePairUri(uri, allowInsecure = false) {
   return { ok: true, relay_base, hub_id: p.h, pairing_token: p.t, agent_public_key: p.k, agent_name: p.n, ...(p.v === "2" && { pair_secret: p.c }) };
 }
 
-export function buildPairUri({ relay_base, hub_id, pairing_token, agent_public_key, agent_name, pair_secret, url_scheme = "syncky" }) {
-  if (!PAIR_SCHEMES.includes(url_scheme)) throw new TypeError("url scheme must be syncky, syncky-dev or syncky-staging");
+export function buildPairUri({ relay_base, hub_id, pairing_token, agent_public_key, agent_name, pair_secret, url_scheme = null }) {
+  if (url_scheme !== null && !PAIR_SCHEMES.includes(url_scheme)) throw new TypeError("url scheme must be syncky, syncky-dev or syncky-staging");
   const query = { r: relay_base.replace(/^https?:\/\//, ""), h: hub_id, t: pairing_token, k: agent_public_key, n: agent_name, ...(pair_secret && { c: pair_secret }) };
+  const relayHost = query.r.split(":")[0].toLowerCase();
+  const site = relayHost === "relay-dev.syncky.app" ? "dev.syncky.app" : relayHost === "relay-staging.syncky.app" ? "staging.syncky.app" : "syncky.app";
   const params = Object.entries(query).map(([key, value]) => `&${key}=${pctEncode(value)}`).join("");
-  return `${url_scheme}://pair?v=${pair_secret ? 2 : 1}${params}${relay_base.startsWith("http://") ? "&s=http" : ""}`;
+  return `${url_scheme === null ? `https://${site}/pair#` : `${url_scheme}://pair?`}v=${pair_secret ? 2 : 1}${params}${relay_base.startsWith("http://") ? "&s=http" : ""}`;
 }
-
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 export async function relayCall(state, method, path, { body, headers = {} } = {}) {
   const init = { method, body, headers: { Accept: "application/json", ...headers } };
@@ -315,7 +323,7 @@ export async function handleMessage(home, state, msg) {
       if (a.status === "rejected" && typeof a.detail === "string" && /^[a-z_]{1,32}$/.test(a.detail)) c.detail = a.detail;
     }
     const counts = [...new Set(types)].map((t) => `${t}=${types.filter((x) => x === t).length}`).join(" ") || "none";
-    console.log(`${tag}: sync from ${msg.from}: samples ${counts}; deleted ${list(inner.deleted).length}; acks ${list(inner.acks).length}`);
+    console.log(`${tag}: sync from ${msg.from}: samples ${counts}; deleted ${list(inner.deleted).length}; acks ${list(inner.acks).length}${list(inner.summaries).length ? `; summaries ${list(inner.summaries).length}` : ""}`);
   });
 }
 
@@ -331,7 +339,6 @@ async function checkProof(home, state, msg, member, inner) {
   settle(home, msg.from, "confirmed");
   console.log(`seq ${msg.seq}: ${msg.from} picked the right code; confirmed`);
 }
-
 async function pollOnce(home, pairing = false) {
   for (let state = loadState(home); ; state = loadState(home)) {
     const page = await relayCall(state, "GET", `/v1/messages?after=${state.last_seq}&limit=100`);
@@ -356,7 +363,6 @@ async function pollOnce(home, pairing = false) {
     if (page.has_more !== true || page.messages.length === 0) return;
   }
 }
-
 export const pollDue = (state, tick, at = Date.now()) => tick % 6 === 0 || Object.values(state.commands).some((c) => ["pending", "sent"].includes(c.state) && at - parseInt(c.msg_id.replace("-", "").slice(0, 12), 16) < 900_000);
 async function poll(home, once) {
   if (once) return pollOnce(home);
@@ -365,7 +371,6 @@ async function poll(home, once) {
     try { await pollOnce(home); } catch (err) { if (err.code === "invalid_token") throw err; console.error(`poll failed: ${err.message}`); }
   }
 }
-
 // E10: one write command, sealed for the target phone only.
 async function sendWater(home, state, { liters, to }) {
   const target = Object.hasOwn(state.members, to) ? state.members[to] : null;
@@ -384,13 +389,11 @@ async function sendWater(home, state, { liters, to }) {
   updateState(home, ({ commands: { [command_id]: c } }) => c.state === "pending" && Object.assign(c, { state: "sent", seq: res?.seq }));
   console.log(`Sent ${command_id} to ${to}. The phone applies it on its next sync; poll then shows its ack.`);
 }
-
 function status(state) {
   console.log(`relay ${state.relay}\nhub ${state.hub_id}, this agent ${state.member_id} "${clean(state.name)}"\nlast seq ${state.last_seq}`);
   for (const [id, m] of Object.entries(state.members)) console.log(`member ${id} "${clean(m.name)}": ${m.state === "joined" ? "not confirmed" : m.state}`);
   for (const [id, c] of Object.entries(state.commands)) console.log(`command ${id} v${c.version} dietary_water to ${c.to}: ${c.state}${c.reason ? ` (${c.reason}${c.detail ? `/${c.detail}` : ""})` : ""}`);
 }
-
 // CLI
 const COMMANDS = {
   init: { options: { relay: { type: "string" }, invite: { type: "string" }, name: { type: "string" } } },
@@ -399,7 +402,6 @@ const COMMANDS = {
   "send-water": { options: { to: { type: "string" } }, positionals: 1 },
   status: { options: {} },
 };
-
 export function parseCommand(argv) {
   const [name, ...rest] = argv;
   const spec = COMMANDS[name];
@@ -425,7 +427,6 @@ export function parseCommand(argv) {
   }
   return { name, values };
 }
-
 async function main(argv) {
   const { name, values } = parseCommand(argv);
   const home = resolve(process.env.SYNCKY_HOME || ".syncky-minimal");
@@ -438,7 +439,6 @@ async function main(argv) {
   if (name === "send-water") return sendWater(home, state, values);
   status(state);
 }
-
 if (process.argv[1] && realpathSync(process.argv[1]) === import.meta.filename) {
   process.umask(0o077);
   try {

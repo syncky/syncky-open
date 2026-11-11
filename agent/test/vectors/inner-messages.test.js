@@ -6,6 +6,12 @@ import { createValidator } from '../support/validator.js';
 
 const { cases } = loadVectors('inner-messages');
 const validator = await createValidator();
+test('generated access replies cover filtering, amendments, canonical unions and both caps', () => {
+  for (const name of ['filtered', 'filtered_write', 'merged_empty', 'merged_filtered', 'resolved_filtered',
+    'resolved_merged', 'resolved_old_refusal', 'expired_merged', 'daily_ceiling', 'amendment_limit', 'pending_limit']) {
+    assert.ok(cases.some(c => c.name === `system_access_reply_${name}` && c.normalized), name);
+  }
+});
 for (const c of cases) test(`raw inner transport: ${c.name}`, () => {
   let json;
   try { json = JSON.parse(c.json); } catch {}

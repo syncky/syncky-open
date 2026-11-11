@@ -11,8 +11,10 @@ import { isDeepStrictEqual } from "node:util";
 import { gunzipSync } from "node:zlib";
 
 import { loadJson, loadSchemas, loadVectors, VECTOR_FILES } from "../../src/protocol-files.js";
+import { TOOLS } from "../../src/mcp.js";
 import { createValidator } from "../support/validator.js";
 import { startRelayDouble } from "../support/relay-double.js";
+import { sourceArgs } from "../support/source-suite.js";
 
 const AGENT = fileURLToPath(new URL("../../", import.meta.url));
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -92,7 +94,8 @@ describe("release bundle", () => {
     assert.equal(pkg.engines.node, ">=22.15");
     assert.equal(lock.packages[""].engines.node, ">=22.15");
     assert.equal(pkg.license, "Apache-2.0");
-    assert.equal(pkg.scripts.test, SOURCE_TEST);
+    assert.equal(pkg.scripts.test, "node test/support/source-suite.js");
+    assert.equal(["node", ...sourceArgs("on").map(arg => arg.includes("*") ? arg.replace(/=(.*)/, "='$1'").replace(/^(test\/.*)$/, "'$1'") : arg)].join(" "), SOURCE_TEST);
     assert.equal(pkg.scripts.build, "node build.mjs");
     assert.equal(pkg.scripts.prepack, "npm run build");
     assert.ok(readFileSync(join(AGENT, ".gitignore"), "utf8").split("\n").includes("dist/"));
@@ -122,8 +125,10 @@ describe("release bundle", () => {
       description: pkg.description,
       author: { name: "Syncky" }, license: "Apache-2.0",
       server: { type: "node", entry_point: "syncky-agent.mjs", mcp_config: { command: "node", args: ["${__dirname}/syncky-agent.mjs", "mcp"] } },
+      tools: TOOLS.map(({ name, description }) => ({ name, description })),
       compatibility: { runtimes: { node: pkg.engines.node } },
     });
+    assert.deepEqual(manifest.tools.map((tool) => tool.name), ["syncky_status", "syncky_inbox", "syncky_send", "syncky_ack", "syncky_skill"]);
     assert.match(manifest.description, /Apple Health/);
     assert.match(manifest.description, /MCP/);
     assert.ok(names.includes(manifest.server.entry_point));

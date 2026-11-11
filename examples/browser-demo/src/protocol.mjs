@@ -140,11 +140,15 @@ export async function openEnvelope(e, { hubId, memberId, sk, registry, kind = "d
 export const PAIR_SCHEMES = ["syncky", "syncky-dev", "syncky-staging"];
 const pctEncode = (v) => encodeURIComponent(v).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
 
-export function buildPairUri({ relay_base, hub_id, pairing_token, agent_public_key, agent_name, pair_secret, url_scheme = "syncky" }) {
-  if (!PAIR_SCHEMES.includes(url_scheme)) throw new TypeError("url scheme must be syncky, syncky-dev or syncky-staging");
+export function buildPairUri({ relay_base, hub_id, pairing_token, agent_public_key, agent_name, pair_secret, requested_scope, url_scheme = null }) {
+  if (url_scheme !== null && !PAIR_SCHEMES.includes(url_scheme)) throw new TypeError("url scheme must be syncky, syncky-dev or syncky-staging");
   const query = { r: relay_base.replace(/^https?:\/\//, ""), h: hub_id, t: pairing_token, k: agent_public_key, n: agent_name, ...(pair_secret && { c: pair_secret }) };
+  if (relay_base.startsWith("http://")) query.s = "http";
+  if (requested_scope !== undefined) Object.assign(query, { request_ref: requested_scope.request_ref, read: JSON.stringify([...new Set(requested_scope.read)].sort()), write: JSON.stringify([...new Set(requested_scope.write)].sort()) });
+  const relayHost = query.r.split(":")[0].toLowerCase();
+  const site = relayHost === "relay-dev.syncky.app" ? "dev.syncky.app" : relayHost === "relay-staging.syncky.app" ? "staging.syncky.app" : "syncky.app";
   const params = Object.entries(query).map(([key, value]) => `&${key}=${pctEncode(value)}`).join("");
-  return `${url_scheme}://pair?v=${pair_secret ? 2 : 1}${params}${relay_base.startsWith("http://") ? "&s=http" : ""}`;
+  return `${url_scheme === null ? `https://${site}/pair#` : `${url_scheme}://pair?`}v=${pair_secret ? 2 : 1}${params}`;
 }
 
 export const MEMBER_ID_RE = /^m_(agent|dev)_[1-9][0-9]{0,5}$/;

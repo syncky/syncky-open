@@ -5,7 +5,7 @@ import { retryHomeLock } from './thin-lock.js';
 export function createHubObserver({ home, relay, now = () => new Date() }) {
   let active = false;
   return async ({ signal, deadline } = {}) => {
-    const before = readHomeState(home).transport, at = now().getTime();
+    const before = (await retryHomeLock(() => readHomeState(home))).transport, at = now().getTime();
     if (active || before.hub_revoked || at < (before.hub_state_retry_at ?? 0) ||
       (!before.hub_state_refresh && at < (before.hub_state_checked_at ?? -Infinity) + 300000)) return;
     active = true;

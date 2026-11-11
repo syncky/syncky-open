@@ -63,7 +63,7 @@ describe("bundle test harness", () => {
     }
     assert.deepEqual(discoverTests(undefined, nested), ["test/unit/a.test.js", "test/unit/nested/b.test.js", "test/vectors/c.test.js"]);
     const pkg = JSON.parse(readFileSync(join(AGENT, "package.json"), "utf8"));
-    assert.throws(() => suiteFiles({ ...pkg, scripts: { ...pkg.scripts, test: pkg.scripts.test.replace("test/vectors/**/*.test.js", "test/vectors/schemas.test.js") } }), /test inventories differ/);
+    assert.throws(() => suiteFiles({ ...pkg, scripts: { ...pkg.scripts, test: "node --test test/vectors/schemas.test.js" } }), /test inventories differ/);
   });
 
   it("maps every module/export and rejects missing, extra or mismatched mappings", async () => {

@@ -3,7 +3,6 @@ import { DemoSession, WRITES } from "./session.mjs";
 import { pairView } from "./view.mjs";
 
 const RELAY = __SYNCKY_RELAY__;
-const SCHEME = __SYNCKY_SCHEME__;
 
 const $ = (id) => document.getElementById(id);
 const text = (id, value) => {
@@ -94,7 +93,7 @@ function main() {
     show("start", false);
     return;
   }
-  const session = new DemoSession({ relay: RELAY, scheme: SCHEME, onChange: render });
+  const session = new DemoSession({ relay: RELAY, onChange: render });
   render(session.state);
   $("start-button").addEventListener("click", () => session.start());
   $("again-button").addEventListener("click", () => session.pairAgain());

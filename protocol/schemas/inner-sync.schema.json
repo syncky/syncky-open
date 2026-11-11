@@ -30,7 +30,21 @@
         "deleted": { "type": "array", "items": { "$ref": "#/$defs/deleted" } },
         "acks": { "type": "array", "items": { "$ref": "#/$defs/ack" } },
         "more": { "type": "boolean" },
-        "scope": { "$ref": "#/$defs/scope" }
+        "scope": { "$ref": "#/$defs/scope" },
+        "summaries": { "type": "array", "items": { "$ref": "#/$defs/summary" } }
+      }
+    },
+    "summary": {
+      "description": "a quantity total or average over one interval, computed by Apple Health; it has no uuid or source, and a receiver replaces the stored value with the same device, type, start and end. In a relay sync message every element is an interval sum: stat sum, a cumulative type, 900 seconds, start on a UTC quarter hour. A native direct-server history body carries daily sums and averages in the same shape",
+      "type": "object",
+      "required": ["type", "unit", "start", "end", "stat", "value"],
+      "properties": {
+        "type": { "$ref": "#/$defs/catalog_type" },
+        "unit": { "type": "string", "minLength": 1 },
+        "start": { "$ref": "#/$defs/timestamp" },
+        "end": { "$ref": "#/$defs/timestamp" },
+        "stat": { "type": "string", "enum": ["sum", "avg"] },
+        "value": { "type": "number" }
       }
     },
     "scope": {

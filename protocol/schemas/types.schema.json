@@ -32,13 +32,17 @@
     "quantity_type": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "kind", "hk", "unit", "aggregation", "write", "computed_by_apple", "hc", "hc_mapping"],
+      "required": ["name", "kind", "hk", "unit", "aggregation", "interval_sums", "write", "computed_by_apple", "hc", "hc_mapping"],
       "properties": {
         "name": { "$ref": "#/$defs/type_name" },
         "kind": { "type": "string", "const": "quantity" },
         "hk": { "type": "string", "pattern": "^HKQuantityTypeIdentifier[A-Za-z0-9]+$" },
         "unit": { "type": "string", "minLength": 1 },
         "aggregation": { "type": "string", "enum": ["cumulative", "discrete"] },
+        "interval_sums": {
+          "type": "boolean",
+          "description": "true when the phone sends this type as 15-minute interval sums in sync.summaries to a relay agent that reports version 0.1.4 or newer; false when it sends raw samples to every agent"
+        },
         "write": { "type": "boolean" },
         "min": { "type": "number" },
         "max": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
@@ -55,6 +59,10 @@
             "properties": { "min": { "type": "number" }, "max": { "anyOf": [{ "type": "number" }, { "type": "null" }] } },
             "required": ["min", "max"]
           }
+        },
+        {
+          "if": { "type": "object", "properties": { "interval_sums": { "type": "boolean", "const": true } }, "required": ["interval_sums"] },
+          "then": { "type": "object", "properties": { "aggregation": { "type": "string", "const": "cumulative" } } }
         },
         { "$ref": "#/$defs/computed_is_read_only" },
         { "$ref": "#/$defs/hc_consistency" }

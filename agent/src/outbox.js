@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { cipherEntries, createCipherFiles, readHomeState, updateHomeState } from "./home-state.js";
 import { retryHomeLock } from "./thin-lock.js";
 import { privateStat, removePrivateFile, syncDirectory, withHomeLock } from "./protected-files.js";
+import { inboxLines } from "./inbox.js";
+import { activateResponseWaits, completeResponseWaits } from "./response-waits.js";
 
 export function sendReceipt(entry) {
   return Object.fromEntries(["msg_id", "kind", "type", "to", "state", "seq", "attempts", "next_attempt_at", "retry_after_until", "code"].filter(k => entry[k] !== undefined).map(k => [k, entry[k]]));
@@ -17,14 +19,20 @@ export function createOutbox({ home, relay, fs, now = () => new Date(), maxAttem
   };
   const candidates = () => retryHomeLock(() => cipherEntries(home, "outbox", { fs }));
   const change = (id, patch, when) => retryHomeLock(() => queue.update(id, patch, { when }));
-  const prune = () => retryHomeLock(() => withHomeLock(home, () => {
-    const receipts = cipherEntries(home, "outbox", { fs }).filter(e => ["sent", "failed"].includes(e.state)).sort((a, b) => a.msg_id.localeCompare(b.msg_id));
-    for (const entry of receipts.slice(0, -100)) removePrivateFile(join(home, "outbox", `${entry.msg_id}.json`), { fs });
-  }, { fs }));
+  const prune = async () => {
+    const recovered = new Set((await recoverWaits()).map(e => e.msg_id));
+    await retryHomeLock(() => withHomeLock(home, () => {
+      const receipts = cipherEntries(home, "outbox", { fs }).filter(e => ["sent", "failed"].includes(e.state)).sort((a, b) => a.msg_id.localeCompare(b.msg_id));
+      for (const entry of receipts.slice(0, -100)) {
+        if (entry.state === "sent" && entry.response_waits?.length && !recovered.has(entry.msg_id)) continue;
+        removePrivateFile(join(home, "outbox", `${entry.msg_id}.json`), { fs });
+      }
+    }, { fs }));
+  };
   async function lane(laneId, signal) {
     for (const entry of (await candidates()).filter(e => e.state === "pending" && laneOf(e) === laneId)) {
       signal?.throwIfAborted();
-      const state = readHomeState(home, { fs });
+      const state = await retryHomeLock(() => readHomeState(home, { fs }));
       if (Math.max(state.transport.send_lanes?.[laneId] ?? 0, laneId === "data" ? Number(state.transport.commands_retry_at) || 0 : 0) > now().getTime()) break;
       if (entry.to?.some(id => state.members[id]?.state !== "confirmed" || state.members[id]?.unpair_reason != null) || [true, "1"].includes(state.transport.hub_deleted) || [true, "1"].includes(state.transport.hub_revoked)) {
         await change(entry.msg_id, { state: "failed", code: "target_revoked" }, e => e.state === "pending"); continue;
@@ -50,11 +58,25 @@ export function createOutbox({ home, relay, fs, now = () => new Date(), maxAttem
         break;
       } finally { timers.clearTimeout(timer); }
       await change(entry.msg_id, { state: "sent", seq: result.seq, sent_at: now().toISOString(), code: null, lease_owner: null, lease_until: 0 }, owned);
+      await recoverWaits();
     }
+  }
+  async function recoverWaits() {
+    const sent = (await candidates()).filter(e => e.state === "sent" && e.response_waits?.length);
+    if (sent.length) await retryHomeLock(() => updateHomeState(home, s => {
+      const activated = activateResponseWaits(s, sent, now().getTime());
+      if (!activated.length) return;
+      for (const { record } of inboxLines(home, { fs })) {
+        const correlations = activated.filter(w => record.from === w.member_id && Date.parse(record.received_at) >= w.opened_at);
+        for (const w of correlations) completeResponseWaits(s, w.member_id, w.public_key, record.inner, now().getTime());
+      }
+    }, { fs }));
+    return sent;
   }
   return {
     receipts: () => queue.list().map(sendReceipt),
     async flush({ signal } = {}) {
+      await recoverWaits();
       const lanes = [...new Set((await candidates()).filter(e => e.state === "pending").map(laneOf))];
       await Promise.all(lanes.map(id => {
         if (!active.has(id)) active.set(id, lane(id, signal).finally(() => active.delete(id)));

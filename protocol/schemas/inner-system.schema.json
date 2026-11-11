@@ -17,6 +17,7 @@
         { "$ref": "#/$defs/diagnostics_reply" },
         { "$ref": "#/$defs/access_request" },
         { "$ref": "#/$defs/access_reply" },
+        { "$ref": "#/$defs/scope_release" },
         { "$ref": "#/$defs/unknown" }
       ]
     },
@@ -94,6 +95,22 @@
         "type": { "type": "string", "const": "agent_info" },
         "version": { "type": "string", "pattern": "^[0-9A-Za-z.+_-]{1,64}$" }
       }
+    },
+    "scope_release": {
+      "description": "agent to phone: the agent gives up Health types it no longer needs; the phone narrows this agent's access at once and sends no reply, the scope of the next sync message shows the result. At least one name; a name outside the catalog, or a write name that is not writable, makes the message invalid",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "type", "read", "write"],
+      "properties": {
+        "v": { "type": "integer", "const": 1 },
+        "type": { "type": "string", "const": "scope_release" },
+        "read": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$" } },
+        "write": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$" } }
+      },
+      "anyOf": [
+        { "type": "object", "properties": { "read": { "type": "array", "minItems": 1 } } },
+        { "type": "object", "properties": { "write": { "type": "array", "minItems": 1 } } }
+      ]
     },
     "pair_proof": {
       "description": "phone to agent: HMAC-SHA256 keyed by the pairing secret of the v2 link over the agent and device keys",
@@ -207,6 +224,80 @@
         }
       ]
     },
+    "access_timestamp": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/timestamp"
+        },
+        {
+          "type": "string",
+          "pattern": "^(19[7-9][0-9]|[2-9][0-9]{3})-"
+        }
+      ]
+    },
+    "access_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "outcome"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,63}$"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "allowed",
+            "declined",
+            "needs_health_settings",
+            "refused"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "requested_recently",
+            "declined_recently"
+          ]
+        },
+        "next_available_at": {
+          "$ref": "#/$defs/access_timestamp"
+        }
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "enum": [
+                "allowed",
+                "declined",
+                "needs_health_settings"
+              ]
+            },
+            "reason": false,
+            "next_available_at": false
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "reason",
+            "next_available_at"
+          ],
+          "properties": {
+            "outcome": {
+              "const": "refused"
+            },
+            "reason": true,
+            "next_available_at": true
+          }
+        }
+      ]
+    },
     "access_reply": {
       "type": "object",
       "additionalProperties": false,
@@ -242,59 +333,23 @@
             "expired",
             "pending_limit",
             "rate_limited",
-            "invalid"
+            "invalid",
+            "filtered",
+            "merged"
           ]
         },
         "read": {
           "type": "array",
           "uniqueItems": true,
           "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "type",
-              "outcome"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "pattern": "^[a-z][a-z0-9_]{1,63}$"
-              },
-              "outcome": {
-                "type": "string",
-                "enum": [
-                  "allowed",
-                  "declined",
-                  "needs_health_settings"
-                ]
-              }
-            }
+            "$ref": "#/$defs/access_item"
           }
         },
         "write": {
           "type": "array",
           "uniqueItems": true,
           "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "type",
-              "outcome"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "pattern": "^[a-z][a-z0-9_]{1,63}$"
-              },
-              "outcome": {
-                "type": "string",
-                "enum": [
-                  "allowed",
-                  "declined",
-                  "needs_health_settings"
-                ]
-              }
-            }
+            "$ref": "#/$defs/access_item"
           }
         },
         "next_available_at": {
@@ -312,24 +367,222 @@
             "created_in_future",
             "too_large"
           ]
+        },
+        "limit_reason": {
+          "type": "string",
+          "enum": [
+            "daily_ceiling",
+            "amendment_limit"
+          ]
+        },
+        "merged_into": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "merged_refs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "description": "Sorted unique aliases excluding request_ref; Kotlin also checks order and root/alias identity."
         }
       },
       "oneOf": [
         {
           "type": "object",
-          "not": {
-            "type": "object",
-            "required": [
-              "next_available_at"
-            ],
-            "properties": {
-              "next_available_at": true
-            }
-          },
           "properties": {
             "outcome": {
               "type": "string",
-              "const": "resolved"
+              "enum": [
+                "resolved"
+              ]
+            },
+            "next_available_at": false,
+            "detail": false,
+            "limit_reason": false,
+            "merged_into": false
+          },
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "read": {
+                  "type": "array",
+                  "contains": {
+                    "type": "object",
+                    "properties": {
+                      "outcome": {
+                        "enum": [
+                          "allowed",
+                          "declined",
+                          "needs_health_settings"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "write": {
+                  "type": "array",
+                  "contains": {
+                    "type": "object",
+                    "properties": {
+                      "outcome": {
+                        "enum": [
+                          "allowed",
+                          "declined",
+                          "needs_health_settings"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "enum": [
+                "expired"
+              ]
+            },
+            "next_available_at": false,
+            "detail": false,
+            "limit_reason": false,
+            "merged_into": false,
+            "read": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "write": {
+              "type": "array",
+              "maxItems": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "enum": [
+                "invalid"
+              ]
+            },
+            "next_available_at": false,
+            "limit_reason": false,
+            "merged_into": false,
+            "merged_refs": false,
+            "read": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "write": {
+              "type": "array",
+              "maxItems": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "enum": [
+                "pending_limit"
+              ]
+            },
+            "detail": false,
+            "limit_reason": false,
+            "merged_into": false,
+            "merged_refs": false,
+            "read": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "write": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "next_available_at": true
+          },
+          "required": [
+            "next_available_at"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "enum": [
+                "rate_limited"
+              ]
+            },
+            "detail": false,
+            "merged_into": false,
+            "merged_refs": false,
+            "read": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "write": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "next_available_at": true
+          },
+          "required": [
+            "next_available_at"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "enum": [
+                "filtered"
+              ]
+            },
+            "next_available_at": false,
+            "detail": false,
+            "limit_reason": false,
+            "merged_into": false,
+            "merged_refs": false,
+            "read": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "const": "refused"
+                  }
+                }
+              }
+            },
+            "write": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "const": "refused"
+                  }
+                }
+              }
             }
           },
           "anyOf": [
@@ -355,77 +608,44 @@
         },
         {
           "type": "object",
-          "not": {
-            "type": "object",
-            "required": [
-              "next_available_at"
-            ],
-            "properties": {
-              "next_available_at": true
-            }
-          },
           "properties": {
             "outcome": {
               "type": "string",
               "enum": [
-                "expired",
-                "invalid"
+                "merged"
               ]
             },
+            "next_available_at": false,
+            "detail": false,
+            "limit_reason": false,
+            "merged_refs": false,
             "read": {
               "type": "array",
-              "maxItems": 0
+              "items": {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "const": "refused"
+                  }
+                }
+              }
             },
             "write": {
               "type": "array",
-              "maxItems": 0
-            }
-          }
-        },
-        {
-          "type": "object",
-          "properties": {
-            "outcome": {
-              "type": "string",
-              "enum": [
-                "pending_limit",
-                "rate_limited"
-              ]
+              "items": {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "const": "refused"
+                  }
+                }
+              }
             },
-            "read": {
-              "type": "array",
-              "maxItems": 0
-            },
-            "write": {
-              "type": "array",
-              "maxItems": 0
-            },
-            "next_available_at": {
-              "$ref": "#/$defs/timestamp"
-            }
+            "merged_into": true
           },
           "required": [
-            "next_available_at"
+            "merged_into"
           ]
-        }
-      ],
-      "allOf": [
-        {
-          "if": {
-            "type": "object",
-            "required": [
-              "detail"
-            ],
-            "properties": { "detail": true }
-          },
-          "then": {
-            "type": "object",
-            "properties": {
-              "outcome": {
-                "const": "invalid"
-              }
-            }
-          }
         }
       ]
     },
@@ -439,7 +659,7 @@
         "type": {
           "type": "string",
           "pattern": "^[a-z_]{1,32}$",
-          "not": { "type": "string", "enum": ["unpair", "paused", "resumed", "confirmed", "unpaired", "resync_request", "agent_info", "pair_proof", "sync", "commands", "diagnostics", "diagnostics_request", "diagnostics_reply", "access_request", "access_reply"] }
+          "not": { "type": "string", "enum": ["unpair", "paused", "resumed", "confirmed", "unpaired", "resync_request", "agent_info", "pair_proof", "sync", "commands", "diagnostics", "diagnostics_request", "diagnostics_reply", "access_request", "access_reply", "scope_release"] }
         }
       }
     },

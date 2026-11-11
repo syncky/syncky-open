@@ -46,12 +46,12 @@ export async function runCli(argv, { env = {}, ...opts } = {}) {
   return { code, stdout: stdout.text, stderr: stderr.text, sleeps };
 }
 
-export async function waitFor(check, { timeoutMs = 5000, intervalMs = 10, what = "condition", sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
-  const deadline = Date.now() + timeoutMs;
+export async function waitFor(check, { timeoutMs = 5000, intervalMs = 10, what = "condition", sleep = ms => new Promise(resolve => setTimeout(resolve, ms)), now = Date.now } = {}) {
+  const deadline = now() + timeoutMs;
   for (;;) {
     const value = await check();
     if (value) return value;
-    if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+    if (now() > deadline) throw new Error(`timed out waiting for ${what}`);
     await sleep(intervalMs);
   }
 }

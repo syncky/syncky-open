@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import { buildPairUri, parsePairUri } from "../../src/pair-uri.js";
 import { loadVectors } from "../../src/protocol-files.js";
+import { accessEnvelopeSizes, normalizeScopeNames } from '../../src/access-scope.js';
 
 const { cases } = loadVectors("pair-uris");
 const parseCases = cases.filter((c) => c.expect);
@@ -15,6 +16,8 @@ const fromVector = (v) => ({
   agentPublicKey: v.agent_public_key,
   agentName: v.agent_name,
   ...(v.pair_secret !== undefined && { pairSecret: v.pair_secret }),
+  ...(v.requested_scope !== undefined && { requestedScope: { ...v.requested_scope,
+    read: normalizeScopeNames(v.requested_scope.read), write: normalizeScopeNames(v.requested_scope.write) } }),
 });
 
 describe("pair-uris.json parse cases", () => {
@@ -27,9 +30,14 @@ describe("pair-uris.json parse cases", () => {
   for (const c of parseCases) {
     it(c.name, () => {
       const result = parsePairUri(c.uri, { allowInsecureRelay: c.allow_insecure });
+      if (c.envelope_bytes) {
+        const url = new URL(c.uri), fields = new URLSearchParams(url.hash.slice(1) || url.search.slice(1));
+        assert.deepEqual(accessEnvelopeSizes({ request_ref: fields.get('request_ref'), read: JSON.parse(fields.get('read')),
+          write: JSON.parse(fields.get('write')) }), c.envelope_bytes);
+      }
       if (c.expect.ok) {
         assert.deepEqual(result, { ok: true, value: fromVector(c.expect) });
-        const rebuilt = buildPairUri({ ...result.value, urlScheme: c.uri.split(":")[0] });
+        const rebuilt = buildPairUri({ ...result.value, urlScheme: c.uri.startsWith("https://") ? null : c.uri.split(":")[0] });
         assert.deepEqual(parsePairUri(rebuilt, { allowInsecureRelay: true }), result);
       } else {
         const expected = { ok: false, code: c.expect.error };
@@ -47,10 +55,10 @@ describe("pair-uris.json version 2", () => {
     assert.ok(v2Builds.length >= 2);
     for (const c of buildCases) {
       const [scheme, rest] = c.uri.split("://");
-      assert.equal(scheme, c.input.url_scheme ?? "syncky", c.name);
-      assert.equal(rest.startsWith("pair?v=2&"), c.input.pair_secret !== undefined, c.name);
+      assert.equal(scheme, c.input.url_scheme ?? "https", c.name);
+      assert.equal(/[?#]v=2&/.test(rest), c.input.pair_secret !== undefined, c.name);
     }
-    for (const c of parseCases.filter((x) => x.expect.ok)) assert.equal(c.expect.pair_secret !== undefined, /[?&]v=2(&|$)/.test(c.uri), c.name);
+    for (const c of parseCases.filter((x) => x.expect.ok)) assert.equal(c.expect.pair_secret !== undefined, /[?#&]v=2(&|$)/.test(c.uri), c.name);
   });
 });
 

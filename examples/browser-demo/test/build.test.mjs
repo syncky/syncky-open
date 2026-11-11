@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { buildDemo, relayOrigin } from "../build.mjs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -31,7 +33,7 @@ describe("stores nothing and calls only the relay", () => {
   });
 
   it("the bundle names no origin but the relay it was built for, and runs no eval", async (t) => {
-    const { file } = await built(t, { relay: "https://relay-dev.syncky.app", scheme: "syncky-dev" });
+    const { file } = await built(t, { relay: "https://relay-dev.syncky.app" });
     const js = file("demo.js");
     assert.match(js, /"https:\/\/relay-dev\.syncky\.app"/);
     assert.match(js, /"syncky-dev"/);
@@ -76,14 +78,21 @@ describe("build options", () => {
     for (const bad of ["relay.syncky.app", "https://relay.syncky.app/v1", "ftp://x", "", undefined]) assert.throws(() => relayOrigin(bad));
   });
 
-  it("refuses an unknown URL scheme", async () => {
-    await assert.rejects(buildDemo({ scheme: "https", out: join(tmpdir(), "syncky-demo-never") }), /--scheme/);
+  it("refuses the removed URL scheme option for every scheme value", (t) => {
+    const out = mkdtempSync(join(tmpdir(), "syncky-demo-option-"));
+    t.after(() => rmSync(out, { recursive: true, force: true }));
+    for (const scheme of ["syncky", "syncky-dev", "syncky-staging", "https"]) {
+      const result = spawnSync(process.execPath, [fileURLToPath(new URL("../build.mjs", import.meta.url)), "--scheme", scheme, "--out", out], { encoding: "utf8" });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /Unknown option '--scheme'/);
+    }
   });
 
   it("defaults to the production relay and the production app", async (t) => {
-    const { relay, scheme, file } = await built(t, {});
+    const result = await built(t, {});
+    const { relay, file } = result;
     assert.equal(relay, "https://relay.syncky.app");
-    assert.equal(scheme, "syncky");
+    assert.equal(Object.hasOwn(result, "scheme"), false);
     assert.match(file("demo.js"), /"https:\/\/relay\.syncky\.app"/);
   });
 });

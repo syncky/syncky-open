@@ -2,6 +2,22 @@ import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { test } from 'node:test';
 import { createMcpServer, runMcp, MCP_MAX_BYTES, TOOLS } from '../../src/mcp.js';
+import { setup, now } from '../support/thin-transport.js';
+import { scopedRequest, requestedScope } from '../support/pairing-scope.js';
+import { localStatus } from '../../src/runtime.js';
+
+test('MCP status carries safe pairing request metadata without adding a pair tool', async t => {
+  const { home } = setup(t); scopedRequest(home);
+  const server = createMcpServer({ handlers: { syncky_status: () => localStatus(home, { status: () => ({}) }, now().getTime()) } });
+  const result = await server.handle(request('tools/call', { name: 'syncky_status', arguments: {} }));
+  const member = result.result.structuredContent.members.find(m => m.member_id === 'm_dev_1');
+  assert.equal(member.pairing_access.state, 'awaiting'); assert.deepEqual(member.pairing_access.requested_scope.read, ['steps']);
+  assert.equal(member.scope, null);
+  assert.deepEqual(member.pairing_access.requested_scope, { read: ['steps'], write: ['body_mass'] });
+  assert.ok(!JSON.stringify(result).includes(requestedScope.request_ref));
+  assert.ok(!TOOLS.some(t => /pair/.test(t.name)));
+  assert.doesNotMatch(JSON.stringify(result), /pair_secret|pairing_token|private_key|pair_proof|ciphertext|https:/);
+});
 
 const request = (method, params, id = 1) => ({ jsonrpc: '2.0', id, method, params });
 test('stdio handles chunk boundaries, notifications, CRLF, UTF-8 and trailing lines without side effects', async () => {

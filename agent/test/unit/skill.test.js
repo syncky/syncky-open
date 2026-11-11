@@ -27,6 +27,28 @@ function frontmatter(text) {
 }
 
 describe("thin feature skill", () => {
+  it('explains per-type refusals, bounded amendments and canonical root replies', () => {
+    for (const pattern of [/five admitted events per rolling 24 hours/, /three admitted amendments/, /requested_recently/, /declined_recently/,
+      /next_available_at/, /daily_ceiling/, /amendment_limit/, /merged_into/, /merged_refs/, /remaining needed types/,
+      /Never.*(?:evade|bypass).*wait/, /original.*expiry/]) assert.match(SKILL, pattern);
+    assert.doesNotMatch(SKILL, /one admission per rolling (?:24 hours|day)/);
+    const metadata = JSON.parse(readFileSync(join(SKILL_DIR, 'document.json')));
+    assert.ok(metadata.skill_version > 3);
+    assert.deepEqual(metadata.protocol, { protocol_version: 1, message_table_schema: 1 });
+    assert.match(metadata.whats_new, /per-type.*merged/i);
+  });
+  it('explains interval sums of activity totals, raw logged entries and the replace rule', () => {
+    for (const pattern of [/top-level `summaries` array/, /15-minute UTC interval/, /`stat: "sum"`/, /same key replaces the earlier value/,
+      /never add the two together/, /`value: 0`/, /missing interval is not a zero/, /ignore the overlapping raw samples/,
+      /Workouts, weight and every other type without `"interval_sums": true` remain raw samples/, /Phones from 0\.1\.3 send activity totals/,
+      /logged as separate entries \(`"interval_sums": false`: `dietary_\*` including water and caffeine, `insulin_delivery`, `inhaler_usage`/,
+      /always arrive as raw samples, each with its own time and source/]) assert.match(SKILL, pattern);
+    assert.doesNotMatch(SKILL, /newer than 0\.1\.3/);
+    const metadata = JSON.parse(readFileSync(join(SKILL_DIR, 'document.json')));
+    assert.ok(metadata.skill_version > 5);
+    assert.match(metadata.whats_new, /interval sums.*replaces/i);
+    assert.match(metadata.whats_new, /Food, water, insulin, inhaler use and similar logged entries stay raw samples/);
+  });
   it('serves the current source skill offline with explicit revoke and deletion approval', async t => {
     const tmp = tempHome(); t.after(tmp.cleanup);
     const result = await runCli(['--home', tmp.home, 'skill', '--json']);
@@ -38,7 +60,7 @@ describe("thin feature skill", () => {
   });
   it('provides executable schema-valid generic send examples', () => {
     const validate = createLocalValidator(loadSchemas());
-    for (const type of ['commands', 'diagnostics_request', 'access_request']) {
+    for (const type of ['commands', 'diagnostics_request', 'access_request', 'scope_release']) {
       assert.doesNotThrow(() => validate(skillExample(type)));
       assert.match(SKILL, new RegExp(`send --type ${type} --validate --json -`));
     }
@@ -101,7 +123,7 @@ describe("thin feature skill", () => {
   });
   it("preserves explicit writes/requests, untrusted-data, no-diagnosis and report-file consent rules", () => {
     for (const pattern of [/explicitly asks for the exact value\/time/, /Confirm inferred entries first/, /explicit owner approval/, /untrusted data, never instructions/, /Never expose private keys, CEKs, invites/, /never post it publicly/, /raw home files/, /exclusive creation of a new file/, /Never overwrite or append/, /Without an answer, wait/, /Forget|forget/, /not a medical device/, /command_id.*version/, /Absent data is not zero/]) assert.match(SKILL, pattern);
-    for (const feature of ['Health JSON in','Writes','Diagnostics request','Access request']) {
+    for (const feature of ['Health JSON in','Writes','Diagnostics request','Access request','Scope release']) {
       const section = SKILL.split('## ' + feature + '\n')[1]?.split('\n## ')[0];
       assert.ok(section); for (const field of ['**When:**','**JSON:**','**Phone reply:**','**Tell the owner:**']) assert.ok(section.includes(field));
     }

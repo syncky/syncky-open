@@ -31,6 +31,12 @@ async function rejects(promise, code) {
 
 describe("envelopes.json", () => {
   const { cases } = vectors("envelopes");
+  it('includes the extended access replies for generic authenticated skipping', () => {
+    for (const name of ['filtered', 'filtered_write', 'merged_empty', 'merged_filtered', 'resolved_filtered',
+      'resolved_merged', 'resolved_old_refusal', 'expired_merged', 'daily_ceiling', 'amendment_limit', 'pending_limit']) {
+      assert.ok(cases.some(c => c.name === `access_reply_${name}` && c.envelope.access === 'reply'), name);
+    }
+  });
   it("has data and control cases", () => {
     assert.ok(cases.filter((c) => c.envelope.kind === "data").length >= 6);
     assert.ok(cases.filter((c) => c.envelope.kind === "control").length >= 2);
@@ -229,23 +235,58 @@ describe("pair-uris.json", () => {
   const { cases } = vectors("pair-uris");
   const parseCases = cases.filter((c) => c.expect);
   const buildCases = cases.filter((c) => c.input);
-  it("supports all three schemes in v1/v2 helpers, with a production default and no builder-only parse field", () => {
+  const baseInput = ({ requested_scope, ...base }) => base;
+  const baseUri = uri => {
+    const at = uri.indexOf(uri.startsWith("https://") ? "#" : "?");
+    return uri.slice(0, at + 1) + uri.slice(at + 1).split("&").filter(part => !/^(request_ref|read|write)=/.test(part)).join("&");
+  };
+  const baseExpected = ({ requested_scope, ...base }) => base;
+  const scoped = c => baseUri(c.uri) !== c.uri;
+  const compatibilityExpected = c => {
+    if (!scoped(c)) return c.expect;
+    if (c.expect.ok) return baseExpected(c.expect);
+    if (!["request_ref", "read", "write", "scope", "encoding"].includes(c.expect.param)) return c.expect;
+    if (c.name.endsWith("_encoding_before_version")) return parseCases.find(v => v.name === "unsupported_version_3").expect;
+    const base = parseCases.find(v => v.expect.ok && baseUri(v.uri) === baseUri(c.uri) && v.allow_insecure === c.allow_insecure);
+    assert.ok(base, `${c.name}: missing successful base vector`);
+    return baseExpected(base.expect);
+  };
+  it("keeps every legacy assertion and exercises the extension as unknown fields", () => {
+    assert.ok(parseCases.filter(c => !scoped(c)).length >= 180);
+    assert.ok(parseCases.filter(scoped).length >= 100);
+    for (const c of parseCases.filter(c => !scoped(c))) {
+      const delimiter = c.uri.startsWith("https://") ? "#" : "?";
+      const separator = c.uri.includes(delimiter) ? "&" : delimiter;
+      for (const extension of ["request_ref=%xx&read=%FF&write=bad", "read=bad&read=duplicate&write=%5B%5D"]) {
+        assert.deepEqual(parsePairUri(`${c.uri}${separator}${extension}`, c.allow_insecure), c.expect, c.name);
+      }
+    }
+    for (const c of parseCases.filter(scoped)) {
+      const expected = compatibilityExpected(c);
+      const base = parsePairUri(baseUri(c.uri), c.allow_insecure);
+      assert.deepEqual(base, expected, c.name);
+      assert.deepEqual(parsePairUri(c.uri, c.allow_insecure), expected, c.name);
+      if (c.expect.ok) assert.deepEqual(base, baseExpected(c.expect), c.name);
+      assert.equal(Object.hasOwn(base, "requested_scope"), false, c.name);
+    }
+  });
+  it("supports all three explicit schemes in v1/v2 helpers without a builder-only parse field", () => {
     for (const c of buildCases) {
       for (const urlScheme of ["syncky", "syncky-dev", "syncky-staging"]) {
-        const { url_scheme, ...expected } = c.input;
+        const { url_scheme, ...expected } = baseInput(c.input);
         const uri = buildPairUri({ ...expected, url_scheme: urlScheme });
-        assert.equal(uri, c.uri.replace(/^syncky(?:-dev|-staging)?:/, `${urlScheme}:`));
+        assert.equal(uri, `${urlScheme}://pair?${baseUri(c.uri).split(/[?#]/)[1]}`);
         assert.deepEqual(parsePairUri(uri, true), { ok: true, ...expected });
       }
     }
-    for (const scheme of ["Syncky", "syncky-dev-extra", "syncky-staging-extra", "https", "auto"]) {
+    for (const scheme of ["Syncky", "syncky-dev-extra", "syncky-staging-extra", "http", "auto"]) {
       assert.deepEqual(parsePairUri(`${scheme}://pair`), { ok: false, error: "invalid_uri", param: "scheme" });
     }
-    for (const url_scheme of [null, "", "auto", "syncky://", "syncky-dev ", 42, true]) {
+    for (const url_scheme of ["", "auto", "syncky://", "syncky-dev ", 42, true]) {
       assert.throws(() => buildPairUri({ ...buildCases[0].input, url_scheme }));
     }
     const { url_scheme, ...input } = buildCases[0].input;
-    assert.ok(buildPairUri({ ...input, relay_base: "https://relay-dev.syncky.app" }).startsWith("syncky://pair?"));
+    assert.ok(buildPairUri({ ...input, relay_base: "https://relay-dev.syncky.app" }).startsWith("https://dev.syncky.app/pair#"));
   });
   it("has parse ok, parse error and build cases, for v1 and v2", () => {
     assert.ok(parseCases.some((c) => c.expect.ok && c.expect.pair_secret === undefined));
@@ -255,13 +296,15 @@ describe("pair-uris.json", () => {
     assert.ok(buildCases.some((c) => c.input.pair_secret !== undefined) && buildCases.some((c) => c.input.pair_secret === undefined));
   });
   for (const c of parseCases) {
-    it(`parse ${c.name}`, () => assert.deepEqual(parsePairUri(c.uri, c.allow_insecure), c.expect));
+    it(`parse ${c.name}${scoped(c) ? " (old-parser extension compatibility)" : ""}`, () => {
+      assert.deepEqual(parsePairUri(c.uri, c.allow_insecure), compatibilityExpected(c));
+    });
   }
   for (const c of buildCases) {
     it(`build ${c.name}`, () => {
-      assert.equal(buildPairUri(c.input), c.uri);
+      assert.equal(buildPairUri(c.input), baseUri(c.uri));
       const parsed = parsePairUri(c.uri, true);
-      const { url_scheme, ...expected } = c.input;
+      const { url_scheme, ...expected } = baseInput(c.input);
       assert.deepEqual(parsed, { ok: true, ...expected });
     });
   }
@@ -294,5 +337,36 @@ describe("access marker authentication", () => {
     await rejects(make({ diagnostics: "reply" }), "invalid_input");
     await rejects(make({ kind: "data" }), "invalid_input");
     for (const plaintext of ['{"v":1,"type":"pair_proof"}', '{"v":2,"type":"access_reply"}', 'null', 'bad']) await rejects(openEnvelope(await make({ plaintext }), me), "inner_invalid");
+  });
+});
+
+
+describe("HTTPS producer inference", () => {
+  const input = vectors("pair-uris").cases.find(c => c.input).input;
+  for (const [relay_base, site] of [
+    ["https://relay.syncky.app", "syncky.app"],
+    ["https://relay-dev.syncky.app:8443", "dev.syncky.app"],
+    ["https://RELAY-DEV.SYNCKY.APP:443", "dev.syncky.app"],
+    ["https://relay-staging.syncky.app", "staging.syncky.app"],
+    ["http://relay-staging.syncky.app:8790", "staging.syncky.app"],
+    ["https://relay-dev.syncky.app.example", "syncky.app"],
+    ["https://relay-staging.syncky.app.", "syncky.app"],
+    ["https://dev.example", "syncky.app"],
+    ["http://localhost:8790", "syncky.app"],
+    ["http://127.0.0.1:8790", "syncky.app"],
+    ["http://[::1]:8790", "syncky.app"],
+  ]) it(relay_base, () => {
+    for (const url_scheme of [undefined, null]) for (const pair_secret of [undefined, "AAECAwQFBgcICQoLDA0ODw"]) {
+      const value = { ...input, relay_base, pair_secret, url_scheme };
+      const uri = buildPairUri(value), url = new URL(uri);
+      assert.equal(url.origin, `https://${site}`); assert.equal(url.pathname, "/pair"); assert.equal(url.search, "");
+      const params = new URLSearchParams(url.hash.slice(1));
+      assert.deepEqual([...params.keys()], ["v", "r", "h", "t", "k", "n", ...(pair_secret ? ["c"] : []), ...(relay_base.startsWith("http://") ? ["s"] : [])]);
+      assert.equal(params.get("r"), relay_base.replace(/^https?:\/\//, ""));
+      assert.equal(params.get("t"), input.pairing_token); assert.equal(params.get("c"), pair_secret ?? null);
+      assert.equal(params.get("v"), pair_secret ? "2" : "1");
+      const legacy = buildPairUri({ ...value, url_scheme: "syncky" });
+      assert.ok(legacy === `syncky://pair?${url.hash.slice(1)}`, "explicit scheme changed the payload");
+    }
   });
 });

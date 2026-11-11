@@ -21,3 +21,14 @@ export async function retryHomeLock(operation) {
     }
   }
 }
+
+export function retryHomeLockSync(operation) {
+  const wait = new Int32Array(new SharedArrayBuffer(4));
+  for (let n = 0;; n++) {
+    try { return operation(); }
+    catch (error) {
+      if (error.code !== "home_locked" || n >= 200) throw error;
+      Atomics.wait(wait, 0, 0, 5 + n % 13);
+    }
+  }
+}

@@ -38,7 +38,11 @@ export async function stubRelay({ wrongProof = false, autoProof = true, demoEnds
         return json(201, { pairing_id: r.pairing.id, pairing_token: r.pairing.token, expires_at: "2026-10-28T00:10:00Z", hub_id: HUB });
       case `GET /v1/pairings/${r.pairing?.id}`: {
         if (++r.pairing.checks === 1) return json(200, { pairing_id: r.pairing.id, status: "pending", expires_at: "x" });
-        if (!r.joined) await r.join(new URL(r.lastUri).searchParams.get("c"));
+        if (!r.joined) {
+          const uri = new URL(r.lastUri), params = new URLSearchParams(uri.hash.slice(1) || uri.search.slice(1));
+          if (!params.get("c")) throw new Error("pairing URI lacks proof credential");
+          await r.join(params.get("c"));
+        }
         return json(200, { pairing_id: r.pairing.id, status: "completed", expires_at: "x", member_id: "m_dev_1", device_name: "iPhone", public_key: phoneKeys.pk });
       }
       case "GET /v1/members":

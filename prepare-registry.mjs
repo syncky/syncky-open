@@ -8,6 +8,21 @@ export const MCP_NAME = "io.github.syncky/syncky-health";
 export const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 export const readJSON = (path) => JSON.parse(readFileSync(path, "utf8"));
 export const ensure = (condition, message) => { if (!condition) throw new Error(message); };
+export const PUBLISHER_META = "io.modelcontextprotocol.registry/publisher-provided";
+export const PUBLISHER_META_MAX_BYTES = 4096;
+
+function registryToolList(draft) {
+  ensure(JSON.stringify(Object.keys(draft._meta ?? {})) === JSON.stringify([PUBLISHER_META]), "Registry metadata namespace mismatch");
+  const meta = draft._meta[PUBLISHER_META];
+  ensure(JSON.stringify(Object.keys(meta ?? {})) === JSON.stringify(["tools"]) && Array.isArray(meta.tools) && meta.tools.length > 0, "Registry tool list missing");
+  ensure(Buffer.byteLength(JSON.stringify(meta)) <= PUBLISHER_META_MAX_BYTES, "Registry publisher metadata exceeds 4096 bytes");
+  for (const tool of meta.tools) {
+    ensure(JSON.stringify(Object.keys(tool ?? {})) === JSON.stringify(["name", "description"]), "Registry tool entry mismatch");
+    ensure(typeof tool.name === "string" && /^[a-z][a-z0-9_]{0,63}$/.test(tool.name), "Registry tool name mismatch");
+    ensure(typeof tool.description === "string" && /^\S[^\n\r]*\S$/.test(tool.description), "Registry tool description must be one line");
+  }
+  ensure(new Set(meta.tools.map((tool) => tool.name)).size === meta.tools.length, "duplicate Registry tool");
+}
 
 export function registryDraft(draft, pkg) {
   ensure(pkg.name === "@syncky/agent" && pkg.mcpName === MCP_NAME, "package identity mismatch");
@@ -25,6 +40,7 @@ export function registryDraft(draft, pkg) {
   ensure(mcpb.registryType === "mcpb" && mcpb.identifier === `https://github.com/${REPOSITORY}/releases/download/v${pkg.version}/syncky-health.mcpb`, "MCPB release URL mismatch");
   ensure(npm.transport?.type === "stdio" && mcpb.transport?.type === "stdio", "Registry transport mismatch");
   ensure(!Object.hasOwn(mcpb, "fileSha256"), "source draft must omit MCPB hash");
+  registryToolList(draft);
   return draft;
 }
 

@@ -5,6 +5,7 @@ import { existsSync, readFileSync, readdirSync, statSync, unlinkSync, utimesSync
 import { createServer } from "node:http";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import qrcode from "qrcode-terminal";
 
 import { sealEnvelope as sealMarkedEnvelope } from '../../../agent/test/support/envelope.js';
 import { b64uDecode } from '../../../agent/src/encoding.js';
@@ -231,7 +232,11 @@ describe("pair (E2, E3, E9, the pair_proof check)", () => {
     return s;
   }
 
-  const uriOf = (stdout) => stdout.match(/syncky:\/\/pair\?\S+/)[0];
+  const uriOf = (stdout) => {
+    const uri = stdout.match(/^https:\/\/syncky\.app\/pair#v=2&\S+$/m)?.[0];
+    assert.ok(uri, "missing HTTPS pairing URI");
+    return uri;
+  };
   const posts = (relay) => relay.requests.filter((q) => q.method === "POST" && q.url === "/v1/messages").map((q) => JSON.parse(q.body));
 
   it("prints a v2 URI, the QR and the code, confirms the phone on a matching pair_proof and sends it confirmed", async (t) => {
@@ -247,10 +252,17 @@ describe("pair (E2, E3, E9, the pair_proof check)", () => {
     assert.equal(status.method, "GET");
     assert.equal(status.headers.authorization, `Bearer ${TOKEN}`);
     assert.equal(status.headers["content-type"], undefined, "a request without a body has no content type");
-    const { pair_secret: c, ...parsed } = parsePairUri(uriOf(r.stdout), true);
+    const uri = uriOf(r.stdout), { pair_secret: c, ...parsed } = parsePairUri(uri, true);
     assert.deepEqual(parsed, { ok: true, relay_base: relay.url, hub_id: HUB, pairing_token: PAIRING_TOKEN, agent_public_key: s.agent.pk, agent_name: "agent" });
     assert.equal(unb64u(c, 16).length, 16);
     assert.match(r.stdout, /[▀▄█]/, "a terminal QR code is printed");
+    qrcode.error = 0;
+    qrcode.generate(uri, { small: true }, qr => assert.ok(r.stdout.includes(qr), "QR differs from printed link"));
+    for (const credential of [uri, c, PAIRING_TOKEN]) {
+      assert.ok(!r.stderr.includes(credential), "credential leaked into stderr");
+      assert.ok(!JSON.stringify(loadState(s.home)).includes(credential), "pairing credential persisted");
+    }
+    for (const credential of [c, PAIRING_TOKEN]) assert.ok(!r.stdout.replace(uri, "").includes(credential), "credential printed outside link");
     assert.ok(r.stdout.includes(`\ncode: ${pairCode(c)}\n`));
     assert.equal(r.stdout.split(c).length, 2, "c is printed only inside the URI");
     assert.equal(relay.ctx.stored, pairProof(c, s.agent.pk, device.pk), "pair expects the proof for the key the relay reported");
@@ -494,7 +506,13 @@ describe("poll (E11, E12)", () => {
       page(
         [
           await syncFrom(s.device, s.agent, 3, { samples: [sample("steps", STEPS, "count"), sample("steps", 12, "count")], more: true }),
-          await syncFrom(s.device, s.agent, 5, { samples: [sample("heart_rate", HEART, "count/min")], deleted: [{ uuid: "A93B", type: "steps" }] }),
+          await syncFrom(s.device, s.agent, 5, {
+            samples: [sample("heart_rate", HEART, "count/min")], deleted: [{ uuid: "A93B", type: "steps" }],
+            summaries: [
+              { type: "steps", unit: "count", start: "2026-10-11T08:00:00Z", end: "2026-10-11T08:15:00Z", stat: "sum", value: STEPS },
+              { type: "steps", unit: "count", start: "2026-10-11T08:00:00Z", end: "2026-10-11T08:15:00Z", stat: "sum", value: 0 },
+            ],
+          }),
         ],
         true,
       ),
@@ -508,7 +526,8 @@ describe("poll (E11, E12)", () => {
     assert.deepEqual(ackRequests(r2.requests), [5, 6]);
     assert.equal(r2.requests.find((q) => q.url === "/v1/acks").headers["content-type"], "application/json; charset=utf-8");
     assert.match(r.stdout, /seq 3: sync from m_dev_1: samples steps=2; deleted 0; acks 0/);
-    assert.match(r.stdout, /seq 5: sync from m_dev_1: samples heart_rate=1; deleted 1; acks 0/);
+    assert.match(r.stdout, /seq 3: sync from m_dev_1: samples steps=2; deleted 0; acks 0\n/);
+    assert.match(r.stdout, /seq 5: sync from m_dev_1: samples heart_rate=1; deleted 1; acks 0; summaries 2\n/);
     assert.match(r.stdout, /seq 6: sync from m_dev_1: samples none/);
     assert.equal(loadState(s.home).last_seq, 6);
   });
@@ -1388,6 +1407,32 @@ for (const mode of ['request', 'reply', 'added', 'stripped', 'wrong_inner', 'inv
   assert.equal(first.status, 0);
   assert.equal((first.stdout + first.stderr).includes('PRIVATE'), false);
   assert.equal(loadState(s.home).acked_seq, 1);
+  message = await syncFrom(s.device, s.agent, 2, {});
+  const next = await run(['poll', '--once'], { home: s.home });
+  assert.equal(next.status, 0); assert.match(next.stdout, /seq 2: sync from m_dev_1/);
+  assert.equal(loadState(s.home).last_seq, 2); assert.deepEqual(ackRequests(relay.requests), [1, 2]);
+});
+
+const accessReplies = JSON.parse(readFileSync(new URL('../../../protocol/test-vectors/envelopes.json', import.meta.url))).cases
+  .filter(c => c.name.startsWith('access_reply_'));
+for (const c of accessReplies) it(`${c.name}: skips extended access semantics privately, ACKs, then reopens for sync`, async t => {
+  let message;
+  const relay = await startRelay(t, r => {
+    if (r.url.startsWith('/v1/messages?')) return page([message]);
+    if (r.url === '/v1/acks') return json(200, { cursor: JSON.parse(r.body).up_to_seq });
+  });
+  const s = await seeded(t, relay.url), before = loadState(s.home);
+  const envelope = await sealMarkedEnvelope({ hubId: HUB, from: 'm_dev_1', senderPrivateKey: b64uDecode(s.device.sk),
+    recipients: [{ memberId: 'm_agent_1', publicKey: b64uDecode(s.agent.pk) }], kind: 'control', access: 'reply', plaintext: c.plaintext });
+  message = { ...envelope, seq: 1 };
+  const first = await run(['poll', '--once'], { home: s.home });
+  assert.equal(first.status, 0); assert.equal(first.stdout.trim(), 'seq 1: skipped (control message)');
+  assert.equal(first.stderr, '');
+  assert.equal(loadState(s.home).last_seq, 1); assert.equal(loadState(s.home).acked_seq, 1);
+  assert.deepEqual(loadState(s.home).members, before.members); assert.deepEqual(loadState(s.home).commands, {});
+  for (const field of ['request_ref', 'merged_into', 'merged_refs', 'next_available_at', 'read', 'write']) {
+    assert.equal(Object.hasOwn(loadState(s.home), field), false);
+  }
   message = await syncFrom(s.device, s.agent, 2, {});
   const next = await run(['poll', '--once'], { home: s.home });
   assert.equal(next.status, 0); assert.match(next.stdout, /seq 2: sync from m_dev_1/);

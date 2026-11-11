@@ -8,6 +8,7 @@ import { saveSecrets } from '../../src/secrets.js';
 import { createInbox } from '../../src/inbox.js';
 import { readHomeState } from '../../src/home-state.js';
 import { createFixtureRuntime } from '../support/receive-fixture.js';
+import { createRuntime } from '../../src/runtime.js';
 import { waitFor } from '../support/helpers.js';
 import { setup, keys, identity, now, delivery } from '../support/thin-transport.js';
 
@@ -19,6 +20,72 @@ function homeFixture(t) {
     token: `sk_${identity.hub_id}_${'T'.repeat(40)}`, webhook_secret: `whsec_${'W'.repeat(43)}` });
   return fixture;
 }
+
+test('verified join scheduling observes short plan transitions and post-sync traffic without bypassing Retry-After or the later floor', async t => {
+  const { home, transport } = homeFixture(t);
+  let at = now().getTime(), hub = 'unpaid', gets = 0, limited = false;
+  const joinedAt = at, member = { member_id: keys.dev1.member_id, role: 'device', public_key: keys.dev1.pk, joined_at: new Date(at).toISOString() };
+  let messages = [{ seq: 1, kind: 'system', event: 'member_joined', body: member }];
+  const options = { home, agentBin, env: {}, now: () => new Date(at), fetch: async url => {
+    const path = new URL(url).pathname;
+    if (path === '/v1/hub/state') return Response.json({ state: hub });
+    if (path === '/v1/members') return Response.json({ members: [member] });
+    if (path === '/v1/messages') {
+      gets++;
+      if (limited) { limited = false; return Response.json({ error: 'rate_limited' }, { status: 429, headers: { 'retry-after': '7' } }); }
+      const rows = messages; messages = [];
+      return Response.json({ messages: rows, next_after: rows.at(-1)?.seq ?? 0, has_more: false });
+    }
+    return new Response(null, { status: 204 });
+  } };
+  const runtime = await createFixtureRuntime(options);
+  await runtime.poller.once();
+  assert.equal(runtime.status().transport.hub_state.state, 'unpaid');
+  await runtime.poller.startFastPoll(member.member_id, readHomeState(home).members[member.member_id].join_grace_until);
+  const production = () => createRuntime({ ...options, flags: { 'poll-interval': '300' } });
+  at += 1000;
+  assert.equal((await production().poller.once()).next_poll_at, joinedAt + 25000);
+  for (const [state, event, seq] of [['active', 'hub_resumed', 2], ['suspended', 'hub_suspended', 3]]) {
+    hub = state;
+    messages = [{ seq, kind: 'system', event, body: {} }];
+    await runtime.poller.once();
+    at += 1000; await runtime.poller.once();
+    assert.equal(runtime.status().transport.hub_state.state, state);
+    at += 15000;
+  }
+  messages = [await delivery(transport, 4, { v: 1, type: 'sync', more: false })];
+  await runtime.poller.once();
+  assert.deepEqual(readHomeState(home).transport.fast_poll.devices, []);
+  at += 1000;
+  assert.equal((await production().poller.once()).next_poll_at, at - 1000 + 300000);
+  hub = 'active'; messages = [{ seq: 5, kind: 'system', event: 'hub_resumed', body: {} }];
+  await runtime.poller.once();
+  at += 1000; await runtime.poller.once();
+  assert.equal(runtime.status().transport.hub_state.state, 'active');
+  assert.equal(readHomeState(home).transport.acked_seq, 5);
+
+  at += 1000; limited = true;
+  await assert.rejects(runtime.poller.once(), { status: 429 });
+  const retry = at + 7000, before = gets;
+  at = retry - 1;
+  assert.deepEqual(await (await createFixtureRuntime(options)).poller.once(), { deferred: true, reason: 'retry_after', next_poll_at: retry });
+  assert.equal(gets, before);
+  at++; await (await createFixtureRuntime(options)).poller.once();
+  assert.equal(gets, before + 1);
+
+  at = joinedAt + 840000 - 1000;
+  await runtime.poller.once();
+  const last = at;
+  at += 1000;
+  assert.deepEqual(await production().poller.once(), { deferred: true, reason: 'poll_floor', next_poll_at: last + 300000 });
+  assert.equal(readHomeState(home).transport.next_poll_at, last + 300000);
+  at = last + 300000;
+  assert.equal((await production().poller.once()).pages, 1);
+  assert.equal(readHomeState(home).transport.next_poll_at, at + 300000);
+  at += 1000;
+  assert.equal((await (await createFixtureRuntime(options)).poller.once()).pages, 1);
+  assert.equal(readHomeState(home).transport.next_poll_at, at + 1000);
+});
 
 test('receiver pause acknowledges only between fully committed poll cycles and resumes without losing traffic', async t => {
   const { home, transport } = homeFixture(t), message = await delivery(transport, 1);
@@ -38,7 +105,7 @@ test('receiver pause acknowledges only between fully committed poll cycles and r
   assert.equal(fs.existsSync(paused), false, 'in-flight data was not committed yet');
   release(); await first;
   assert.equal(readHomeState(home).transport.acked_seq, 1);
-  at += 1000;
+  at += 300000;
   const second = runtime.poller.once();
   try {
     await waitFor(() => fs.existsSync(paused) && fs.readFileSync(paused, 'utf8') === 'pause-1');

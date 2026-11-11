@@ -3,10 +3,11 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { runInNewContext } from "node:vm";
 import { build } from "esbuild";
+import { qrPath } from "../src/qr.mjs";
 import { pairView } from "../src/view.mjs";
 
 describe("pair block", () => {
-  const pairing = { code: "pairing-code", uri: "syncky-dev://pair" };
+  const pairing = { code: "pairing-code", uri: "https://dev.syncky.app/pair#v=2" };
 
   for (const phase of ["confirmed", "phone_left", "expired"]) {
     it(`keeps the code through joining and clears it on ${phase}`, () => {
@@ -36,7 +37,7 @@ describe("pair block", () => {
       bundle: true,
       write: false,
       format: "iife",
-      define: { __SYNCKY_RELAY__: '"https://relay.example"', __SYNCKY_SCHEME__: '"syncky-dev"' },
+      define: { __SYNCKY_RELAY__: '"https://relay.example"' },
       plugins: [{ name: "session-fixture", setup(builder) {
         builder.onLoad({ filter: /[/\\]session\.mjs$/ }, () => ({
           contents: "export const DemoSession = globalThis.DemoSession; export const WRITES = {};",
@@ -47,7 +48,8 @@ describe("pair block", () => {
       children: [],
       replaceChildren(...children) { this.children = children; },
       append(...children) { this.children.push(...children); },
-      setAttribute() {},
+      attributes: {},
+      setAttribute(key, value) { this.attributes[key] = value; },
       addEventListener(event, handler) { this[event] = handler; },
     });
     const elements = new Map();
@@ -57,13 +59,16 @@ describe("pair block", () => {
     };
     let session;
     runInNewContext(outputFiles[0].text, {
+      assert,
       document: { getElementById: get, createElementNS: element },
       TextEncoder,
       isSecureContext: true,
       crypto: { subtle: {}, getRandomValues() {} },
       addEventListener() {},
       DemoSession: class {
-        constructor({ onChange }) {
+        constructor(options) {
+          assert.equal(Object.hasOwn(options, "scheme"), false);
+          const { onChange } = options;
           session = this;
           this.state = { phase: "idle", samples: [], commands: [] };
           this.emit = change => onChange(Object.assign(this.state, change));
@@ -72,7 +77,7 @@ describe("pair block", () => {
       },
     });
     session.emit({ phase: "pairing", pairing });
-    for (const nextPairing of [pairing, { code: "next-code", uri: "syncky-dev://pair?next" }]) {
+    for (const nextPairing of [pairing, { code: "next-code", uri: "https://dev.syncky.app/pair#v=2&next" }]) {
       const previousQr = get("qr").children[0];
       assert.ok(previousQr);
       const code = session.state.pairing.code;
@@ -92,6 +97,8 @@ describe("pair block", () => {
       assert.equal(get("link").href, nextPairing.uri);
       assert.equal(get("link").textContent, nextPairing.uri);
       assert.equal(get("qr").children.length, 1);
+      const { d } = qrPath(get("link").textContent);
+      assert.ok(get("qr").children[0].children[1].attributes.d === d, "QR differs from printed link");
       assert.notEqual(get("qr").children[0], previousQr);
     }
   });

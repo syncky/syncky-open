@@ -3,10 +3,12 @@ import { test } from "node:test";
 import { spawn } from "node:child_process";
 import { createGenericSender } from "../../src/send.js";
 import { createOutbox } from "../../src/outbox.js";
-import { createCipherFiles, updateHomeState } from "../../src/home-state.js";
+import { createCipherFiles, readHomeState, updateHomeState } from "../../src/home-state.js";
 import fs from "node:fs";
 import { diskFailure, syncTrace } from "../support/thin-home.js";
 import { createRelayClient } from "../../src/relay-client.js";
+import { uuidv7 } from "../../src/ids.js";
+import { maintainResponseWaits } from "../../src/response-waits.js";
 import { setup, self, now, messageId } from "../support/thin-transport.js";
 
 test("flush retains only the newest 100 completed receipts across restart and never prunes pending sends", async t => {
@@ -180,4 +182,112 @@ test("an empty outbox flush creates no files or durable locks", async t => {
   await createOutbox({ home, now, ...trace, relay: { postMessage: () => assert.fail("empty outbox") } }).flush();
   assert.equal(fs.existsSync(`${home}/outbox`), false);
   assert.deepEqual(trace.synced, []);
+});
+
+test('response correlations stay beside ciphertext, activate only after success, and duplicates retain the first command deadline', async t => {
+  const { home, transport } = setup(t); let at = now().getTime(), attempts = 0;
+  const commands = { v: 1, type: 'commands', commands: [{ command_id: 'one', version: 1, op: 'write', value: 123 }, { command_id: 'one', version: 2 }, { command_id: 'two', version: 1 }] };
+  const send = () => createGenericSender({ home, transport, self, now: () => new Date(at) })({ type: 'commands', innerText: JSON.stringify(commands) });
+  await send();
+  const queue = createCipherFiles(home, 'outbox'), queued = queue.list()[0];
+  assert.equal(queued.response_waits.length, 3);
+  assert.ok(!JSON.stringify(queued.response_waits).includes('value'));
+  const relay = { postMessage: async () => { if (++attempts === 1) throw { status: 429, retryAfterS: 400 }; return { seq: 5 }; } };
+  const flush = () => createOutbox({ home, relay, now: () => new Date(at) }).flush();
+  await flush(); assert.equal(Object.keys(readHomeState(home).transport.response_waits ?? {}).length, 0);
+  at += 400000; await flush();
+  const waits = Object.values(readHomeState(home).transport.response_waits);
+  assert.equal(waits.length, 3); assert.ok(waits.every(w => w.expires_at === at + 900000));
+  at += 100000; await send(); await flush();
+  assert.deepEqual(Object.values(readHomeState(home).transport.response_waits), waits);
+  assert.equal(queue.list()[0].body, queued.body);
+});
+
+test('sent correlation recovery survives a failed wait commit without another POST', async t => {
+  const { home, transport } = setup(t); let posts = 0;
+  await createGenericSender({ home, transport, self, now })({ type: 'commands', innerText: JSON.stringify({ v: 1, type: 'commands', commands: [{ command_id: 'recover', version: 1 }] }) });
+  const relay = { postMessage: async () => { posts++; return { seq: 1 }; } };
+  await assert.rejects(createOutbox({ home, relay, now, fs: diskFailure('renameSync', 1, /\.state\.json\./) }).flush());
+  await createOutbox({ home, relay, now }).flush();
+  assert.equal(posts, 1); assert.equal(Object.keys(readHomeState(home).transport.response_waits).length, 1);
+});
+
+test('concurrent pruning preserves an old delayed send until its response wait is durable', async t => {
+  const { home, transport } = setup(t), queue = createCipherFiles(home, 'outbox');
+  await createGenericSender({ home, transport: { ...transport, sealMessage: options => transport.sealMessage({ ...options, msgId: messageId(1) }) }, self, now })({
+    type: 'commands', innerText: JSON.stringify({ v: 1, type: 'commands', commands: [{ command_id: 'delayed', version: 1 }] }),
+  });
+  for (let n = 2; n <= 102; n++) queue.put({ msg_id: messageId(n), kind: 'control', body: '{"kind":"control"}', state: 'sent' });
+  let releaseSend, started, posts = 0;
+  const reached = new Promise(resolve => { started = resolve; });
+  const relay = { postMessage: async () => { posts++; started(); await new Promise(resolve => { releaseSend = resolve; }); return { seq: 1 }; } };
+  const sending = assert.rejects(createOutbox({ home, relay, now, fs: diskFailure('renameSync', 1, /\.state\.json\./) }).flush(), { code: 'ENOSPC' });
+  await reached;
+  let released = false;
+  const io = new Proxy(fs, { get(target, key) {
+    if (key !== 'readdirSync') return target[key];
+    return (path, ...args) => {
+      const entries = target.readdirSync(path, ...args);
+      if (path === `${home}/outbox` && !released) { released = true; releaseSend(); }
+      return entries;
+    };
+  } });
+  await createOutbox({ home, relay, now, fs: io }).flush();
+  await sending;
+  await createOutbox({ home, relay, now }).flush();
+  assert.equal(posts, 1); assert.equal(queue.list().length, 100);
+  const waits = Object.values(readHomeState(home).transport.response_waits ?? {});
+  assert.equal(waits.length, 1); assert.equal(waits[0].command_id, 'delayed');
+  assert.equal(waits[0].expires_at, now().getTime() + 900000);
+});
+
+test('expired command waits never change wire command validity or reopen from a duplicate receipt', async t => {
+  const { home, transport } = setup(t); let at = now().getTime();
+  const inner = { v: 1, type: 'commands', commands: [{ command_id: 'one', version: 1 }] };
+  const send = () => createGenericSender({ home, transport, self, now: () => new Date(at) })({ type: 'commands', innerText: JSON.stringify(inner) });
+  const flush = () => createOutbox({ home, now: () => new Date(at), relay: { postMessage: async () => ({ seq: 1 }) } }).flush();
+  await send(); await flush(); const first = Object.values(readHomeState(home).transport.response_waits)[0];
+  at = first.expires_at; await flush(); await send(); await flush();
+  assert.equal(Object.keys(readHomeState(home).transport.response_waits).length, 0);
+  assert.equal(inner.commands[0].expires_at, undefined);
+});
+
+test('command deadlines survive receipt pruning, wait expiry and a duplicate send after restart', async t => {
+  const { home, transport } = setup(t); let at = now().getTime();
+  const send = version => createGenericSender({ home, transport, self, now: () => new Date(at) })({ type: 'commands',
+    innerText: JSON.stringify({ v: 1, type: 'commands', commands: [{ command_id: 'one', version }] }) });
+  const flush = () => createOutbox({ home, now: () => new Date(at), relay: { postMessage: async () => ({ seq: 1 }) } }).flush();
+  const first = await send(1); await flush();
+  const deadline = Object.values(readHomeState(home).transport.response_waits)[0].expires_at;
+  const queue = createCipherFiles(home, 'outbox');
+  for (let n = 0; n < 101; n++) queue.put({ msg_id: uuidv7(), kind: 'control', body: '{"kind":"control"}', state: 'sent' });
+  await flush();
+  assert.equal(queue.list().length, 100); assert.ok(!queue.list().some(e => e.msg_id === first.msg_id));
+  at = deadline;
+  updateHomeState(home, s => { maintainResponseWaits(s, at); });
+  assert.equal(Object.keys(readHomeState(home).transport.response_waits).length, 0);
+  at += 1000; await send(1); await flush();
+  assert.equal(Object.keys(readHomeState(home).transport.response_waits).length, 0);
+  await send(2); await flush();
+  const waits = Object.values(readHomeState(home).transport.response_waits);
+  assert.equal(waits.length, 1); assert.equal(waits[0].version, 2); assert.equal(waits[0].expires_at, at + 900000);
+});
+
+test('malformed persisted wait metadata fails closed and ciphertext correlation is immutable', async t => {
+  const { home, transport } = setup(t);
+  await createGenericSender({ home, transport, self, now })({ type: 'commands', innerText: JSON.stringify({ v: 1, type: 'commands', commands: [{ command_id: 'one', version: 1 }] }) });
+  await createOutbox({ home, now, relay: { postMessage: async () => ({ seq: 1 }) } }).flush();
+  const queue = createCipherFiles(home, 'outbox'), entry = queue.list()[0];
+  assert.throws(() => queue.update(entry.msg_id, { response_waits: [] }), { code: 'invalid_input' });
+  const state = readHomeState(home), original = Object.values(state.transport.response_waits)[0];
+  for (const patch of [{ expires_at: -1 }, { version: 0 }, { public_key: 'invalid' }, { state: 'invalid' }, { body: 'forbidden' }]) {
+    assert.throws(() => updateHomeState(home, s => { s.transport.response_waits[Object.keys(state.transport.response_waits)[0]] = { ...original, ...patch }; }), { code: 'corrupt_state' });
+  }
+  assert.throws(() => updateHomeState(home, s => { s.transport.response_waits = []; }), { code: 'corrupt_state' });
+  const deadline = Object.values(state.transport.command_wait_deadlines)[0], key = Object.keys(state.transport.command_wait_deadlines)[0];
+  for (const patch of [{ expires_at: -1 }, { opened_at: -1 }, { expires_at: deadline.expires_at + 1 }, { version: 0 }, { public_key: 'invalid' }, { body: 'forbidden' }]) {
+    assert.throws(() => updateHomeState(home, s => { s.transport.command_wait_deadlines[key] = { ...deadline, ...patch }; }), { code: 'corrupt_state' });
+  }
+  assert.throws(() => updateHomeState(home, s => { s.transport.command_wait_deadlines = []; }), { code: 'corrupt_state' });
+  assert.throws(() => updateHomeState(home, s => { s.transport.command_wait_deadlines = { invalid: deadline }; }), { code: 'corrupt_state' });
 });

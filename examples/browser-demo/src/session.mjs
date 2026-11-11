@@ -38,8 +38,8 @@ function sampleRow(s) {
 }
 
 export class DemoSession {
-  constructor({ relay, scheme = "syncky", name = "Syncky browser demo", fetch = (...a) => globalThis.fetch(...a), sleep, now = () => Date.now(), onChange = () => {} }) {
-    Object.assign(this, { relay, scheme, name, fetchFn: fetch, now, onChange });
+  constructor({ relay, name = "Syncky browser demo", fetch = (...a) => globalThis.fetch(...a), sleep, now = () => Date.now(), onChange = () => {} }) {
+    Object.assign(this, { relay, name, fetchFn: fetch, now, onChange });
     this.sleep = sleep ?? (async (ms) => {
       const due = this.now() + ms;
       do {
@@ -114,7 +114,7 @@ export class DemoSession {
     if (this.stopped) return;
     if (!/^p_[\w-]{22}$/.test(p?.pairing_id) || !/^pt_[\w-]{43}$/.test(p.pairing_token)) throw relayError(201, "invalid_response");
     const c = b64u(randomBytes(16));
-    const uri = buildPairUri({ relay_base: this.relay, hub_id: this.hubId, pairing_token: p.pairing_token, agent_public_key: this.keys.pk, agent_name: this.name, pair_secret: c, url_scheme: this.scheme });
+    const uri = buildPairUri({ relay_base: this.relay, hub_id: this.hubId, pairing_token: p.pairing_token, agent_public_key: this.keys.pk, agent_name: this.name, pair_secret: c });
     this.pairing = { id: p.pairing_id, c };
     this.emit({ phase: "pairing", phone: null, pairing: { uri, code: await pairCode(c), expiresAt: p.expires_at }, notice: null });
   }

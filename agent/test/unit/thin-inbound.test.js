@@ -1,3 +1,5 @@
+import { createGenericSender } from "../../src/send.js";
+import { createOutbox } from "../../src/outbox.js";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { test } from "node:test";
@@ -11,8 +13,66 @@ import { readInbox } from "../../src/runtime.js";
 import { loadVectors } from "../../src/protocol-files.js";
 import { diskFailure, syncTrace } from "../support/thin-home.js";
 import { setup, delivery, identity, self, now, keys, messageId } from "../support/thin-transport.js";
+import { scopedRequest, pairingId, resolvedReply } from '../support/pairing-scope.js';
 
-for (const name of ["sync_ack_detail_kept", "sync_ack_detail_unknown_kept", "sync_ack_detail_dropped_non_string", "sync_ack_detail_dropped_bad_pattern", "sync_ack_detail_dropped_applied", "sync_ack_declined_by_user"]) {
+test('held pairing reply resolves only after confirmation and survives duplicate inbox replay and restart', async t => {
+  const { home, transport, pairing } = setup(t, { confirmed: false }); scopedRequest(home);
+  const message = await delivery(transport, 1, resolvedReply());
+  const inbound = () => createThinInbound({ home, transport, self, now });
+  assert.equal((await inbound().receive(message)).status, 'held');
+  assert.equal(readHomeState(home).pairings[pairingId].access.state, 'awaiting');
+  pairing.confirmFingerprint('m_dev_1', readHomeState(home).members.m_dev_1.fingerprint);
+  await inbound().releaseHeld();
+  const access = readHomeState(home).pairings[pairingId].access;
+  assert.equal(access.state, 'resolved'); assert.deepEqual(access.outcomes, { read: resolvedReply().read, write: resolvedReply().write });
+  assert.equal(readHomeState(home).members.m_dev_1.scope, undefined);
+  await inbound().receive(message);
+  assert.deepEqual(readHomeState(home).pairings[pairingId].access, access);
+  assert.equal(createInbox(home).read().filter(r => r.type === 'access_reply').length, 1);
+  updateHomeState(home, s => { const pending = s.pairings[pairingId].access; pending.state = 'awaiting'; delete pending.outcomes; delete pending.decided_at; });
+  await inbound().receive(message);
+  assert.deepEqual(readHomeState(home).pairings[pairingId].access, access);
+  await inbound().receive(await delivery(transport, 2, { type: 'sync', scope: { read: 'none', write: ['body_mass'] } }));
+  assert.deepEqual(readHomeState(home).members.m_dev_1.scope, { read: 'none', write: ['body_mass'], seq: 2 });
+});
+
+test('v2 proof releases an earlier held access reply in the same receive round', async t => {
+  const { home, transport } = setup(t, { confirmed: false }); scopedRequest(home);
+  const proof = pairProof('AAECAwQFBgcICQoLDA0ODw', keys.agent.pk, keys.dev1.pk);
+  updateHomeState(home, s => { s.members.m_dev_1.pair_proof = proof; });
+  const inbound = createThinInbound({ home, transport, self, now });
+  assert.equal((await inbound.receive(await delivery(transport, 1, resolvedReply()))).status, 'held');
+  assert.equal((await inbound.receive(await delivery(transport, 2, { v: 1, type: 'pair_proof', proof }))).status, 'stored');
+  assert.equal(readHomeState(home).pairings[pairingId].access.state, 'resolved');
+  assert.deepEqual(createInbox(home).read().map(r => r.type), ['pair_proof', 'access_reply']);
+  assert.equal(createCipherFiles(home, 'held').list().length, 0);
+});
+
+test('pairing reply matching rejects wrong refs, items, senders, bindings, malformed and conflicting outcomes', async t => {
+  const { home, transport, pairing } = setup(t); scopedRequest(home);
+  pairing.join({ member_id: keys.dev2.member_id, role: 'device', public_key: keys.dev2.pk }, { verified: true });
+  pairing.confirmFingerprint(keys.dev2.member_id, readHomeState(home).members[keys.dev2.member_id].fingerprint);
+  const inbound = createThinInbound({ home, transport, self, now }); let seq = 0;
+  for (const patch of [{ request_ref: 'b'.repeat(32) }, { read: [] }, { write: [{ type: 'steps', outcome: 'allowed' }] },
+    { outcome: 'expired', read: [], write: [] }, { v: 2 }, { decided_at: 'bad' }, { extra: 'PRIVATE' }, { read: [{ type: 'steps', outcome: 'invalid' }] },
+    { read: [{ type: 'steps', outcome: 'allowed' }, { type: 'steps', outcome: 'allowed' }] }]) {
+    await inbound.receive(await delivery(transport, ++seq, { ...resolvedReply(), ...patch }));
+    assert.equal(readHomeState(home).pairings[pairingId].access.state, 'awaiting');
+  }
+  await inbound.receive(await delivery(transport, ++seq, resolvedReply(), { from: keys.dev2.member_id, senderPrivateKey: b64uDecode(keys.dev2.sk) }));
+  assert.equal(readHomeState(home).pairings[pairingId].access.state, 'awaiting');
+  updateHomeState(home, s => { s.members.m_dev_1.pairing_id = null; });
+  await inbound.receive(await delivery(transport, ++seq, resolvedReply()));
+  assert.equal(readHomeState(home).pairings[pairingId].access.state, 'awaiting');
+  updateHomeState(home, s => { s.members.m_dev_1.pairing_id = pairingId; });
+  await inbound.receive(await delivery(transport, ++seq, resolvedReply()));
+  const access = readHomeState(home).pairings[pairingId].access;
+  await inbound.receive(await delivery(transport, ++seq, { ...resolvedReply(), read: [{ type: 'steps', outcome: 'declined' }] }));
+  assert.deepEqual(readHomeState(home).pairings[pairingId].access, access);
+});
+
+for (const name of ["sync_ack_detail_kept", "sync_ack_detail_unknown_kept", "sync_ack_detail_dropped_non_string", "sync_ack_detail_dropped_bad_pattern", "sync_ack_detail_dropped_applied", "sync_ack_declined_by_user",
+  "sync_summaries", "sync_summaries_only", "sync_drop_summary_rules", "sync_summaries_not_array"]) {
   test(`thin inbound preserves ${name} verbatim in inbox JSONL`, async t => {
     const { home, transport } = setup(t), inbound = createThinInbound({ home, transport, self, now });
     const vector = loadVectors("inner-messages").cases.find(c => c.name === name);
@@ -536,4 +596,93 @@ test("nonempty held maintenance finishes an interrupted overflow eviction before
   assert.equal(readHomeState(home).members.m_dev_1.state, "joined");
   assert.deepEqual(readHomeState(home).transport.events.map(e => [e.seq, e.code]), [[1, "held_overflow"]]);
   assert.deepEqual(createInbox(home).read(), []);
+});
+
+for (const outcome of ['resolved', 'expired', 'invalid', 'pending_limit', 'rate_limited']) test(`access ${outcome} closes only its valid matching response wait`, async t => {
+  const { home, transport } = setup(t);
+  const send = createGenericSender({ home, transport, self, now });
+  for (const request_ref of ['1'.repeat(32), '2'.repeat(32)]) await send({ type: 'access_request', innerText: JSON.stringify({ v: 1, type: 'access_request', request_ref,
+    read: ['body_mass'], write: [], created_at: now().toISOString(), expires_at: new Date(now().getTime() + 86400000).toISOString() }) });
+  await createOutbox({ home, now, relay: { postMessage: async () => ({ seq: 1 }) } }).flush();
+  const inbound = createThinInbound({ home, transport, self, now });
+  const reply = { v: 1, type: 'access_reply', request_ref: '1'.repeat(32), decided_at: now().toISOString().replace('.000Z', 'Z'), outcome,
+    read: outcome === 'resolved' ? [{ type: 'body_mass', outcome: 'declined' }] : [], write: [],
+    ...(['pending_limit', 'rate_limited'].includes(outcome) && { next_available_at: new Date(now().getTime() + 1000).toISOString().replace('.000Z', 'Z') }) };
+  const active = () => Object.values(readHomeState(home).transport.response_waits).filter(w => w.completed_at === undefined);
+  await inbound.receive(await delivery(transport, 1, { ...reply, decided_at: 'invalid' }));
+  assert.equal(active().length, 2);
+  await inbound.receive(await delivery(transport, 2, { ...reply, request_ref: '3'.repeat(32) }));
+  assert.equal(active().length, 2);
+  await inbound.receive(await delivery(transport, 3, reply));
+  assert.equal(active().length, 1); assert.equal(active()[0].request_ref, '2'.repeat(32));
+  await inbound.receive(await delivery(transport, 3, reply));
+  await send({ type: 'access_request', innerText: JSON.stringify({ v: 1, type: 'access_request', request_ref: '1'.repeat(32), read: ['body_mass'], write: [], created_at: now().toISOString(), expires_at: new Date(now().getTime() + 86400000).toISOString() }) });
+  await createOutbox({ home, now, relay: { postMessage: async () => ({ seq: 2 }) } }).flush();
+  assert.equal(active().length, 1);
+});
+
+test('command replies match every target, id and version and unpair clears remaining waits', async t => {
+  const { home, transport, pairing } = setup(t);
+  pairing.join({ member_id: 'm_dev_2', role: 'device', public_key: keys.dev2.pk }, { verified: true });
+  pairing.confirmFingerprint('m_dev_2', readHomeState(home).members.m_dev_2.fingerprint);
+  const send = createGenericSender({ home, transport, self, now });
+  const innerText = JSON.stringify({ v: 1, type: 'commands', commands: [{ command_id: 'one', version: 1 }, { command_id: 'one', version: 2 }, { command_id: 'two', version: 1 }] });
+  for (const to of ['m_dev_1', 'm_dev_2']) await send({ type: 'commands', to, innerText });
+  await createOutbox({ home, now, relay: { postMessage: async () => ({ seq: 1 }) } }).flush();
+  const active = () => Object.values(readHomeState(home).transport.response_waits).filter(w => w.completed_at === undefined);
+  const inbound = createThinInbound({ home, transport, self, now });
+  await inbound.receive(await delivery(transport, 1, { v: 1, type: 'sync', more: false, acks: [{ command_id: 'one', version: 3, status: 'applied' }, { command_id: 'two', version: 1, status: 'rejected' }] }));
+  assert.equal(active().length, 6);
+  await inbound.receive(await delivery(transport, 2, { v: 1, type: 'sync', more: false, acks: [{ command_id: 'one', version: 1, status: 'applied' }, { command_id: 'one', version: 2, status: 'rejected', reason: 'invalid' }] }));
+  assert.equal(active().length, 4);
+  assert.equal(active().filter(w => w.member_id === 'm_dev_2').length, 3);
+  await inbound.receive(await delivery(transport, 3, { v: 1, type: 'unpair', reason: 'user' }));
+  assert.equal(active().length, 3);
+  assert.deepEqual(Object.values(readHomeState(home).transport.command_wait_deadlines).map(w => w.member_id), ['m_dev_2', 'm_dev_2', 'm_dev_2']);
+  pairing.revoke('m_dev_2'); assert.equal(Object.keys(readHomeState(home).transport.response_waits).length, 0);
+  assert.equal(Object.keys(readHomeState(home).transport.command_wait_deadlines).length, 0);
+});
+
+for (const result of ['archive', 'declined', 'expired']) test(`diagnostics ${result} completes the matching wait while malformed and unrelated replies retain it`, async t => {
+  const { home, transport } = setup(t), ref = 'd'.repeat(32);
+  await createGenericSender({ home, transport, self, now })({ type: 'diagnostics_request', innerText: JSON.stringify({ v: 1, type: 'diagnostics_request', request_ref: ref,
+    created_at: now().toISOString(), expires_at: new Date(now().getTime() + 86400000).toISOString() }) });
+  await createOutbox({ home, now, relay: { postMessage: async () => ({ seq: 1 }) } }).flush();
+  const archive = loadVectors('envelopes').cases.map(v => v.plaintext && JSON.parse(v.plaintext)).find(v => v?.type === 'diagnostics');
+  const inner = result === 'archive' ? { ...archive, request_ref: ref } : { v: 1, type: 'diagnostics_reply', request_ref: ref, outcome: result, reason: result === 'declined' ? 'user' : 'deadline' };
+  const inbound = createThinInbound({ home, transport, self, now });
+  const active = () => Object.values(readHomeState(home).transport.response_waits).filter(w => w.completed_at === undefined);
+  await inbound.receive(await delivery(transport, 1, { ...inner, request_ref: 'e'.repeat(32) }));
+  assert.equal(active().length, 1);
+  await inbound.receive(await delivery(transport, 2, { ...inner, ...(result === 'archive' ? { events: 'invalid' } : { reason: 'invalid' }) }));
+  assert.equal(active().length, 1);
+  await inbound.receive(await delivery(transport, 3, inner));
+  assert.equal(active().length, 0);
+});
+
+test('a reply checkpointed before the outbox success bookkeeping is recovered without reopening it', async t => {
+  const { home, transport } = setup(t), ref = 'd'.repeat(32);
+  await createGenericSender({ home, transport, self, now })({ type: 'diagnostics_request', innerText: JSON.stringify({ v: 1, type: 'diagnostics_request', request_ref: ref,
+    created_at: now().toISOString(), expires_at: new Date(now().getTime() + 86400000).toISOString() }) });
+  const inbound = createThinInbound({ home, transport, self, now });
+  const relay = { postMessage: async () => {
+    await inbound.receive(await delivery(transport, 1, { v: 1, type: 'diagnostics_reply', request_ref: ref, outcome: 'declined', reason: 'user' }));
+    return { seq: 2 };
+  } };
+  await createOutbox({ home, relay, now }).flush();
+  assert.ok(Object.values(readHomeState(home).transport.response_waits).every(w => w.completed_at !== undefined));
+});
+
+test('a command sent during inbound decryption still closes on that checkpointed acknowledgement', async t => {
+  const { home, transport } = setup(t);
+  await createGenericSender({ home, transport, self, now })({ type: 'commands', innerText: JSON.stringify({ v: 1, type: 'commands', commands: [{ command_id: 'one', version: 1 }] }) });
+  const message = await delivery(transport, 1, { v: 1, type: 'sync', acks: [{ command_id: 'one', version: 1, status: 'applied' }] });
+  const receive = transport.receive;
+  transport.receive = async options => {
+    const result = await receive(options);
+    await createOutbox({ home, now, relay: { postMessage: async () => ({ seq: 2 }) } }).flush();
+    return result;
+  };
+  await createThinInbound({ home, transport, self, now }).receive(message);
+  assert.ok(Object.values(readHomeState(home).transport.response_waits).every(w => w.completed_at !== undefined));
 });

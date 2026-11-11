@@ -794,6 +794,275 @@
       "dropped": []
     },
     {
+      "name": "sync_summaries",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"deleted\":[],\"acks\":[],\"more\":false,\"summaries\":[{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:15:00Z\",\"stat\":\"sum\",\"value\":412},{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2026-10-11T08:15:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"stat\":\"sum\",\"value\":0},{\"type\":\"active_energy_burned\",\"unit\":\"kcal\",\"start\":\"2026-10-11T08:00:00.000Z\",\"end\":\"2026-10-11T08:15:00+00:00\",\"stat\":\"sum\",\"value\":18.25,\"x_future\":1},{\"type\":\"heart_rate\",\"unit\":\"count/min\",\"start\":\"2026-10-10T21:00:00Z\",\"end\":\"2026-10-11T21:00:00Z\",\"stat\":\"avg\",\"value\":61.5}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false,
+        "summaries": [
+          {
+            "type": "steps",
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:15:00Z",
+            "stat": "sum",
+            "value": 412
+          },
+          {
+            "type": "steps",
+            "unit": "count",
+            "start": "2026-10-11T08:15:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "stat": "sum",
+            "value": 0
+          },
+          {
+            "type": "active_energy_burned",
+            "unit": "kcal",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:15:00Z",
+            "stat": "sum",
+            "value": 18.25
+          },
+          {
+            "type": "heart_rate",
+            "unit": "count/min",
+            "start": "2026-10-10T21:00:00Z",
+            "end": "2026-10-11T21:00:00Z",
+            "stat": "avg",
+            "value": 61.5
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_summaries_only",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"summaries\":[{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:15:00Z\",\"stat\":\"sum\",\"value\":412}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [],
+        "deleted": [],
+        "acks": [],
+        "more": false,
+        "summaries": [
+          {
+            "type": "steps",
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:15:00Z",
+            "stat": "sum",
+            "value": 412
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_summaries_empty",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"summaries\":[]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_summaries_beside_raw_entries",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-2\",\"type\":\"insulin_delivery\",\"value\":4,\"unit\":\"IU\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-3\",\"type\":\"inhaler_usage\",\"value\":1,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}},{\"uuid\":\"Q-4\",\"type\":\"body_mass\",\"value\":72.5,\"unit\":\"kg\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"summaries\":[{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:15:00Z\",\"stat\":\"sum\",\"value\":412}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "Q-2",
+            "type": "insulin_delivery",
+            "value": 4,
+            "unit": "IU",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "Q-3",
+            "type": "inhaler_usage",
+            "value": 1,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          },
+          {
+            "uuid": "Q-4",
+            "type": "body_mass",
+            "value": 72.5,
+            "unit": "kg",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false,
+        "summaries": [
+          {
+            "type": "steps",
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:15:00Z",
+            "stat": "sum",
+            "value": 412
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "sync_drop_summary_rules",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"summaries\":[{\"type\":\"sleep_analysis\",\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"stat\":\"sum\",\"value\":1},{\"type\":\"not_a_type\",\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"stat\":\"sum\",\"value\":1},{\"type\":\"steps\",\"unit\":\"km\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"stat\":\"sum\",\"value\":1},{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"stat\":\"max\",\"value\":1},{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"stat\":\"sum\",\"value\":1},{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2026-10-11T08:30:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"stat\":\"sum\",\"value\":1},{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2026-02-30T00:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"stat\":\"sum\",\"value\":1},{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"stat\":\"sum\",\"value\":\"1\"},{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"stat\":\"sum\",\"value\":1e999},{\"type\":\"steps\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"stat\":\"sum\",\"value\":1},5,{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"stat\":\"sum\",\"value\":7}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false,
+        "summaries": [
+          {
+            "type": "steps",
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "stat": "sum",
+            "value": 7
+          }
+        ]
+      },
+      "dropped": [
+        "/summaries/0",
+        "/summaries/1",
+        "/summaries/2",
+        "/summaries/3",
+        "/summaries/4",
+        "/summaries/5",
+        "/summaries/6",
+        "/summaries/7",
+        "/summaries/8",
+        "/summaries/9",
+        "/summaries/10"
+      ]
+    },
+    {
+      "name": "sync_summaries_not_array",
+      "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"summaries\":{\"steps\":1}}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "sync",
+        "device": "m_dev_1",
+        "samples": [
+          {
+            "uuid": "Q-1",
+            "type": "steps",
+            "value": 812,
+            "unit": "count",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            }
+          }
+        ],
+        "deleted": [],
+        "acks": [],
+        "more": false
+      },
+      "dropped": [
+        "/summaries"
+      ]
+    },
+    {
       "name": "sync_scope_none",
       "json": "{\"v\":1,\"type\":\"sync\",\"device\":\"m_dev_1\",\"samples\":[{\"uuid\":\"Q-1\",\"type\":\"steps\",\"value\":812,\"unit\":\"count\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:30:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"iPhone\"}}],\"scope\":{\"read\":\"none\",\"write\":\"none\"}}",
       "expect": "ok",
@@ -3614,6 +3883,569 @@
       "expect": "invalid"
     },
     {
+      "name": "system_access_reply_filtered",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"}],\"write\":[]}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-11T08:00:00Z",
+        "outcome": "filtered",
+        "read": [
+          {
+            "type": "dietary_water",
+            "outcome": "refused",
+            "reason": "requested_recently",
+            "next_available_at": "2026-10-12T08:00:00Z"
+          }
+        ],
+        "write": []
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reply_filtered_write",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}]}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-11T08:00:00Z",
+        "outcome": "filtered",
+        "read": [],
+        "write": [
+          {
+            "type": "dietary_water",
+            "outcome": "refused",
+            "reason": "declined_recently",
+            "next_available_at": "2026-10-18T08:00:00Z"
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reply_merged_empty",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"merged\",\"read\":[],\"write\":[],\"merged_into\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-11T08:00:00Z",
+        "outcome": "merged",
+        "read": [],
+        "write": [],
+        "merged_into": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reply_merged_filtered",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"merged\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}],\"merged_into\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-11T08:00:00Z",
+        "outcome": "merged",
+        "read": [
+          {
+            "type": "dietary_water",
+            "outcome": "refused",
+            "reason": "requested_recently",
+            "next_available_at": "2026-10-12T08:00:00Z"
+          }
+        ],
+        "write": [
+          {
+            "type": "dietary_water",
+            "outcome": "refused",
+            "reason": "declined_recently",
+            "next_available_at": "2026-10-18T08:00:00Z"
+          }
+        ],
+        "merged_into": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reply_resolved_filtered",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}]}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-11T08:00:00Z",
+        "outcome": "resolved",
+        "read": [
+          {
+            "type": "dietary_water",
+            "outcome": "refused",
+            "reason": "requested_recently",
+            "next_available_at": "2026-10-12T08:00:00Z"
+          },
+          {
+            "type": "workout",
+            "outcome": "allowed"
+          }
+        ],
+        "write": [
+          {
+            "type": "dietary_water",
+            "outcome": "refused",
+            "reason": "declined_recently",
+            "next_available_at": "2026-10-18T08:00:00Z"
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reply_resolved_merged",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}],\"merged_refs\":[\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"cccccccccccccccccccccccccccccccc\",\"dddddddddddddddddddddddddddddddd\"]}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-11T08:00:00Z",
+        "outcome": "resolved",
+        "read": [
+          {
+            "type": "dietary_water",
+            "outcome": "refused",
+            "reason": "requested_recently",
+            "next_available_at": "2026-10-12T08:00:00Z"
+          },
+          {
+            "type": "workout",
+            "outcome": "allowed"
+          }
+        ],
+        "write": [
+          {
+            "type": "dietary_water",
+            "outcome": "refused",
+            "reason": "declined_recently",
+            "next_available_at": "2026-10-18T08:00:00Z"
+          }
+        ],
+        "merged_refs": [
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccc",
+          "dddddddddddddddddddddddddddddddd"
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reply_resolved_old_refusal",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-13T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}]}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-13T08:00:00Z",
+        "outcome": "resolved",
+        "read": [
+          {
+            "type": "dietary_water",
+            "outcome": "refused",
+            "reason": "requested_recently",
+            "next_available_at": "2026-10-12T08:00:00Z"
+          },
+          {
+            "type": "workout",
+            "outcome": "allowed"
+          }
+        ],
+        "write": [
+          {
+            "type": "dietary_water",
+            "outcome": "refused",
+            "reason": "declined_recently",
+            "next_available_at": "2026-10-18T08:00:00Z"
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reply_expired_merged",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-12T08:00:00Z\",\"outcome\":\"expired\",\"read\":[],\"write\":[],\"merged_refs\":[\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"cccccccccccccccccccccccccccccccc\",\"dddddddddddddddddddddddddddddddd\"]}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-12T08:00:00Z",
+        "outcome": "expired",
+        "read": [],
+        "write": [],
+        "merged_refs": [
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccc",
+          "dddddddddddddddddddddddddddddddd"
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reply_daily_ceiling",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"rate_limited\",\"read\":[],\"write\":[],\"next_available_at\":\"2026-10-12T08:00:00Z\",\"limit_reason\":\"daily_ceiling\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-11T08:00:00Z",
+        "outcome": "rate_limited",
+        "read": [],
+        "write": [],
+        "next_available_at": "2026-10-12T08:00:00Z",
+        "limit_reason": "daily_ceiling"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reply_amendment_limit",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"rate_limited\",\"read\":[],\"write\":[],\"next_available_at\":\"2026-10-12T08:00:00Z\",\"limit_reason\":\"amendment_limit\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-11T08:00:00Z",
+        "outcome": "rate_limited",
+        "read": [],
+        "write": [],
+        "next_available_at": "2026-10-12T08:00:00Z",
+        "limit_reason": "amendment_limit"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reply_pending_limit",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"pending_limit\",\"read\":[],\"write\":[],\"next_available_at\":\"2026-10-12T08:00:00Z\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_reply",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decided_at": "2026-10-11T08:00:00Z",
+        "outcome": "pending_limit",
+        "read": [],
+        "write": [],
+        "next_available_at": "2026-10-12T08:00:00Z"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_reply_bad_no_reason",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"next_available_at\":\"2026-10-12T08:00:00Z\"}],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_no_time",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\"}],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_null_time",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":null}],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_bad_time",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-02-30T12:00:00Z\"}],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_past_snapshot",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-11T07:59:59Z\"}],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_bad_reason",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"user\",\"next_available_at\":\"2026-10-12T08:00:00Z\"}],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_owner_with_fields",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"allowed\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"}],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_extra_item_key",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\",\"extra\":\"private\"}],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_refs_empty",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}],\"merged_refs\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_refs_duplicate",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}],\"merged_refs\":[\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_refs_unsorted",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}],\"merged_refs\":[\"cccccccccccccccccccccccccccccccc\",\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_refs_self",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}],\"merged_refs\":[\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_refs_uppercase",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}],\"merged_refs\":[\"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\"]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_refs_short",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}],\"merged_refs\":[\"b\"]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_refs_four",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}],\"merged_refs\":[\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"cccccccccccccccccccccccccccccccc\",\"dddddddddddddddddddddddddddddddd\",\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_refs_null",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}],\"merged_refs\":null}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_filtered_next_available_at",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"}],\"write\":[],\"next_available_at\":\"2026-10-11T08:30:00Z\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_filtered_detail",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"}],\"write\":[],\"detail\":\"ttl\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_filtered_limit_reason",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"}],\"write\":[],\"limit_reason\":\"daily_ceiling\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_filtered_merged_into",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"}],\"write\":[],\"merged_into\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_filtered_merged_refs",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"}],\"write\":[],\"merged_refs\":[\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_merged_empty_next_available_at",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"merged\",\"read\":[],\"write\":[],\"merged_into\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"next_available_at\":\"2026-10-11T08:30:00Z\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_merged_empty_detail",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"merged\",\"read\":[],\"write\":[],\"merged_into\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"detail\":\"ttl\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_merged_empty_limit_reason",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"merged\",\"read\":[],\"write\":[],\"merged_into\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"limit_reason\":\"daily_ceiling\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_merged_empty_merged_refs",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"merged\",\"read\":[],\"write\":[],\"merged_into\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"merged_refs\":[\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_resolved_filtered_next_available_at",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}],\"next_available_at\":\"2026-10-11T08:30:00Z\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_resolved_filtered_detail",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}],\"detail\":\"ttl\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_resolved_filtered_limit_reason",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}],\"limit_reason\":\"daily_ceiling\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_resolved_filtered_merged_into",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"declined_recently\",\"next_available_at\":\"2026-10-18T08:00:00Z\"}],\"merged_into\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_expired_merged_next_available_at",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-12T08:00:00Z\",\"outcome\":\"expired\",\"read\":[],\"write\":[],\"merged_refs\":[\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"cccccccccccccccccccccccccccccccc\",\"dddddddddddddddddddddddddddddddd\"],\"next_available_at\":\"2026-10-11T08:30:00Z\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_expired_merged_detail",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-12T08:00:00Z\",\"outcome\":\"expired\",\"read\":[],\"write\":[],\"merged_refs\":[\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"cccccccccccccccccccccccccccccccc\",\"dddddddddddddddddddddddddddddddd\"],\"detail\":\"ttl\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_expired_merged_limit_reason",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-12T08:00:00Z\",\"outcome\":\"expired\",\"read\":[],\"write\":[],\"merged_refs\":[\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"cccccccccccccccccccccccccccccccc\",\"dddddddddddddddddddddddddddddddd\"],\"limit_reason\":\"daily_ceiling\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_expired_merged_merged_into",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-12T08:00:00Z\",\"outcome\":\"expired\",\"read\":[],\"write\":[],\"merged_refs\":[\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"cccccccccccccccccccccccccccccccc\",\"dddddddddddddddddddddddddddddddd\"],\"merged_into\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_pending_limit_detail",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"pending_limit\",\"read\":[],\"write\":[],\"next_available_at\":\"2026-10-12T08:00:00Z\",\"detail\":\"ttl\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_pending_limit_limit_reason",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"pending_limit\",\"read\":[],\"write\":[],\"next_available_at\":\"2026-10-12T08:00:00Z\",\"limit_reason\":\"daily_ceiling\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_pending_limit_merged_into",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"pending_limit\",\"read\":[],\"write\":[],\"next_available_at\":\"2026-10-12T08:00:00Z\",\"merged_into\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_pending_limit_merged_refs",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"pending_limit\",\"read\":[],\"write\":[],\"next_available_at\":\"2026-10-12T08:00:00Z\",\"merged_refs\":[\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_daily_ceiling_detail",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"rate_limited\",\"read\":[],\"write\":[],\"next_available_at\":\"2026-10-12T08:00:00Z\",\"limit_reason\":\"daily_ceiling\",\"detail\":\"ttl\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_daily_ceiling_merged_into",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"rate_limited\",\"read\":[],\"write\":[],\"next_available_at\":\"2026-10-12T08:00:00Z\",\"limit_reason\":\"daily_ceiling\",\"merged_into\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_daily_ceiling_merged_refs",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"rate_limited\",\"read\":[],\"write\":[],\"next_available_at\":\"2026-10-12T08:00:00Z\",\"limit_reason\":\"daily_ceiling\",\"merged_refs\":[\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_filtered_empty",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_filtered_owner",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"workout\",\"outcome\":\"allowed\"}],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_resolved_only_refused",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"resolved\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"}],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_merged_no_root",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"merged\",\"read\":[],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_merged_self",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"merged\",\"read\":[],\"write\":[],\"merged_into\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_limit_reason",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"rate_limited\",\"read\":[],\"write\":[],\"next_available_at\":\"2026-10-12T08:00:00Z\",\"limit_reason\":\"user\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_duplicate_items",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"}],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_reply_bad_unsorted_items",
+      "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"filtered\",\"read\":[{\"type\":\"workout\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"},{\"type\":\"dietary_water\",\"outcome\":\"refused\",\"reason\":\"requested_recently\",\"next_available_at\":\"2026-10-12T08:00:00Z\"}],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
       "name": "system_diagnostics_request",
       "json": "{\"v\":1,\"type\":\"diagnostics_request\",\"request_ref\":\"0123456789abcdef0123456789abcdef\",\"created_at\":\"2026-11-03T12:00:00Z\",\"expires_at\":\"2026-11-04T12:00:00Z\"}",
       "kind": "control",
@@ -3890,6 +4722,63 @@
         "version": "0.14.0"
       },
       "dropped": []
+    },
+    {
+      "name": "system_scope_release",
+      "json": "{\"v\":1,\"type\":\"scope_release\",\"read\":[\"sleep_analysis\",\"steps\"],\"write\":[\"dietary_water\"]}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "scope_release",
+        "read": [
+          "sleep_analysis",
+          "steps"
+        ],
+        "write": [
+          "dietary_water"
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_scope_release_read_only",
+      "json": "{\"v\":1,\"type\":\"scope_release\",\"read\":[\"workout\"],\"write\":[]}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "scope_release",
+        "read": [
+          "workout"
+        ],
+        "write": []
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_scope_release_empty",
+      "json": "{\"v\":1,\"type\":\"scope_release\",\"read\":[],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_scope_release_unknown_type",
+      "json": "{\"v\":1,\"type\":\"scope_release\",\"read\":[\"no_such_type\"],\"write\":[]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_scope_release_not_writable",
+      "json": "{\"v\":1,\"type\":\"scope_release\",\"read\":[],\"write\":[\"workout\"]}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_scope_release_missing_write",
+      "json": "{\"v\":1,\"type\":\"scope_release\",\"read\":[\"steps\"]}",
+      "kind": "control",
+      "expect": "invalid"
     },
     {
       "name": "system_keys_in_any_order",

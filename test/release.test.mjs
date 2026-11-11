@@ -10,6 +10,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const PUBLIC = fileURLToPath(new URL("../", import.meta.url));
 const SOURCE = existsSync(join(PUBLIC, "agent/package.json")) ? PUBLIC : dirname(PUBLIC);
 const json = (path) => JSON.parse(readFileSync(path, "utf8"));
+const { TOOLS } = await import(pathToFileURL(join(SOURCE, "agent/src/mcp.js")));
+const PUBLISHER_META = "io.modelcontextprotocol.registry/publisher-provided";
 const hash = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
 const config = { command: "npx", args: ["-y", "@syncky/agent", "mcp"] };
 const description = "Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone.";
@@ -70,6 +72,8 @@ function manifests(root) {
   assert.deepEqual(npm, { registryType: "npm", registryBaseUrl: "https://registry.npmjs.org", identifier: pkg.name, version: pkg.version,
     runtimeHint: "npx", packageArguments: [{ type: "positional", value: "mcp" }], transport: { type: "stdio" } });
   assert.deepEqual(mcpb, { registryType: "mcpb", identifier: `https://github.com/syncky/syncky-open/releases/download/v${pkg.version}/syncky-health.mcpb`, transport: { type: "stdio" } });
+  assert.deepEqual(registry._meta, { [PUBLISHER_META]: { tools: TOOLS.map(({ name, description }) => ({ name, description })) } });
+  assert.ok(Buffer.byteLength(JSON.stringify(registry._meta[PUBLISHER_META])) <= 4096);
 }
 
 describe("public installation manifests", () => {
@@ -122,6 +126,7 @@ describe("public installation manifests", () => {
     assert.match(build, /permissions:\n      contents: read/);
     assert.doesNotMatch(build, /id-token:|contents: write|GH_TOKEN|release\.mjs (?:publish|registry)|mcp-publisher (?:login|publish)/);
     assert.match(publish, /needs: build/);
+    assert.match(publish, /RELEASE_NPM_WAIT_ATTEMPTS: '10'\n +RELEASE_NPM_WAIT_SECONDS: '15'/);
     assert.match(publish, /permissions:\n      contents: write\n      id-token: write/);
     assert.deepEqual([...build.matchAll(/^ +run: (.+)$/gm)].map((match) => match[1]), ["npm ci --no-audit --no-fund", ...commands.slice(1, 5), "npm ci --no-audit --no-fund", "npm test", "npm run build:worker", ...commands.slice(5, -2)]);
     assert.deepEqual([...publish.matchAll(/^ +run: (.+)$/gm)].map((match) => match[1]), ["npm install --global npm@11.5.2 --ignore-scripts --no-audit --no-fund", release, install, registry]);
@@ -210,15 +215,32 @@ const upload = (paths) => {
     once('upload');
   }
 };
+if (state.commandFailure === command + ' ' + args[0]) {
+  process.stdout.write('sensitive command stdout');
+  process.stderr.write('sensitive command stderr');
+  if (state.commandSignal) process.kill(process.pid, state.commandSignal);
+  process.exit(1);
+}
+if (state.commandResponse === command + ' ' + args[0]) {
+  process.stdout.write('sensitive command response');
+  process.exit(0);
+}
 if (command === 'npm' && args[0] === 'view') {
   if (state.npmError) fail({ error: { code: state.npmError } });
+  if (state.npmNeverVisible || state.npmViewLag > 0) {
+    state.npmViewLag = Math.max(0, (state.npmViewLag ?? 0) - 1);
+    save();
+    fail({ error: { code: 'E404' } });
+  }
   if (Object.hasOwn(state, 'npmEmpty') && !state.npm) { process.stdout.write(state.npmEmpty); process.exit(0); }
   if (!state.npm) fail({ error: { code: 'E404' } });
   reply(state.npm);
 } else if (command === 'npm' && args[0] === 'publish') {
-  if (state.npm) fail({ error: { code: 'EPUBLISHCONFLICT' } });
+  if (state.npm) fail({ error: { code: state.npmConflictCode ?? 'EPUBLISHCONFLICT', summary: 'You cannot publish over the previously published versions' } });
+  if (state.npmPublishNoop) process.exit(0);
   state.npm = { version: JSON.parse(readFileSync('agent/package.json')).version,
-    'dist.integrity': 'sha512-' + createHash('sha512').update(readFileSync(args[1])).digest('base64') };
+    'dist.integrity': state.npmPublishedIntegrity ?? 'sha512-' + createHash('sha512').update(readFileSync(args[1])).digest('base64') };
+  state.npmViewLag = state.npmPublishLag ?? 0;
   save();
 } else if (command === 'gh' && args[0] === 'api') {
   if (state.githubError) fail({ status: state.githubError });
@@ -283,7 +305,8 @@ if (command === 'npm' && args[0] === 'view') {
       chmodSync(join(bin, name), 0o755);
     }
     t.after(() => rmSync(root, { recursive: true, force: true }));
-    return { root, release: join(root, "release"), log, state, env: { ...env, PATH: `${bin}:${process.env.PATH}`, EFFECTS: log, REMOTE: state } };
+    return { root, release: join(root, "release"), log, state, env: { ...env, PATH: `${bin}:${process.env.PATH}`, EFFECTS: log, REMOTE: state,
+      RELEASE_NPM_WAIT_ATTEMPTS: "4", RELEASE_NPM_WAIT_SECONDS: "0" } };
   }
 
   const prepare = (fx) => {
@@ -294,6 +317,7 @@ if (command === 'npm' && args[0] === 'view') {
   const registry = (fx) => run(["release.mjs", "registry", fx.release], fx.root, fx.env);
   const calls = (fx) => readFileSync(fx.log, "utf8").trim().split("\n").map(JSON.parse);
   const updateRemote = (fx, patch) => writeFileSync(fx.state, JSON.stringify({ ...json(fx.state), ...patch }));
+  const npmView = (fx) => ["npm", "view", `@syncky/agent@${json(join(fx.release, "release.json")).version}`, "version", "dist.integrity", "--json", "--prefer-online"];
 
   it("pins the publisher release, archive and independent SHA-256", async () => {
     const { MCP_PUBLISHER } = await import(pathToFileURL(join(source, "release.mjs")));
@@ -312,7 +336,8 @@ if (command === 'npm' && args[0] === 'view') {
       const result = run(["release.mjs", "install-publisher", join(fx.root, "publisher-bin")], fx.root, fx.env);
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
-      assert.equal(result.stderr, `release: publisher download failed: ${asset}\n`);
+      assert.equal(result.stderr, `release: publisher download failed: ${asset}: curl (exit 1)\n`);
+      assert.doesNotMatch(result.stdout + result.stderr, /private curl diagnostic|private download output|https:\/\/|--output|publisher-bin/);
     });
   }
 
@@ -355,6 +380,7 @@ if (command === 'npm' && args[0] === 'view') {
     assert.doesNotMatch(result.stdout + result.stderr, /sensitive authentication output/);
     const generated = json(join(fx.release, "server.json"));
     assert.deepEqual(calls(fx).slice(offset), [
+      npmView(fx),
       ["curl", "--silent", "--show-error", "--output", "/dev/null", "--write-out", "%{http_code}", "--max-time", "30",
         `https://registry.modelcontextprotocol.io/v0/servers/${encodeURIComponent(generated.name)}/versions/${encodeURIComponent(generated.version)}`],
       ["mcp-publisher", "login", "github-oidc"],
@@ -365,7 +391,7 @@ if (command === 'npm' && args[0] === 'view') {
     const resumed = registry(fx);
     assert.equal(resumed.status, 0, resumed.stderr);
     assert.match(resumed.stdout, /already exists.*skip/i);
-    assert.equal(calls(fx).slice(completed).length, 1);
+    assert.deepEqual(calls(fx).slice(completed).map((call) => call[0]), ["npm", "curl"]);
     assert.equal(calls(fx).at(-1)[0], "curl");
   });
 
@@ -381,13 +407,25 @@ if (command === 'npm' && args[0] === 'view') {
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, /MCP Registry .*failed/);
       assert.doesNotMatch(result.stdout + result.stderr, /sensitive authentication output/);
+      assert.doesNotMatch(result.stdout + result.stderr, /lookup transport failed|https:\/\/|--output|github-oidc|server\.json/);
+      if (patch.registryError || patch.publisherError) {
+        const operation = patch.registryError ? "lookup" : patch.publisherError;
+        const command = patch.registryError ? "curl" : `mcp-publisher ${patch.publisherError}`;
+        const diagnostic = `release: MCP Registry ${operation} failed: ${command} (exit 1)`;
+        assert.equal(result.stderr.trimEnd().split("\n").at(-1), diagnostic);
+        if (patch.publisherError !== "publish") {
+          assert.equal(result.stdout, "");
+          assert.equal(result.stderr, `${diagnostic}\n`);
+        }
+      }
       if (patch.publisherError === "publish") {
         assert.match(result.stdout, /Registry publish response/);
         assert.match(result.stderr, /Registry validation issue: mcpName mismatch \(HTTP 422\)/);
       }
       const effects = calls(fx).slice(offset);
-      assert.ok(effects.every((call) => ["curl", "mcp-publisher"].includes(call[0])));
-      assert.equal(effects.length, patch.publisherError === "publish" ? 3 : patch.publisherError === "login" ? 2 : 1);
+      assert.deepEqual(effects[0], npmView(fx));
+      assert.ok(effects.slice(1).every((call) => ["curl", "mcp-publisher"].includes(call[0])));
+      assert.equal(effects.length, patch.publisherError === "publish" ? 4 : patch.publisherError === "login" ? 3 : 2);
       assert.deepEqual(json(fx.state).npm, published.npm);
       assert.deepEqual(json(fx.state).release, published.release);
       updateRemote(fx, { registryStatus: 404, registryError: false, publisherError: null });
@@ -428,6 +466,17 @@ if (command === 'npm' && args[0] === 'view') {
     ["non-string description", (fx) => { const file = join(fx.root, "server.json"); const value = json(file); value.description = 100; writeFileSync(file, JSON.stringify(value)); }],
     ["draft version", (fx) => { const file = join(fx.root, "server.json"); const value = json(file); value.version = "9.0.0"; writeFileSync(file, JSON.stringify(value)); }],
     ["npm version", (fx) => { const file = join(fx.root, "server.json"); const value = json(file); value.packages[0].version = "9.0.0"; writeFileSync(file, JSON.stringify(value)); }],
+    ...[
+      ["missing tool list", (value) => { delete value._meta; }],
+      ["empty tool list", (value) => { value._meta[PUBLISHER_META].tools = []; }],
+      ["foreign metadata namespace", (value) => { value._meta["app.syncky/extra"] = {}; }],
+      ["extra publisher metadata", (value) => { value._meta[PUBLISHER_META].build = "local"; }],
+      ["extra tool field", (value) => { value._meta[PUBLISHER_META].tools[0].inputSchema = {}; }],
+      ["bad tool name", (value) => { value._meta[PUBLISHER_META].tools[0].name = "Syncky Status"; }],
+      ["multi-line tool description", (value) => { value._meta[PUBLISHER_META].tools[0].description = "one\ntwo"; }],
+      ["duplicate tool", (value) => { value._meta[PUBLISHER_META].tools.push({ ...value._meta[PUBLISHER_META].tools[0] }); }],
+      ["oversized publisher metadata", (value) => { value._meta[PUBLISHER_META].tools[0].description = "a".repeat(4097); }],
+    ].map(([name, mutate]) => [name, (fx) => { const file = join(fx.root, "server.json"); const value = json(file); mutate(value); writeFileSync(file, JSON.stringify(value)); }]),
     ["release URL", (fx) => { const file = join(fx.root, "server.json"); const value = json(file); value.packages[1].identifier = value.packages[1].identifier.replace("/v", "/wrong-v"); writeFileSync(file, JSON.stringify(value)); }],
     ["sidecar", (fx) => writeFileSync(join(fx.root, "agent/dist/syncky-health.mcpb.sha256"), "invalid\n")],
     ["checksum list", (fx) => writeFileSync(join(fx.root, "agent/dist/SHA256SUMS"), "invalid\n")],
@@ -455,7 +504,8 @@ if (command === 'npm' && args[0] === 'view') {
     assert.equal(published.status, 0, published.stderr);
     assert.deepEqual(calls(fx), [
       ["npm", "view", `@syncky/agent@${receipt.version}`, "version", "dist.integrity", "--json", "--prefer-online"],
-      ["npm", "publish", join(fx.release, receipt.tarball), "--access", "public", "--provenance", "--ignore-scripts"],
+      ["npm", "publish", join(fx.release, receipt.tarball), "--access", "public", "--provenance", "--ignore-scripts", "--json"],
+      npmView(fx),
       ["gh", "api", `repos/syncky/syncky-open/releases/tags/${env.GITHUB_REF_NAME}`],
       ["gh", "api", "--paginate", "--slurp", "repos/syncky/syncky-open/releases?per_page=100"],
       ["gh", "release", "create", env.GITHUB_REF_NAME, "--repo", "syncky/syncky-open", "--verify-tag", "--title", env.GITHUB_REF_NAME, "--generate-notes", "--draft"],
@@ -479,6 +529,131 @@ if (command === 'npm' && args[0] === 'view') {
       assert.equal(json(fx.state).release.draft, false);
     });
   }
+
+  it("waits for npm visibility and integrity after publishing and again before touching the Registry", (t) => {
+    const fx = fixture(t);
+    assert.equal(prepare(fx).status, 0);
+    updateRemote(fx, { npmPublishLag: 2 });
+    const published = publish(fx);
+    assert.equal(published.status, 0, published.stderr);
+    assert.deepEqual(calls(fx).slice(0, 5).map((call) => call.slice(0, 2)), [
+      ["npm", "view"], ["npm", "publish"], ["npm", "view"], ["npm", "view"], ["npm", "view"],
+    ]);
+    assert.equal(calls(fx)[5][0], "gh");
+    updateRemote(fx, { npmViewLag: 3 });
+    const offset = calls(fx).length;
+    const result = registry(fx);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(calls(fx).slice(offset, offset + 4), Array(4).fill(npmView(fx)));
+    assert.deepEqual(calls(fx).slice(offset + 4).map((call) => call[0]), ["curl", "mcp-publisher", "mcp-publisher"]);
+  });
+
+  for (const stage of ["publish", "registry"]) {
+    it(`bounds ${stage} visibility failures without touching the Registry`, (t) => {
+      const fx = fixture(t);
+      assert.equal(prepare(fx).status, 0);
+      if (stage === "registry") assert.equal(publish(fx).status, 0);
+      updateRemote(fx, stage === "publish" ? { npmPublishNoop: true } : { npmNeverVisible: true });
+      fx.env.RELEASE_NPM_WAIT_ATTEMPTS = "3";
+      fx.env.RELEASE_NPM_WAIT_SECONDS = "0.001";
+      const offset = existsSync(fx.log) ? calls(fx).length : 0;
+      const before = json(fx.state);
+      const result = stage === "publish" ? publish(fx) : registry(fx);
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, "");
+      assert.equal(result.stderr, `release: npm @syncky/agent@${json(join(fx.release, "release.json")).version} not visible after 3 attempts (0.001s between attempts)\n`);
+      const effects = calls(fx).slice(offset);
+      assert.equal(effects.filter((call) => call[1] === "view").length, stage === "publish" ? 4 : 3);
+      assert.equal(effects.filter((call) => call[1] === "publish").length, stage === "publish" ? 1 : 0);
+      assert.ok(effects.every((call) => call[0] === "npm"));
+      assert.deepEqual(json(fx.state).release, before.release);
+      assert.deepEqual(json(fx.state).npm, before.npm);
+      updateRemote(fx, { npmPublishNoop: false, npmNeverVisible: false });
+      assert.equal(publish(fx).status, 0);
+      assert.equal(registry(fx).status, 0);
+    });
+  }
+
+  it("defaults to ten npm visibility attempts", (t) => {
+    const fx = fixture(t);
+    assert.equal(prepare(fx).status, 0);
+    delete fx.env.RELEASE_NPM_WAIT_ATTEMPTS;
+    const result = registry(fx);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /not visible after 10 attempts \(0s between attempts\)/);
+    assert.deepEqual(calls(fx), Array(10).fill(npmView(fx)));
+  });
+
+  for (const code of ["EPUBLISHCONFLICT", "E403", "E409"]) {
+    it(`resumes a publish rerun after a stale npm view and ${code}`, (t) => {
+      const fx = fixture(t);
+      assert.equal(prepare(fx).status, 0);
+      assert.equal(publish(fx).status, 0);
+      const before = json(fx.state);
+      updateRemote(fx, { npmViewLag: 3, npmConflictCode: code });
+      const offset = calls(fx).length;
+      const result = publish(fx);
+      assert.equal(result.status, 0, result.stderr);
+      const effects = calls(fx).slice(offset);
+      assert.equal(effects.filter((call) => call[1] === "publish").length, 1);
+      assert.equal(effects.filter((call) => call[1] === "view").length, 4);
+      assert.ok(effects.filter((call) => call[0] === "gh").every((call) => call[1] === "api" || call[2] === "download"));
+      assert.deepEqual(json(fx.state).npm, before.npm);
+      assert.deepEqual(json(fx.state).release, before.release);
+    });
+  }
+
+  for (const stage of ["publish", "registry", "conflict"]) {
+    it(`rejects visible npm integrity mismatches during ${stage}`, (t) => {
+      const fx = fixture(t);
+      assert.equal(prepare(fx).status, 0);
+      if (stage !== "publish") assert.equal(publish(fx).status, 0);
+      if (stage === "publish") updateRemote(fx, { npmPublishedIntegrity: "sha512-different" });
+      else updateRemote(fx, { npm: { ...json(fx.state).npm, "dist.integrity": "sha512-different" }, npmViewLag: stage === "conflict" ? 2 : 0 });
+      const offset = existsSync(fx.log) ? calls(fx).length : 0;
+      const result = stage === "registry" ? registry(fx) : publish(fx);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /existing npm version\/integrity mismatch/);
+      assert.ok(calls(fx).slice(offset).every((call) => call[0] === "npm"));
+    });
+  }
+
+  for (const command of ["npm view", "npm publish", "gh api", "gh release"]) {
+    it(`names a failing ${command} without exposing output or arguments`, (t) => {
+      const fx = fixture(t);
+      assert.equal(prepare(fx).status, 0);
+      updateRemote(fx, { commandFailure: command });
+      const result = publish(fx);
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, "");
+      assert.equal(result.stderr, `release: local command failed: ${command} (exit 1)\n`);
+      assert.doesNotMatch(result.stdout + result.stderr, /sensitive command|syncky-agent-.*\.tgz|--provenance|repos\//);
+      assert.equal(calls(fx).at(-1).slice(0, 2).join(" "), command);
+    });
+  }
+
+  it("names the signal that killed npm publish without exposing output or arguments", (t) => {
+    const fx = fixture(t);
+    assert.equal(prepare(fx).status, 0);
+    updateRemote(fx, { commandFailure: "npm publish", commandSignal: "SIGTERM" });
+    const result = publish(fx);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, "release: local command failed: npm publish (signal SIGTERM)\n");
+    assert.doesNotMatch(result.stdout + result.stderr, /sensitive command|syncky-agent-.*\.tgz|--provenance|repos\//);
+    assert.equal(calls(fx).at(-1).slice(0, 2).join(" "), "npm publish");
+  });
+
+  it("does not expose a malformed command response in a JSON parse error", (t) => {
+    const fx = fixture(t);
+    assert.equal(prepare(fx).status, 0);
+    updateRemote(fx, { commandResponse: "npm view" });
+    const result = publish(fx);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, "release: invalid JSON response\n");
+    assert.deepEqual(calls(fx), [npmView(fx)]);
+  });
 
   it("publishes downloaded prepared assets without dependencies, a build tree or executing the bundle", (t) => {
     const fx = fixture(t);

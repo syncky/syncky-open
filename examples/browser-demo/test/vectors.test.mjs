@@ -124,10 +124,22 @@ describe("pair-uris.json", () => {
     it(`build ${c.name}, in each scheme`, () => {
       assert.equal(buildPairUri(c.input), c.uri);
       for (const url_scheme of ["syncky", "syncky-dev", "syncky-staging"]) {
-        assert.equal(buildPairUri({ ...c.input, url_scheme }), c.uri.replace(/^syncky(?:-dev|-staging)?:/, `${url_scheme}:`));
+        assert.equal(buildPairUri({ ...c.input, url_scheme }), `${url_scheme}://pair?${c.uri.split(/[?#]/)[1]}`);
       }
     });
   }
+  it("normalizes requested types and appends the encoded triple after existing fields", () => {
+    const input = buildCases[0].input;
+    const requested_scope = { request_ref: "0123456789abcdef0123456789abcdef", read: ["heart_rate", "body_mass", "heart_rate"], write: [] };
+    for (const pair_secret of [undefined, "AAECAwQFBgcICQoLDA0ODw"]) {
+      const base = { ...input, relay_base: "http://localhost:8790", pair_secret, url_scheme: null };
+      const uri = buildPairUri({ ...base, requested_scope });
+      assert.equal(uri, buildPairUri(base) + "&request_ref=" + requested_scope.request_ref + "&read=%5B%22body_mass%22%2C%22heart_rate%22%5D&write=%5B%5D");
+      assert.equal(new URL(uri).search, "");
+      for (const url_scheme of ["syncky", "syncky-dev", "syncky-staging"]) assert.equal(buildPairUri({ ...base, requested_scope, url_scheme }), `${url_scheme}://pair?${new URL(uri).hash.slice(1)}`);
+    }
+    assert.deepEqual(requested_scope.read, ["heart_rate", "body_mass", "heart_rate"]);
+  });
   it("refuses another scheme", () => {
     for (const url_scheme of ["https", "", "syncky://"]) assert.throws(() => buildPairUri({ ...buildCases[0].input, url_scheme }), TypeError);
   });
@@ -171,5 +183,36 @@ describe("access marker authentication", () => {
     await rejects(make({ diagnostics: "reply" }), "invalid_input");
     await rejects(make({ kind: "data" }), "invalid_input");
     for (const plaintext of ['{"v":1,"type":"pair_proof"}', '{"v":2,"type":"access_reply"}', 'null', 'bad']) await rejects(openEnvelope(await make({ plaintext }), me), "inner_invalid");
+  });
+});
+
+
+describe("HTTPS producer inference", () => {
+  const input = vectors("pair-uris").cases.find(c => c.input).input;
+  for (const [relay_base, site] of [
+    ["https://relay.syncky.app", "syncky.app"],
+    ["https://relay-dev.syncky.app:8443", "dev.syncky.app"],
+    ["https://RELAY-DEV.SYNCKY.APP:443", "dev.syncky.app"],
+    ["https://relay-staging.syncky.app", "staging.syncky.app"],
+    ["http://relay-staging.syncky.app:8790", "staging.syncky.app"],
+    ["https://relay-dev.syncky.app.example", "syncky.app"],
+    ["https://relay-staging.syncky.app.", "syncky.app"],
+    ["https://dev.example", "syncky.app"],
+    ["http://localhost:8790", "syncky.app"],
+    ["http://127.0.0.1:8790", "syncky.app"],
+    ["http://[::1]:8790", "syncky.app"],
+  ]) it(relay_base, () => {
+    for (const url_scheme of [undefined, null]) for (const pair_secret of [undefined, "AAECAwQFBgcICQoLDA0ODw"]) {
+      const value = { ...input, relay_base, pair_secret, url_scheme };
+      const uri = buildPairUri(value), url = new URL(uri);
+      assert.equal(url.origin, `https://${site}`); assert.equal(url.pathname, "/pair"); assert.equal(url.search, "");
+      const params = new URLSearchParams(url.hash.slice(1));
+      assert.deepEqual([...params.keys()], ["v", "r", "h", "t", "k", "n", ...(pair_secret ? ["c"] : []), ...(relay_base.startsWith("http://") ? ["s"] : [])]);
+      assert.equal(params.get("r"), relay_base.replace(/^https?:\/\//, ""));
+      assert.equal(params.get("t"), input.pairing_token); assert.equal(params.get("c"), pair_secret ?? null);
+      assert.equal(params.get("v"), pair_secret ? "2" : "1");
+      const legacy = buildPairUri({ ...value, url_scheme: "syncky" });
+      assert.ok(legacy === `syncky://pair?${url.hash.slice(1)}`, "explicit scheme changed the payload");
+    }
   });
 });

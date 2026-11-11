@@ -327,7 +327,28 @@ describe("DemoSession hub state", () => {
 });
 
 describe("DemoSession pairing", () => {
-  it("registers a demo hub, shows a v2 link with the build's scheme and its code, confirms the phone by its proof", async () => {
+  for (const [relayUrl, site] of [
+    ["https://relay-dev.syncky.app:8443", "dev.syncky.app"],
+    ["https://relay-staging.syncky.app:8443", "staging.syncky.app"],
+    ["https://relay-dev.syncky.app.example", "syncky.app"],
+    ["http://127.0.0.1:8790", "syncky.app"],
+  ]) it(`infers ${site} and completes proof pairing independently of legacy metadata`, async () => {
+    const { relay, session } = await started({}, { relay: relayUrl, scheme: "syncky" });
+    await until(() => session.state.phase === "pairing", "pairing");
+    const { uri, code } = session.state.pairing, url = new URL(uri), params = new URLSearchParams(url.hash.slice(1));
+    assert.equal(url.origin, `https://${site}`); assert.equal(url.search, "");
+    for (const key of ["t", "c"]) assert.ok(params.get(key), `pairing URI lacks ${key} credential`);
+    for (const key of ["request_ref", "read", "write"]) assert.equal(params.has(key), false, "demo unexpectedly requested scope");
+    assert.equal(code, await pairCode(params.get("c")));
+    await until(() => session.state.phase === "confirmed", "confirmation");
+    for (const credential of [uri, params.get("t"), params.get("c")]) {
+      assert.ok(!JSON.stringify(relay.calls).includes(credential), "pairing credential sent to relay");
+      assert.ok(!JSON.stringify(session.state).includes(credential), "completed pairing retained credentials");
+    }
+    assert.deepEqual(relay.phoneMessages, [{ kind: "control", inner: { v: 1, type: "confirmed" } }]);
+    await session.end();
+  });
+  it("registers a demo hub, shows an inferred HTTPS v2 link despite scheme metadata and its code, confirms the phone by its proof", async () => {
     const { relay, session } = await started();
     await until(() => session.state.phase === "pairing", "pairing");
     const register = relay.calls[0];
@@ -335,8 +356,8 @@ describe("DemoSession pairing", () => {
     assert.equal(register.body.demo, true);
     assert.equal(register.body.name, "Syncky browser demo");
     const { uri, code } = session.state.pairing;
-    assert.match(uri, /^syncky-dev:\/\/pair\?v=2&r=relay\.example&h=hub_A{22}&t=pt_C{43}&k=[\w-]{43}&n=Syncky%20browser%20demo&c=[\w-]{22}$/);
-    assert.equal(code, await pairCode(new URL(uri).searchParams.get("c")));
+    assert.match(uri, /^https:\/\/syncky\.app\/pair#v=2&r=relay\.example&h=hub_A{22}&t=pt_C{43}&k=[\w-]{43}&n=Syncky%20browser%20demo&c=[\w-]{22}$/);
+    assert.equal(code, await pairCode(new URLSearchParams(new URL(uri).hash.slice(1)).get("c")));
     await until(() => session.state.phase === "joined", "phone joined");
     assert.deepEqual(session.state.pairing, { code });
     assert.equal(session.pairing, null);
@@ -376,7 +397,7 @@ describe("DemoSession pairing", () => {
   it("clears the code when the joined phone leaves before sending its proof", async () => {
     const { relay, session } = await started({ autoProof: false });
     await until(() => session.state.phase === "joined", "phone joined");
-    assert.equal(session.state.pairing.code, await pairCode(new URL(relay.lastUri).searchParams.get("c")));
+    assert.equal(session.state.pairing.code, await pairCode(new URLSearchParams(new URL(relay.lastUri).hash.slice(1)).get("c")));
     relay.queue.push({ seq: ++relay.seq, kind: "system", event: "member_revoked", body: { member_id: "m_dev_1" } });
     relay.joined = false;
     await until(() => session.state.phase === "phone_left", "phone left");

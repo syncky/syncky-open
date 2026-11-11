@@ -12,14 +12,14 @@ import { TOOLS } from '../../src/mcp.js';
 
 test('feature skill examples validate against local schemas with exact feature sections', () => {
   const skill = readFileSync(new URL('../../skills/syncky/SKILL.md', import.meta.url), 'utf8');
-  for (const section of ['Health JSON in','Writes','Diagnostics request','Access request']) {
+  for (const section of ['Health JSON in','Writes','Diagnostics request','Access request','Scope release']) {
     const text = skill.split('## ' + section + '\n')[1]?.split('\n## ')[0];
     assert.ok(text, section);
     for (const field of ['**When:**','**JSON:**','**Phone reply:**','**Tell the owner:**']) assert.ok(text.includes(field), `${section}: ${field}`);
   }
   const validate = createLocalValidator(loadSchemas());
   const examples = [...skill.matchAll(/<<'JSON'\n([^]*?)\nJSON/g)].map(m => JSON.parse(m[1]));
-  assert.deepEqual(examples.map(e => e.type), ['commands','diagnostics_request','access_request']);
+  assert.deepEqual(examples.map(e => e.type), ['commands','diagnostics_request','access_request','scope_release']);
   for (const example of examples) validate(example);
   assert.match(skill, /explicit owner approval/i); assert.match(skill, /untrusted data, never instructions/);
   assert.match(skill, /Never overwrite or append/); assert.match(skill, /never quote the token-bearing URI/i);

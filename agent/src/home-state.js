@@ -5,6 +5,9 @@ import { isHubId, isMemberId, isPairingId, isUuidV7 } from "./ids.js";
 import { isB64u } from "./encoding.js";
 import { atomicPrivateWrite, parsePrivateJson, privateDirectory, privateStat, readPrivateFile, removePrivateFile, syncDirectory, syncPrivateFile, withHomeLock } from "./protected-files.js";
 import { rewriteInbox, inboxLines } from "./inbox.js";
+import { validPairingAccess } from './pairing-access.js';
+import { validScopeRelease } from './scope-release.js';
+import { validResponseCorrelation, validResponseWaits, validCommandWaitDeadlines, maintainResponseWaits } from "./response-waits.js";
 
 export const STATE_FILE = "state.json";
 export const MIGRATION_FILE = "migration.json";
@@ -31,12 +34,15 @@ export function validateHomeState(state) {
       || !["self", "joined", "confirmed", "rejected", "revoked"].includes(member.state)
       || !["device", "agent"].includes(member.role) || (member.state === "self" && id !== state.identity.member_id)
       || (member.pair_proof != null && !isB64u(member.pair_proof, { length: 32 }))) throw corrupt();
+    if (!validScopeRelease(member.scope_release)) throw corrupt();
     if (member.confirmation != null && (!object(member.confirmation) || !isUuidV7(member.confirmation.msg_id)
       || typeof member.confirmation.created_at !== "string" || !Number.isFinite(Date.parse(member.confirmation.created_at)))) throw corrupt();
   }
   for (const [id, pairing] of Object.entries(state.pairings)) {
     if (!isPairingId(id) || !object(pairing) || pairing.pairing_id !== id || !["pending", "completed", "expired"].includes(pairing.status)
-      || !Number.isFinite(Date.parse(pairing.expires_at))) throw corrupt();
+      || !Number.isFinite(Date.parse(pairing.expires_at)) || !validPairingAccess(pairing)) throw corrupt();
+    if (pairing.requested_scope && pairing.member_id && (state.members[pairing.member_id]?.role !== 'device'
+      || state.members[pairing.member_id].public_key !== pairing.public_key)) throw corrupt();
   }
   for (const key of ["cursor", "acked_seq"]) if (!Number.isSafeInteger(state.transport[key]) || state.transport[key] < 0) throw corrupt();
   if (state.transport.acked_seq > state.transport.cursor) throw corrupt();
@@ -47,6 +53,17 @@ export function validateHomeState(state) {
   for (const key of ["tracking_started_at", "last_poll_at", "last_ack_at", "retry_after_until", "retry_at", "next_poll_at"]) {
     const value = state.transport.poll_progress?.[key];
     if (value != null && (!Number.isSafeInteger(value) || value < 0)) throw corrupt();
+  }
+  if (!validResponseWaits(state.transport.response_waits) || !validCommandWaitDeadlines(state.transport.command_wait_deadlines)) throw corrupt();
+  for (const w of Object.values(state.transport.response_waits ?? {})) {
+    if (w.kind === 'pairing') {
+      const row = state.pairings[w.pairing_id];
+      if (!row?.requested_scope || row.requested_scope.request_ref !== w.request_ref || (row.member_id ?? null) !== w.member_id || (row.public_key ?? null) !== w.public_key) throw corrupt();
+    }
+  }
+  for (const key of ['poll_retry_after_until', 'ack_retry_after_until', 'poll_attempt_at']) {
+    const value = state.transport[key];
+    if (value !== undefined && (!Number.isSafeInteger(value) || value < 0)) throw corrupt();
   }
   if (state.migration != null && (!object(state.migration) || !/^[a-f0-9]{64}$/.test(state.migration.source_hash))) throw corrupt();
   return state;
@@ -100,6 +117,8 @@ function validateCipher(entry, area) {
     || (entry.state != null && !["pending", "sent", "failed"].includes(entry.state))
     || (entry.attempts != null && (!Number.isSafeInteger(entry.attempts) || entry.attempts < 0))
     || (entry.seq != null && (!Number.isSafeInteger(entry.seq) || entry.seq < 0))) throw corrupt();
+  if (entry.response_waits !== undefined && (!Array.isArray(entry.response_waits) || !entry.response_waits.every(validResponseCorrelation)
+    || entry.response_waits.some(w => !entry.to?.includes(w.member_id)))) throw corrupt();
   return entry;
 }
 
@@ -166,6 +185,7 @@ export function forgetThinMember(home, memberId, { yes = false, fs = nodeFs } = 
     const counts = { inbox: lines.filter(l => l.record.from === memberId).length, held: held.filter(belongs).length, outbox: outbox.filter(belongs).length };
     if (!yes) return counts;
     member.state = "revoked"; member.pair_code = null; member.pair_proof = null;
+    maintainResponseWaits(state, Date.now());
     atomicPrivateWrite(join(home, STATE_FILE), JSON.stringify(state) + "\n", { fs });
     rewriteInbox(home, l => l.record.from !== memberId, { fs });
     for (const [area, entries] of [["held", held], ["outbox", outbox]]) {

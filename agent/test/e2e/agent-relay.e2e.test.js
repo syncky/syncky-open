@@ -5,9 +5,11 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { LOCAL_STATE_ERROR_CODES } from '../../src/config.js';
 import { b64uDecode, b64uEncode, toHex } from '../../src/encoding.js';
 import { TOKEN_RE } from '../../src/ids.js';
 import { parsePairUri } from '../../src/pair-uri.js';
+import { RELAY_CLIENT_ERROR_CODES, RELAY_ERROR_CODES } from '../../src/relay-client.js';
 import { MAX_INNER_BYTES } from '../support/fake-phone.js';
 import { agentBin } from '../support/agent-bin.js';
 import { FakePhoneError, chunkSync, createFakePhone, sevenDaysOfStepsAndHeartRate } from '../support/fake-phone.js';
@@ -19,6 +21,10 @@ const RELAY = process.env.SYNCKY_E2E_RELAY;
 const BIN = process.env.SYNCKY_E2E_AGENT_BIN || agentBin();
 const launch = args => /\.m?js$/.test(BIN) ? [process.execPath, [BIN, ...args]] : [BIN, args];
 const RECEIVE_FIXTURE = fileURLToPath(new URL('../support/receive-fixture.js', import.meta.url));
+const RECEIVE_ERROR_CODES = new Set([...LOCAL_STATE_ERROR_CODES, ...RELAY_CLIENT_ERROR_CODES, ...RELAY_ERROR_CODES,
+  'ENOENT', 'EEXIST', 'EACCES', 'EPERM', 'EIO', 'ENOSPC', 'ENOTEMPTY',
+  'Error', 'TypeError', 'RangeError', 'SyntaxError', 'AbortError', 'ABORT_ERR',
+  'malformed', 'inner_invalid', 'protocol_incompatible']);
 const WAIT = { timeoutMs: 30_000, intervalMs: 250 };
 const TIMEOUT = 60_000;
 const source = { app: 'com.apple.Health', device: null };
@@ -202,6 +208,58 @@ describe('thin agent against the real relay (wrangler dev)', { skip: SKIP }, () 
       assert.equal((await json(['forget', recovered.memberId, '--yes'], options)).dry_run, false);
       assert.equal((await json(['status'], options)).members.find(m => m.member_id === recovered.memberId).state, 'revoked');
     } finally { recovery.cleanup(); }
+  });
+  it('receives scoped pairing outcomes after proof and learns scope only from an empty sync', { timeout: TIMEOUT }, async () => {
+    const scoped = tempHome(), options = { home: scoped.home, privateOutput: true };
+    try {
+      await json(['init', '--relay', RELAY, '--name', 'Scoped e2e'], options);
+      const pairing = await json(['pair', '--read', 'steps', '--write', 'dietary_water'], options);
+      const parsed = parsePairUri(pairing.uri, { allowInsecureRelay: true }).value;
+      privateTokens.push(pairing.uri, pairing.code, parsed.requestedScope.request_ref, parsed.pairingToken, parsed.pairSecret);
+      const joined = createFakePhone({ relayUrl: RELAY }); await joined.pair(pairing.uri);
+      privateTokens.push(joined.token);
+      const poll = async () => {
+        const child = spawn(process.execPath, [RECEIVE_FIXTURE, '--agent-bin', BIN, '--home', scoped.home, '--once'],
+          { env: env(), stdio: ['ignore', 'ignore', 'pipe'] });
+        let stderr = '';
+        child.stderr.on('data', chunk => { stderr += chunk; });
+        const timer = setTimeout(() => child.kill('SIGKILL'), TIMEOUT);
+        try {
+          const code = await new Promise((resolve, reject) => { child.on('error', reject); child.on('close', resolve); });
+          let failureCode = 'unknown';
+          if (code !== 0) for (const line of stderr.split('\n')) {
+            try {
+              const failure = JSON.parse(line);
+              if (failure?.event === 'receiver_fixture_failed' && RECEIVE_ERROR_CODES.has(failure.code)) failureCode = failure.code;
+            } catch {}
+          }
+          assert.equal(code, 0, `receiver fixture failed: ${failureCode}`);
+        }
+        finally { clearTimeout(timer); }
+      };
+      const scopedMember = async () => (await json(['status'], options)).members.find(m => m.member_id === joined.memberId);
+      await joined.sendAccessReply({ request_ref: parsed.requestedScope.request_ref, decided_at: new Date().toISOString(),
+        outcome: 'resolved', read: [{ type: 'steps', outcome: 'allowed' }], write: [{ type: 'dietary_water', outcome: 'declined' }] });
+      await poll();
+      assert.equal((await scopedMember()).state, 'joined');
+      assert.equal((await scopedMember()).pairing_access.state, 'awaiting');
+      assert.equal((await scopedMember()).scope, null);
+      await joined.sendPairProof();
+      await waitFor(async () => { await poll(); return (await scopedMember()).pairing_access.state === 'resolved'; },
+        { ...WAIT, what: 'confirmed scoped pairing outcomes' });
+      assert.equal((await scopedMember()).state, 'confirmed');
+      assert.equal((await scopedMember()).scope, null);
+      await joined.fetchCommands();
+      assert.equal(joined.controlReceived.filter(m => m.type === 'access_request').length, 0);
+      await joined.sendSync({ scope: { read: ['steps'], write: 'none' } });
+      await waitFor(async () => { await poll(); return (await scopedMember()).scope !== null; },
+        { ...WAIT, what: 'scope-only pairing sync' });
+      assert.deepEqual((await scopedMember()).scope.read, ['steps']);
+      assert.equal((await scopedMember()).scope.write, 'none');
+      const records = (await json(['inbox', '--limit', '1000'], options)).records;
+      assert.equal(records.filter(r => r.type === 'access_request').length, 0);
+      assert.ok(records.filter(r => r.type === 'sync').every(r => r.inner.samples.length === 0 && r.inner.acks.length === 0));
+    } finally { scoped.cleanup(); }
   });
   it('keeps credentials and inner values out of operational output', { timeout: TIMEOUT }, async () => {
     await stopReceive(); const secret = secrets();

@@ -148,6 +148,7 @@ const pairValue = (v) => ({
   agentPublicKey: v.agent_public_key,
   agentName: v.agent_name,
   ...(v.pair_secret !== undefined && { pairSecret: v.pair_secret }),
+  ...(v.requested_scope !== undefined && { requestedScope: v.requested_scope }),
 });
 
 function pairUriCases({ cases }) {
@@ -155,7 +156,11 @@ function pairUriCases({ cases }) {
     name: c.name,
     fn: () => {
       if (c.input) {
-        expectEqual(buildPairUri({ ...pairValue(c.input), urlScheme: c.input.url_scheme }), c.uri, "uri");
+        const value = pairValue(c.input);
+        expectEqual(buildPairUri({ ...value, urlScheme: c.input.url_scheme }), c.uri, "uri");
+        const expected = { ...value, ...(value.requestedScope && { requestedScope: { ...value.requestedScope,
+          read: [...new Set(value.requestedScope.read)].sort(), write: [...new Set(value.requestedScope.write)].sort() } }) };
+        expectEqual(parsePairUri(c.uri, { allowInsecureRelay: true }), { ok: true, value: expected }, "built parse result");
         return;
       }
       const result = parsePairUri(c.uri, { allowInsecureRelay: c.allow_insecure });

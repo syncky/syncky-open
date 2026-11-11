@@ -30,6 +30,7 @@ export async function registerAgent({
   now = () => new Date(),
   logger,
   fs = nodeFs,
+  timers = globalThis,
 }) {
   if (urlScheme !== null) validateUrlScheme(urlScheme);
   if (isInitialized(home, { fs })) {
@@ -42,7 +43,7 @@ export async function registerAgent({
     registerSecret(invite);
     const keys = await generateKeyPair();
     const publicKey = b64uEncode(keys.publicKey);
-    const relay = createRelayClient({ baseUrl: relayUrl, fetch, sleep, random, now: () => now().getTime(), logger });
+    const relay = createRelayClient({ baseUrl: relayUrl, fetch, sleep, random, now: () => now().getTime(), logger, timers });
     const registered = await relay.register({ invite, name, publicKey });
     if (
       !isHubId(registered?.hub_id) ||

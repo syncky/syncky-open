@@ -19,11 +19,13 @@ import { waitFor } from '../support/helpers.js';
 
 test('unlisted encrypted feature extends through a signed schema and skill only', { timeout: 60000 }, proveSkillExtension);
 
-test('gated receiver clock drains long poll and Retry-After waits then parks', async t => {
+test('gated receiver clock drains effective cadence and Retry-After waits then parks', async t => {
   for (const field of ['next_poll_at', 'poll_retry_at', 'retry_after_until']) {
     const { home, transport } = setup(t), clock = receiverClock();
     let polls = 0;
+    const pollTimes = [];
     const relay = { getMessages: async () => {
+      pollTimes.push(clock.now().getTime());
       if (++polls === 2) throw Object.assign(new Error('fixture retry'), { status: 429, retryAfterS: 3.5 });
       return { messages: [] };
     } };
@@ -33,13 +35,16 @@ test('gated receiver clock drains long poll and Retry-After waits then parks', a
       const at = clock.now().getTime();
       updateHomeState(home, s => { s.transport[field] = at + 3500; });
       await clock.poll();
+      const attemptedAt = at + (field === 'next_poll_at' ? 20 : 3500), retriedAt = attemptedAt + 3500;
       assert.equal(polls, 3);
-      assert.equal(clock.now().getTime(), at + 7000);
+      assert.deepEqual(pollTimes, [at, attemptedAt, retriedAt]);
+      assert.equal(clock.now().getTime(), retriedAt);
+      assert.equal(readHomeState(home).transport.next_poll_at, retriedAt + 20);
       await new Promise(resolve => setImmediate(resolve));
       assert.equal(polls, 3);
       await clock.poll();
       assert.equal(polls, 4);
-      assert.equal(clock.now().getTime(), at + 7020);
+      assert.equal(clock.now().getTime(), retriedAt + 20);
     } finally { await receiver.stop(); }
   }
 });

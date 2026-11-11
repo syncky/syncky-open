@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "skill_version": 1,
+  "skill_version": 7,
   "protocol": {
     "protocol_version": 1,
     "message_table_schema": 1
   },
-  "whats_new": "Initial package-carried skill, message table and inner schemas."
+  "whats_new": "An agent can give up Health types it no longer needs with send --type scope_release; the phone stops sending them without asking the owner, and status reports pending, applied or not_supported. Activity totals (steps, energy, distances) arrive as 15-minute interval sums in sync.summaries; a resent interval replaces the earlier value and is never added to it. Food, water, insulin, inhaler use and similar logged entries stay raw samples. Per-type read/write access waits, filtered refusals and merged pending requests with five admissions and three amendments. Preserves requested access at pairing, explicit missing-reply fallback and bounded response polling. From agent 0.1.4, receive prints no records to stdout by default; records stay in the inbox, and --emit-records also writes them to stdout."
 }

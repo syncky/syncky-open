@@ -69,11 +69,19 @@ export const LOCAL_STATE_ERROR_CODES = Object.freeze([
 
 
 export class LocalStateError extends Error {
-  constructor(code, message) {
+  constructor(code, message, { detail, types } = {}) {
     super(message);
     this.name = "LocalStateError";
     this.code = code;
+    if (detail !== undefined) this.detail = detail;
+    if (types !== undefined) this.types = types;
   }
+}
+
+export function errorDetail(error) {
+  if (!(error instanceof LocalStateError) || typeof error.detail !== "string" || !/^[a-z_]{1,64}$/.test(error.detail)) return {};
+  const types = Array.isArray(error.types) && error.types.every(n => typeof n === "string" && /^[a-z][a-z0-9_]{0,63}$/.test(n)) ? error.types : undefined;
+  return { detail: error.detail, ...(types && { types }) };
 }
 
 export function validateUrlScheme(value) {

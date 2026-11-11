@@ -3,10 +3,34 @@ import fs from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
-import { acquireHomeLock, atomicPrivateWrite, openPrivateAppend, privateDirectory, receiverLockHeld, removePrivateFile } from "../../src/protected-files.js";
+import { acquireHomeLock, atomicPrivateWrite, openPrivateAppend, privateDirectory, privateStat, receiverLockHeld, removePrivateFile } from "../../src/protected-files.js";
+import { createProcessIdentity } from "../../src/process-identity.js";
 import { createHomeState, readHomeState, updateHomeState, detectLegacyFiles, cipherEntries, createCipherFiles, forgetThinMember } from "../../src/home-state.js";
 import { createInbox } from "../../src/inbox.js";
 import { fixture, identity, keys, messageId, diskFailure, syncTrace } from "../support/thin-home.js";
+import { setup } from '../support/thin-transport.js';
+import { scopedRequest, pairingId } from '../support/pairing-scope.js';
+
+test('optional pairing scope and outcomes validate on restore while old homes remain unchanged', t => {
+  const { home } = setup(t), before = readHomeState(home);
+  assert.equal(before.pairings[pairingId], undefined); scopedRequest(home);
+  const original = readHomeState(home).pairings[pairingId];
+  for (const change of [
+    p => { p.requested_scope.request_ref = 'A'.repeat(32); },
+    p => { p.requested_scope.read = ['steps', 'steps']; },
+    p => { p.requested_scope.write = ['workout']; },
+    p => { p.requested_scope.read = []; p.requested_scope.write = []; },
+    p => { p.access.deadline_at = 'bad'; }, p => { p.access.state = 'unknown'; },
+    p => { p.public_key = 'invalid'; },
+    p => { p.public_key = keys.dev2.pk; },
+    p => { p.requested_scope.extra = 'PRIVATE'; },
+    p => { p.access.deadline_at = '9999-12-31T23:59:59Z'; },
+    p => { p.access.state = 'resolved'; p.access.outcomes = { read: [], write: [] }; },
+  ]) {
+    assert.throws(() => updateHomeState(home, s => change(s.pairings[pairingId])), { code: 'corrupt_state' });
+    assert.deepEqual(readHomeState(home).pairings[pairingId], original);
+  }
+});
 
 test("atomic state reloads, refuses async mutations and keeps the last durable state on failure", (t) => {
   const home = fixture(t);
@@ -75,6 +99,51 @@ test("protected paths reject symlinks, hard links and broad or unreadable permis
   assert.throws(() => readHomeState(link), { code: "insecure_permissions" });
 });
 
+test("private stat treats zero-link regular files as absent", t => {
+  const home = fixture(t), path = join(home, "private.json");
+  fs.writeFileSync(path, "fixture", { mode: 0o600 });
+  const io = { ...fs, lstatSync(name, ...args) {
+    const st = fs.lstatSync(name, ...args);
+    if (name === path) st.nlink = 0;
+    return st;
+  } };
+  assert.equal(privateStat(path, { fs: io, optional: true }), null);
+  assert.throws(() => privateStat(path, { fs: io }), error => error.constructor === Error && error.code === "ENOENT");
+  assert.throws(() => privateStat(path, { fs: io, directory: true }), { code: "insecure_permissions" });
+});
+
+test("a state read that catches the inode an atomic replace just unlinked reads the replacement", t => {
+  const home = fixture(t), path = join(home, "state.json");
+  const state = createHomeState(home, identity);
+  let raced = 0;
+  const io = { ...fs, lstatSync(name, ...args) {
+    const st = fs.lstatSync(name, ...args);
+    if (name === path && raced++ === 0) st.nlink = 0;
+    return st;
+  } };
+  assert.deepEqual(readHomeState(home, { fs: io }), state);
+  assert.ok(raced > 1);
+  const stuck = { ...fs, lstatSync(name, ...args) {
+    const st = fs.lstatSync(name, ...args);
+    if (name === path) st.nlink = 0;
+    return st;
+  } };
+  assert.throws(() => readHomeState(home, { fs: stuck }), { code: "home_locked" });
+  fs.unlinkSync(path);
+  assert.throws(() => readHomeState(home, { fs: io }), { code: "not_initialized" });
+});
+
+test("private stat still rejects hard links and public files", t => {
+  const home = fixture(t), path = join(home, "private.json"), link = join(home, "linked.json");
+  fs.writeFileSync(path, "fixture", { mode: 0o600 });
+  fs.linkSync(path, link);
+  assert.equal(fs.lstatSync(path).nlink, 2);
+  for (const optional of [false, true]) assert.throws(() => privateStat(path, { optional }), { code: "insecure_permissions" });
+  fs.unlinkSync(link);
+  fs.chmodSync(path, 0o644);
+  for (const optional of [false, true]) assert.throws(() => privateStat(path, { optional }), { code: "insecure_permissions" });
+});
+
 test("receiver lease excludes another receiver while state locks serialize other writers; dead owners recover", (t) => {
   const home = fixture(t);
   const receiver = acquireHomeLock(home, "receiver");
@@ -92,6 +161,241 @@ test("receiver lease excludes another receiver while state locks serialize other
   fs.mkdirSync(join(home, ".state.lock"), { mode: 0o700 });
   assert.throws(() => acquireHomeLock(home, "state"), { code: "home_locked" });
   fs.rmdirSync(join(home, ".state.lock"));
+});
+
+for (const name of ["receiver", "state"]) test(`${name} lock probes its own identity before creating the lock directory`, t => {
+  const home = fixture(t), directory = join(home, `.${name}.lock`), calls = [];
+  const current = { bootId: "boot", startTime: 10000, startTimeSource: "linux-proc" };
+  const lease = acquireHomeLock(home, name, { processIdentity(pid) {
+    calls.push({ pid, exists: fs.existsSync(directory) });
+    return current;
+  } });
+  try {
+    assert.deepEqual(calls, [{ pid: process.pid, exists: false }]);
+    const owner = JSON.parse(fs.readFileSync(join(directory, fs.readdirSync(directory)[0])));
+    assert.deepEqual(owner, { pid: process.pid, role: name, ...current });
+  } finally { lease.release(); }
+});
+
+function identityLock(t, owner, mtimeMs = 1800000000000, name = "receiver") {
+  const home = fixture(t), directory = join(home, `.${name}.lock`);
+  fs.mkdirSync(directory, { mode: 0o700 });
+  const file = join(directory, `${process.pid}-${"a".repeat(24)}.json`);
+  fs.writeFileSync(file, JSON.stringify({ pid: process.pid, role: name, ...owner }), { mode: 0o600 });
+  fs.utimesSync(file, mtimeMs / 1000, mtimeMs / 1000);
+  return { home, file, directory };
+}
+
+for (const [label, owner, current] of [
+  ["earlier boot", { bootId: "old-boot", startTime: 10000 }, { bootId: "new-boot", startTime: 10000 }],
+  ["reused pid start time", { bootId: "boot", startTime: 10000 }, { bootId: "boot", startTime: 12001 }],
+  ["legacy owner predating the process", {}, { startedAtMs: 1800000002001, startTimeSource: "macos-ps" }],
+  ["Linux pid start differing by one tick", { bootId: "boot", startTime: 10000, startTimeSource: "linux-proc" }, { bootId: "boot", startTime: 10010, startTimeSource: "linux-proc" }],
+  ["Linux pid start differing by one tick without a recorded source", { bootId: "boot", startTime: 10000 }, { bootId: "boot", startTime: 10010, startTimeSource: "linux-proc" }],
+  ["macOS start beyond one-second precision", { bootId: "boot", startTime: 10000, startTimeSource: "macos-ps" }, { bootId: "boot", startTime: 11001, startTimeSource: "macos-ps" }],
+  ["uncomparable recorded identity predating the process", { bootId: "boot", startTime: 10000 }, { startedAtMs: 1800000002001, startTimeSource: "macos-ps" }],
+]) test(`lock from ${label} is observed as stale without repair and reclaimed by a writer`, t => {
+  const { home, file, directory } = identityLock(t, owner);
+  const before = fs.readFileSync(file), stat = fs.statSync(file);
+  const options = { processIdentity: () => current, kill(pid, signal) { assert.equal(pid, process.pid); assert.equal(signal, 0); } };
+  assert.equal(receiverLockHeld(home, options), false);
+  assert.deepEqual(fs.readdirSync(directory), [file.split("/").at(-1)]);
+  assert.deepEqual(fs.readFileSync(file), before);
+  assert.equal(fs.statSync(file).mtimeMs, stat.mtimeMs);
+  const lease = acquireHomeLock(home, "receiver", options);
+  assert.equal(fs.existsSync(file), false);
+  const replacement = JSON.parse(fs.readFileSync(join(directory, fs.readdirSync(directory)[0])));
+  const recorded = { ...current };
+  delete recorded.startedAtMs;
+  assert.deepEqual(replacement, { pid: process.pid, role: "receiver", ...recorded });
+  lease.release();
+});
+
+test("legacy Linux owner remains held when computed wall-clock start postdates its mtime", t => {
+  const { home, file } = identityLock(t, { role: undefined });
+  const processIdentity = createProcessIdentity({ platform: "linux", fs: { readFileSync(path) {
+    if (path === "/proc/sys/kernel/random/boot_id") return "01234567-89ab-cdef-0123-456789abcdef";
+    if (path === "/proc/stat") return "btime 1800000060\n";
+    return `${process.pid} (receiver) S ${Array(18).fill("0").join(" ")} 1000 0\n`;
+  } } });
+  const current = processIdentity(process.pid), before = fs.readFileSync(file);
+  assert.deepEqual(JSON.parse(before), { pid: process.pid });
+  assert.equal(current.startTimeSource, "linux-proc");
+  assert.ok(current.startedAtMs > fs.statSync(file).mtimeMs + 2000);
+  const options = { processIdentity, kill() {} };
+  assert.equal(receiverLockHeld(home, options), true);
+  assert.throws(() => acquireHomeLock(home, "receiver", options), { code: "home_locked" });
+  assert.deepEqual(fs.readFileSync(file), before);
+});
+
+for (const platform of ["linux", "darwin"]) for (const missing of ["boot", "start"]) test(`${platform} lock writes recover after a failed own ${missing} lookup`, t => {
+  const home = fixture(t), directory = join(home, ".receiver.lock"), bootId = "01234567-89ab-cdef-0123-456789abcdef";
+  let failed = true;
+  function lookup(path) {
+    const isBoot = ["/proc/sys/kernel/random/boot_id", "/usr/sbin/sysctl"].includes(path);
+    if (failed && (missing === "boot" ? isBoot : !isBoot && path !== "/proc/stat")) throw new Error("unavailable");
+    if (isBoot) return bootId;
+    if (path === "/proc/stat") return "btime 1800000000\n";
+    return platform === "linux" ? `${process.pid} (receiver) S ${Array(18).fill("0").join(" ")} 1000 0\n` : "Mon Nov  9 06:31:35 2026";
+  }
+  const options = { processIdentity: createProcessIdentity({ platform, fs: { readFileSync: lookup }, execFileSync: lookup }) };
+  const owner = () => JSON.parse(fs.readFileSync(join(directory, fs.readdirSync(directory)[0])));
+  const first = acquireHomeLock(home, "receiver", options);
+  assert.equal(owner()[missing === "boot" ? "bootId" : "startTime"], undefined);
+  first.release(); failed = false;
+  const recovered = acquireHomeLock(home, "receiver", options);
+  assert.deepEqual(owner(), { pid: process.pid, role: "receiver", bootId,
+    startTime: platform === "linux" ? 10000 : Date.UTC(2026, 10, 9, 6, 31, 35), startTimeSource: platform === "linux" ? "linux-proc" : "macos-ps" });
+  recovered.release();
+});
+
+test("state locks share the receiver's boot identity judgment", t => {
+  const { home, file } = identityLock(t, { bootId: "old-boot" }, undefined, "state");
+  const lease = acquireHomeLock(home, "state", { processIdentity: () => ({ bootId: "new-boot" }), kill() {} });
+  assert.equal(fs.existsSync(file), false); lease.release();
+});
+
+for (const code of ["ESRCH", "EPERM"]) test(`${code} proves a lock stale even when identity cannot be read`, t => {
+  const { home, file } = identityLock(t, {});
+  const options = { kill() { throw Object.assign(new Error("probe"), { code }); }, processIdentity() { throw new Error("identity unavailable"); } };
+  assert.equal(receiverLockHeld(home, options), false);
+  assert.equal(fs.existsSync(file), true);
+  acquireHomeLock(home, "receiver", options).release();
+  assert.equal(fs.existsSync(file), false);
+});
+
+for (const [label, owner, provider, kill] of [
+  ["same boot and start", { bootId: "boot", startTime: 10000 }, () => ({ bootId: "boot", startTime: 10000 }), () => {}],
+  ["matching identity overrides earlier mtime", { bootId: "boot", startTime: 10000 }, () => ({ bootId: "boot", startTime: 10000, startedAtMs: 1800000002001, startTimeSource: "macos-ps" }), () => {}],
+  ["one-second start precision", { startTime: 10000, startTimeSource: "macos-ps" }, () => ({ startTime: 11000, startTimeSource: "macos-ps" }), () => {}],
+  ["conflicting start sources", { bootId: "boot", startTime: 10000, startTimeSource: "linux-proc" }, () => ({ bootId: "boot", startTime: 20000, startedAtMs: 1800000002001, startTimeSource: "macos-ps" }), () => {}],
+  ["legacy mtime skew margin", {}, () => ({ startedAtMs: 1800000002000, startTimeSource: "macos-ps" }), () => {}],
+  ["unknown start source predating the process", {}, () => ({ startedAtMs: 1800000002001 }), () => {}],
+  ["missing identity", { bootId: "boot", startTime: 10000 }, () => null, () => {}],
+  ["unreadable identity", { bootId: "boot", startTime: 10000 }, () => { throw new Error("unreadable"); }, () => {}],
+  ["malformed current identity", { bootId: "boot", startTime: 10000 }, () => ({ bootId: 7, startTime: "20000", startedAtMs: NaN }), () => {}],
+  ["malformed recorded identity", { bootId: [], startTime: "10000" }, () => ({ bootId: "boot", startTime: 20000 }), () => {}],
+  ["negative recorded start", { bootId: "", startTime: -1 }, () => ({ bootId: "boot", startTime: 20000 }), () => {}],
+  ["unknown signal failure", { bootId: "boot" }, () => ({ bootId: "boot" }), () => { throw Object.assign(new Error("probe"), { code: "EIO" }); }],
+]) test(`lock remains held for ${label}`, t => {
+  const { home, file } = identityLock(t, owner), before = fs.readFileSync(file);
+  const options = { processIdentity: provider, kill };
+  assert.equal(receiverLockHeld(home, options), true);
+  assert.throws(() => acquireHomeLock(home, "receiver", options), { code: "home_locked" });
+  assert.deepEqual(fs.readFileSync(file), before);
+});
+
+for (const unavailable of [false, true]) test(`unchanged foreign macOS owner needs one ps probe across 201 retries${unavailable ? " after lookup failure" : ""}`, t => {
+  const bootId = "01234567-89ab-cdef-0123-456789abcdef", pid = process.pid + 1;
+  const { home, file } = identityLock(t, { pid, bootId, startTime: Date.UTC(2026, 10, 9, 6, 31, 35), startTimeSource: "macos-ps" });
+  const before = fs.readFileSync(file);
+  let psCalls = 0, ownPsCalls = 0, bootCalls = 0, killCalls = 0, at = 0;
+  const processIdentity = createProcessIdentity({ platform: "darwin", execFileSync(path, args) {
+    if (path === "/usr/sbin/sysctl") { bootCalls++; return bootId; }
+    if (args.at(-1) === String(process.pid)) { ownPsCalls++; return "Mon Nov  9 06:31:35 2026"; }
+    psCalls++;
+    if (unavailable) throw new Error("unreadable");
+    return "Mon Nov  9 06:31:35 2026";
+  } });
+  const options = { processIdentity, now: () => at, kill(ownerPid, signal) { killCalls++; assert.equal(ownerPid, pid); assert.equal(signal, 0); } };
+  for (let attempt = 0; attempt < 201; attempt++) {
+    at = attempt * 11;
+    assert.equal(receiverLockHeld(home, options), true);
+    assert.throws(() => acquireHomeLock(home, "receiver", options), { code: "home_locked" });
+  }
+  assert.equal(psCalls, 1); assert.equal(ownPsCalls, 1); assert.equal(bootCalls, 1); assert.equal(killCalls, 402);
+  assert.deepEqual(fs.readFileSync(file), before);
+  for (const [time, expected] of [[5000, 2], [9999, 2], [10000, 3]]) {
+    at = time;
+    assert.equal(receiverLockHeld(home, options), true);
+    assert.equal(psCalls, expected); assert.equal(bootCalls, 1);
+  }
+});
+
+for (const name of ["receiver", "state"]) test(`${name} held cache expires so a reused pid can be reclaimed`, t => {
+  const pid = process.pid + 1;
+  const { home, file } = identityLock(t, { pid, bootId: "boot", startTime: 10000 }, undefined, name);
+  let at = 0, startTime = 10000, reads = 0;
+  const options = { now: () => at, processIdentity(ownerPid) {
+    if (ownerPid === pid) reads++;
+    return { bootId: "boot", startTime };
+  }, kill() {} };
+  assert.throws(() => acquireHomeLock(home, name, options), { code: "home_locked" });
+  startTime = 20000;
+  for (at = 1000; at < 5000; at += 1000) {
+    if (name === "receiver") assert.equal(receiverLockHeld(home, options), true);
+    assert.throws(() => acquireHomeLock(home, name, options), { code: "home_locked" });
+  }
+  assert.equal(reads, 1); assert.equal(fs.existsSync(file), true);
+  if (name === "receiver") {
+    assert.equal(receiverLockHeld(home, options), false);
+    assert.equal(reads, 2); assert.equal(fs.existsSync(file), true);
+  }
+  const lease = acquireHomeLock(home, name, options);
+  assert.equal(reads, name === "receiver" ? 3 : 2);
+  assert.equal(fs.existsSync(file), false);
+  lease.release();
+});
+
+for (const code of ["ESRCH", "EPERM"]) test(`cached held owners clear immediately after ${code} before reading identity`, t => {
+  const { home, file } = identityLock(t, { bootId: "boot", startTime: 10000 });
+  let signalError, reads = 0, startTime = 10000;
+  const options = { now: () => 0, processIdentity() { reads++; return { bootId: "boot", startTime }; },
+    kill() { if (signalError) throw Object.assign(new Error("probe"), { code: signalError }); },
+  };
+  assert.equal(receiverLockHeld(home, options), true);
+  signalError = code;
+  assert.equal(receiverLockHeld(home, options), false);
+  assert.equal(reads, 1); assert.equal(fs.existsSync(file), true);
+  signalError = undefined; startTime = 20000;
+  assert.equal(receiverLockHeld(home, options), false);
+  assert.equal(reads, 2); assert.equal(fs.existsSync(file), true);
+  acquireHomeLock(home, "receiver", options).release();
+  assert.equal(fs.existsSync(file), false);
+});
+
+test("stale observations are never cached across probes", t => {
+  const pid = process.pid + 1;
+  const { home, file } = identityLock(t, { pid, bootId: "boot", startTime: 10000 });
+  let startTime = 20000, reads = 0;
+  const options = { processIdentity(ownerPid) {
+    if (ownerPid === pid) reads++;
+    return { bootId: "boot", startTime };
+  }, kill() {} };
+  assert.equal(receiverLockHeld(home, options), false);
+  startTime = 10000;
+  assert.equal(receiverLockHeld(home, options), true);
+  assert.throws(() => acquireHomeLock(home, "receiver", options), { code: "home_locked" });
+  assert.equal(reads, 2); assert.equal(fs.existsSync(file), true);
+});
+
+for (const change of ["contents", "inode", "mtime"]) test(`held cache is invalidated by owner ${change} changes`, t => {
+  const { home, file } = identityLock(t, change === "mtime" ? {} : { bootId: "boot", startTime: 10000 });
+  const before = fs.readFileSync(file), ino = fs.statSync(file).ino;
+  let startTime = 10000, reads = 0;
+  const options = { processIdentity() { reads++; return { bootId: "boot", startTime, startedAtMs: 1800000001000, startTimeSource: "macos-ps" }; }, kill() {} };
+  assert.equal(receiverLockHeld(home, options), true);
+  if (change === "contents") {
+    startTime = 20000;
+    fs.writeFileSync(file, JSON.stringify({ pid: process.pid, role: "receiver", bootId: "boot", startTime }));
+  } else if (change === "inode") {
+    startTime = 20000;
+    atomicPrivateWrite(file, before);
+    assert.notEqual(fs.statSync(file).ino, ino);
+  } else fs.utimesSync(file, 1799999996, 1799999996);
+  const updated = fs.readFileSync(file);
+  assert.equal(receiverLockHeld(home, options), change === "contents");
+  assert.equal(reads, 2); assert.deepEqual(fs.readFileSync(file), updated);
+});
+
+test("unknown identity can be written and once leases preserve their probe semantics", t => {
+  const home = fixture(t), options = { role: "once", processIdentity() { throw new Error("unsupported"); } };
+  const lease = acquireHomeLock(home, "receiver", options), directory = join(home, ".receiver.lock");
+  const owner = JSON.parse(fs.readFileSync(join(directory, fs.readdirSync(directory)[0])));
+  assert.deepEqual(owner, { pid: process.pid, role: "once" });
+  assert.equal(receiverLockHeld(home, options), false);
+  assert.throws(() => acquireHomeLock(home, "receiver", options), { code: "home_locked" });
+  lease.release();
 });
 
 test('receiver probe observes live and dead owners without creating, deleting or taking a lease', t => {
@@ -317,6 +621,27 @@ test("a lock directory fsync failure cleans its own owner and permits retry", (t
   const home = fixture(t);
   assert.throws(() => acquireHomeLock(home, "state", { fs: diskFailure("fsyncSync", 1, /\.state\.lock$/) }), { code: "ENOSPC" });
   acquireHomeLock(home, "state").release();
+});
+
+for (const released of [true, false]) test(`a zero-link lock owner ${released ? "released during lstat permits acquisition" : "still held produces home_locked"}`, t => {
+  const home = fixture(t), owner = acquireHomeLock(home, "state"), directory = join(home, ".state.lock");
+  const path = join(directory, fs.readdirSync(directory)[0]);
+  let raced = false;
+  const io = { ...fs, lstatSync(name, ...args) {
+    const st = fs.lstatSync(name, ...args);
+    if (name === path && !raced) {
+      raced = true;
+      if (released) owner.release();
+      st.nlink = 0;
+    }
+    return st;
+  } };
+  if (released) acquireHomeLock(home, "state", { fs: io }).release();
+  else {
+    assert.throws(() => acquireHomeLock(home, "state", { fs: io }), { code: "home_locked" });
+    owner.release();
+  }
+  assert.equal(raced, true);
 });
 
 test('a lock owner disappearing between open and fstat retries without accepting unsafe files', t => {

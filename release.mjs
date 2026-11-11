@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { appendFileSync, chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { checksumEntries, ensure, prepareRegistry, readJSON, registryAsset, registryDraft, REPOSITORY, sha256 } from "./prepare-registry.mjs";
@@ -14,7 +14,16 @@ export const ASSETS = ["syncky-agent.mjs", "syncky-agent.mjs.sha256", "syncky-he
   ...["claude-code", "codex", "clawhub", "skills"].map((name) => `syncky-agent-${name}.tar.gz`)].sort();
 const INVENTORY = ["LICENSE", "NOTICE", "README.md", "dist/syncky-agent.mjs", "dist/syncky-agent.mjs.sha256", "package.json"].map((name) => `package/${name}`).sort();
 const digest = (path) => sha256(readFileSync(path));
-const execute = (command, args, cwd, stdio = ["ignore", "pipe", "pipe"]) => execFileSync(command, args, { cwd, encoding: "utf8", stdio, maxBuffer: 8 * 1024 * 1024, timeout: 120_000 });
+const execute = (command, args, cwd, stdio = ["ignore", "pipe", "pipe"], encoding = "utf8") => {
+  try { return execFileSync(command, args, { cwd, encoding, stdio, maxBuffer: 8 * 1024 * 1024, timeout: 120_000 }); }
+  catch (error) {
+    const program = basename(command);
+    const subcommand = { npm: ["pack", "view", "publish"], gh: ["api", "release"], "mcp-publisher": ["login", "publish"] }[program]?.includes(args[0]) ? ` ${args[0]}` : "";
+    const reason = error.code === "ETIMEDOUT" ? "timed out" : error.signal ? `signal ${error.signal}` : Number.isInteger(error.status) ? `exit ${error.status}` : "";
+    error.message = `local command failed: ${program}${subcommand}${reason ? ` (${reason})` : ""}`;
+    throw error;
+  }
+};
 
 export function installPublisher(root, installDir, env = process.env, publisher = MCP_PUBLISHER) {
   const output = resolve(installDir);
@@ -24,7 +33,7 @@ export function installPublisher(root, installDir, env = process.env, publisher 
   for (const file of [publisher.asset, publisher.checksums]) {
     try {
       execute("curl", ["--fail", "--silent", "--show-error", "--location", "--max-time", "90", "--output", join(output, file), `${base}/${file}`], root);
-    } catch { throw new Error(`publisher download failed: ${file}`); }
+    } catch (error) { throw new Error(`publisher download failed: ${file}: curl${Number.isInteger(error.status) ? ` (exit ${error.status})` : ""}`); }
   }
   const entries = readFileSync(join(output, publisher.checksums), "utf8").split(/\r?\n/).filter((line) => line.endsWith(`  ${publisher.asset}`));
   ensure(entries.length === 1 && entries[0] === `${publisher.sha256}  ${publisher.asset}`, "publisher checksum entry mismatch");
@@ -73,7 +82,7 @@ function validateTarball(root, tarball, pkg, dist, runSelftest = false) {
   const packed = JSON.parse(execute("tar", ["-xOzf", tarball, "package/package.json"], root));
   ensure(JSON.stringify(packed) === JSON.stringify(pkg), "packed package metadata/repository mismatch");
   for (const name of INVENTORY.filter((name) => name !== "package/package.json")) {
-    const bytes = execFileSync("tar", ["-xOzf", tarball, name], { maxBuffer: 8 * 1024 * 1024 });
+    const bytes = execute("tar", ["-xOzf", tarball, name], root, undefined, null);
     const reference = name.startsWith("package/dist/") ? join(dist, name.slice("package/dist/".length)) : join(root, "agent", name.slice(8));
     ensure(bytes.equals(readFileSync(reference)), "packed bytes differ from tested source/build");
   }
@@ -141,13 +150,41 @@ function remoteJSON(command, args, root, missing, emptyIsMissing = false) {
   }
 }
 
+const npmVersion = (root, pkg) => remoteJSON("npm", ["view", `${pkg.name}@${pkg.version}`, "version", "dist.integrity", "--json", "--prefer-online"], root, (value) => value.error?.code === "E404", true);
+
+function verifyNpm(published, tarball, pkg) {
+  ensure(published.version === pkg.version && published["dist.integrity"] === `sha512-${createHash("sha512").update(readFileSync(tarball)).digest("base64")}`, "existing npm version/integrity mismatch");
+}
+
+function waitForNpm(root, tarball, pkg, env) {
+  const attempts = Number(env.RELEASE_NPM_WAIT_ATTEMPTS ?? 10);
+  const seconds = Number(env.RELEASE_NPM_WAIT_SECONDS ?? 15);
+  ensure(Number.isSafeInteger(attempts) && attempts > 0, "RELEASE_NPM_WAIT_ATTEMPTS must be a positive integer");
+  ensure(Number.isFinite(seconds) && seconds >= 0 && seconds * 1000 <= 2_147_483_647, "RELEASE_NPM_WAIT_SECONDS must be a non-negative delay");
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const published = npmVersion(root, pkg);
+    if (published !== null) { verifyNpm(published, tarball, pkg); return; }
+    if (attempt < attempts && seconds > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, seconds * 1000);
+  }
+  throw new Error(`npm ${pkg.name}@${pkg.version} not visible after ${attempts} attempts (${seconds}s between attempts)`);
+}
+
 export function publishRelease(root, releaseDir, env = process.env) {
   const receipt = verifyRelease(root, releaseDir, env);
   const pkg = readJSON(join(root, "agent/package.json"));
   const tarball = join(releaseDir, receipt.tarball);
-  const published = remoteJSON("npm", ["view", `${pkg.name}@${receipt.version}`, "version", "dist.integrity", "--json", "--prefer-online"], root, (value) => value.error?.code === "E404", true);
-  if (published === null) execute("npm", ["publish", tarball, "--access", "public", "--provenance", "--ignore-scripts"], root);
-  else ensure(published.version === receipt.version && published["dist.integrity"] === `sha512-${createHash("sha512").update(readFileSync(tarball)).digest("base64")}`, "existing npm version/integrity mismatch");
+  const published = npmVersion(root, pkg);
+  if (published === null) {
+    try { execute("npm", ["publish", tarball, "--access", "public", "--provenance", "--ignore-scripts", "--json"], root); }
+    catch (error) {
+      let response;
+      try { response = JSON.parse(error.stdout); } catch { throw error; }
+      const conflict = response.error?.code === "EPUBLISHCONFLICT" || response.error?.code === "E409" ||
+        (response.error?.code === "E403" && /cannot publish over|already exists/i.test(`${response.error.summary} ${response.error.detail}`));
+      if (!conflict) throw error;
+    }
+    waitForNpm(root, tarball, pkg, env);
+  } else verifyNpm(published, tarball, pkg);
 
   const tag = env.GITHUB_REF_NAME;
   let release = remoteJSON("gh", ["api", `repos/${REPOSITORY}/releases/tags/${tag}`], root, (value) => value.status === "404");
@@ -179,14 +216,15 @@ export function publishRelease(root, releaseDir, env = process.env) {
 
 export function publishRegistry(root, releaseDir, env = process.env) {
   const output = resolve(releaseDir);
-  verifyRelease(root, output, env);
+  const receipt = verifyRelease(root, output, env);
+  waitForNpm(root, join(output, receipt.tarball), readJSON(join(root, "agent/package.json")), env);
   const file = join(output, "server.json");
   const { name, version } = readJSON(file);
   const url = `https://registry.modelcontextprotocol.io/v0/servers/${encodeURIComponent(name)}/versions/${encodeURIComponent(version)}`;
   let status;
   try {
     status = execute("curl", ["--silent", "--show-error", "--output", "/dev/null", "--write-out", "%{http_code}", "--max-time", "30", url], root).trim();
-  } catch { throw new Error("MCP Registry lookup failed"); }
+  } catch (error) { throw new Error(`MCP Registry lookup failed: curl${Number.isInteger(error.status) ? ` (exit ${error.status})` : ""}`); }
   if (status === "200") {
     process.stdout.write(`MCP Registry ${name}@${version} already exists; skipping publish\n`);
     return;
@@ -194,7 +232,7 @@ export function publishRegistry(root, releaseDir, env = process.env) {
   ensure(status === "404", `MCP Registry lookup failed (HTTP ${status})`);
   for (const args of [["login", "github-oidc"], ["publish", file]]) {
     try { execute("mcp-publisher", args, root, args[0] === "publish" ? "inherit" : undefined); }
-    catch { throw new Error(`MCP Registry ${args[0]} failed`); }
+    catch (error) { throw new Error(`MCP Registry ${args[0]} failed: mcp-publisher ${args[0]}${Number.isInteger(error.status) ? ` (exit ${error.status})` : ""}`); }
   }
 }
 
@@ -204,7 +242,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     ensure(process.argv.length === 4 && ["prepare", "verify", "publish", "install-publisher", "registry"].includes(command), "usage: node release.mjs <prepare|verify|publish|install-publisher|registry> <output-dir>");
     ({ prepare: prepareRelease, verify: verifyRelease, publish: publishRelease, "install-publisher": installPublisher, registry: publishRegistry })[command](ROOT, resolve(output));
   } catch (error) {
-    process.stderr.write(`release: ${error.status === undefined ? error.message : "local command failed"}\n`);
+    process.stderr.write(`release: ${error instanceof SyntaxError ? "invalid JSON response" : error.message}\n`);
     process.exitCode = 1;
   }
 }

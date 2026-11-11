@@ -61,8 +61,9 @@ describe("minimal agent against the real relay (wrangler dev)", { skip: SKIP }, 
 
   async function pairWithPhone(home, phoneName, proofFor = (phone) => phone.pairProof()) {
     const proc = start(home, ["pair", "--wait", "60"]);
-    const [, uri] = await proc.waitFor(/^(syncky:\/\/pair\?v=2&\S+)\n/m, "the pairing URI");
-    const params = new URLSearchParams(uri.split("?")[1]);
+    const [, uri] = await proc.waitFor(/^(https:\/\/syncky\.app\/pair#v=2&\S+)\n/m, "the pairing URI");
+    const params = new URLSearchParams(new URL(uri).hash.slice(1));
+    for (const key of ["t", "c"]) assert.ok(params.get(key), `pairing URI lacks ${key} credential`);
     secrets.push(["pairing token", params.get("t")], ["pairing secret", params.get("c")]);
     const [, code] = await proc.waitFor(/^code: (\d{3} \d{3} \d{3})\n/m, "the pairing code");
     assert.equal(code, fullAgentPairCode(params.get("c")));

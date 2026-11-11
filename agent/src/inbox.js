@@ -16,12 +16,19 @@ function metadata(record) {
   return record;
 }
 
-export function inboxLines(home, { fs = nodeFs } = {}) {
+function inboxCursor(home, options) {
+  const saved = readPrivateFile(join(home, ".inbox-cursor.json"), { ...options, optional: true });
+  const cursor = saved ? parsePrivateJson(saved).cursor : -1;
+  if (!Number.isSafeInteger(cursor) || cursor < -1) throw corrupt();
+  return cursor;
+}
+
+export function inboxLines(home, { fs = nodeFs, snapshot = false } = {}) {
   const dir = join(home, "inbox");
   privateStat(home, { fs, directory: true });
   if (!privateStat(dir, { fs, directory: true, optional: true })) return [];
   const pending = join(dir, REWRITE_PENDING);
-  if (privateStat(pending, { fs, optional: true })) {
+  if (!snapshot && privateStat(pending, { fs, optional: true })) {
     syncDirectory(dir, { fs });
     removePrivateFile(pending, { fs });
   }
@@ -29,7 +36,9 @@ export function inboxLines(home, { fs = nodeFs } = {}) {
   for (const name of fs.readdirSync(dir).sort()) {
     if (name.startsWith(".")) continue;
     if (!/^\d{4}-\d\d-\d\d\.jsonl$/.test(name)) throw corrupt();
-    const bytes = readPrivateFile(join(dir, name), { fs });
+    let bytes;
+    try { bytes = readPrivateFile(join(dir, name), { fs }); }
+    catch (error) { if (snapshot && error.code === "ENOENT") continue; throw error; }
     let start = 0, end;
     while ((end = bytes.indexOf(10, start)) !== -1) {
       const raw = bytes.subarray(start, end + 1), record = metadata(parsePrivateJson(raw));
@@ -60,12 +69,20 @@ export function rewriteInbox(home, keep, { fs = nodeFs } = {}) {
 export function createInbox(home, { fs = nodeFs } = {}) {
   const options = { fs };
   return {
-    read({ member, type, afterSeq = -1, since, until, limit = 1000 } = {}) {
+    read({ member, type, afterSeq = -1, since, until, limit = 1000 } = {}, { snapshot = false } = {}) {
       const start = since ? Date.parse(since) : -Infinity, end = until ? Date.parse(until) : Infinity;
-      return withHomeLock(home, () => inboxLines(home, options).map(l => l.record).filter(r => {
-        const at = Date.parse(r.received_at);
-        return (!member || r.from === member) && (!type || r.type === type) && (r.cursor ?? r.seq) > afterSeq && at >= start && at <= end;
-      }).sort((a, b) => (a.cursor ?? a.seq) - (b.cursor ?? b.seq)).slice(0, limit), options);
+      const scan = () => {
+        let ceiling = snapshot ? inboxCursor(home, options) : Infinity;
+        if (ceiling === -1) {
+          for (const { record } of inboxLines(home, { ...options, snapshot })) ceiling = Math.max(ceiling, record.cursor ?? record.seq);
+        }
+        return inboxLines(home, { ...options, snapshot }).map(l => l.record).filter(r => {
+          const at = Date.parse(r.received_at);
+          return (!member || r.from === member) && (!type || r.type === type) && (r.cursor ?? r.seq) > afterSeq
+            && (r.cursor ?? -1) <= ceiling && at >= start && at <= end;
+        }).sort((a, b) => (a.cursor ?? a.seq) - (b.cursor ?? b.seq)).slice(0, limit);
+      };
+      return snapshot ? scan() : withHomeLock(home, scan, options);
     },
     append(record, { innerText } = {}) {
       metadata(record);
@@ -83,9 +100,8 @@ export function createInbox(home, { fs = nodeFs } = {}) {
           syncPrivateFile(join(home, "inbox", existing.name), options);
           return { inserted: false, seq };
         }
-        const cursorPath = join(home, ".inbox-cursor.json"), saved = readPrivateFile(cursorPath, { fs, optional: true });
-        let high = saved ? parsePrivateJson(saved).cursor : -1;
-        if (!Number.isSafeInteger(high) || high < -1) throw corrupt();
+        const cursorPath = join(home, ".inbox-cursor.json");
+        let high = inboxCursor(home, options);
         for (const line of lines) high = Math.max(high, line.record.cursor ?? line.record.seq);
         const cursor = Math.max(seq, high + 1);
         if (!Number.isSafeInteger(cursor)) throw corrupt();
@@ -95,13 +111,13 @@ export function createInbox(home, { fs = nodeFs } = {}) {
         const bytes = Buffer.from(prefix.slice(0, -1) + ',"inner":' + text.replace(/[\r\n]/g, " ") + "}\n");
         const path = join(home, "inbox", `${received_at.slice(0, 10)}.jsonl`), prior = readPrivateFile(path, { fs, optional: true });
         const length = prior ? prior.lastIndexOf(10) + 1 : 0;
+        const complete = prior ? prior.subarray(0, length) : Buffer.alloc(0);
+        if (prior && prior.length !== length) atomicPrivateWrite(path, complete, options);
         const appendFd = fs.openSync(path, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_APPEND | fs.constants.O_NOFOLLOW, 0o600);
         try {
           if (!prior) fs.fchmodSync(appendFd, 0o600);
-          if (prior && prior.length !== length) { fs.ftruncateSync(appendFd, length); fs.fsyncSync(appendFd); }
           writeAll(appendFd, bytes, options); fs.fsyncSync(appendFd); syncDirectory(join(home, "inbox"), options);
         }
-        catch (e) { fs.ftruncateSync(appendFd, length); fs.fsyncSync(appendFd); throw e; }
         finally { fs.closeSync(appendFd); }
         return { inserted: true, seq };
       }, options);

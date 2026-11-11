@@ -8,6 +8,49 @@ import { createInbox } from "../../src/inbox.js";
 import { forgetThinMember } from "../../src/home-state.js";
 import { pairProof } from "../../src/pair-code.js";
 import { diskFailure, fixture, identity, keys, messageId, syncTrace } from "../support/thin-home.js";
+import { scopedRequest, pairingId, requestedScope } from '../support/pairing-scope.js';
+import { setup, now } from '../support/thin-transport.js';
+
+test('scoped confirmation fixes a restart-safe reply deadline; reject and revoke cancel it', t => {
+  const { home, pairing } = setup(t, { confirmed: false }); scopedRequest(home);
+  pairing.confirmFingerprint('m_dev_1', readHomeState(home).members.m_dev_1.fingerprint);
+  const access = readHomeState(home).pairings[pairingId].access;
+  assert.equal(access.confirmed_at, now().toISOString());
+  assert.equal(Date.parse(access.deadline_at), now().getTime() + 900000);
+  createThinPairing(home, { now: () => new Date(now().getTime() + 600000) }).confirmFingerprint('m_dev_1', readHomeState(home).members.m_dev_1.fingerprint);
+  assert.deepEqual(readHomeState(home).pairings[pairingId].access, access);
+  pairing.revoke('m_dev_1');
+  assert.equal(readHomeState(home).pairings[pairingId].access.state, 'cancelled');
+});
+
+test('rejected scoped member cancels the request and cannot inherit a later join', t => {
+  const { home, pairing } = setup(t, { confirmed: false }); scopedRequest(home);
+  pairing.revoke('m_dev_1', { rejected: true });
+  assert.equal(readHomeState(home).pairings[pairingId].access.state, 'cancelled');
+  pairing.join({ member_id: 'm_dev_2', role: 'device', public_key: keys.dev2.pk, pairing_id: pairingId }, { verified: true });
+  assert.equal(readHomeState(home).pairings[pairingId].member_id, 'm_dev_1');
+});
+
+test('late confirmation does not reopen the bounded joined request wait', t => {
+  const { home } = setup(t, { confirmed: false }); scopedRequest(home);
+  const pairing = createThinPairing(home, { now: () => new Date(now().getTime() + 900000) });
+  pairing.confirmFingerprint('m_dev_1', readHomeState(home).members.m_dev_1.fingerprint);
+  assert.equal(readHomeState(home).members.m_dev_1.state, 'confirmed');
+  assert.equal(readHomeState(home).pairings[pairingId].access.state, 'cancelled');
+});
+
+test('scoped join recovers a file-first write and retains the ref when state persistence fails', t => {
+  const home = fixture(t); createHomeState(home, identity);
+  const expires_at = new Date(now().getTime() + 600000).toISOString();
+  fs.writeFileSync(join(home, 'pairing.json'), JSON.stringify({ pairing_id: pairingId, expires_at, requested_scope: requestedScope }), { mode: 0o600 });
+  const fields = { member_id: 'm_dev_1', role: 'device', public_key: keys.dev1.pk, pairing_id: pairingId };
+  assert.throws(() => createThinPairing(home, { now, fs: diskFailure('renameSync', 1, /state\.json/) }).join(fields, { verified: true }), { code: 'ENOSPC' });
+  assert.ok(fs.existsSync(join(home, 'pairing.json'))); assert.equal(readHomeState(home).members.m_dev_1, undefined);
+  createThinPairing(home, { now }).join(fields, { verified: true });
+  assert.equal(fs.existsSync(join(home, 'pairing.json')), false);
+  const row = readHomeState(home).pairings[pairingId];
+  assert.deepEqual(row.requested_scope, requestedScope); assert.equal(row.expires_at, expires_at); assert.equal(row.public_key, keys.dev1.pk);
+});
 
 test("fingerprint confirmation durably schedules one reply and join-bounded fast polling; revocation ends it", t => {
   const home = fixture(t), at = new Date("2026-11-05T12:00:00Z"); createHomeState(home, identity);
@@ -169,4 +212,35 @@ test("revocation and re-pair keep original history, while forget removes only th
   assert.deepEqual(held.list().map(r => r.from), ["m_dev_2"]);
   assert.deepEqual(outbox.list().map(r => r.to[0]), ["m_dev_2"]);
   assert.equal(readHomeState(home).members.m_dev_1.state, "revoked");
+});
+
+test('scoped response waits bind at verified join, retain a fixed confirmation deadline and close on cancellation', t => {
+  const { home } = setup(t, { confirmed: false });
+  scopedRequest(home);
+  const pairing = createThinPairing(home, { now });
+  pairing.join({ member_id: 'm_dev_1', role: 'device', public_key: keys.dev1.pk, pairing_id: pairingId }, { verified: true });
+  const waits = () => Object.values(readHomeState(home).transport.response_waits);
+  assert.equal(waits().length, 1); assert.equal(waits()[0].member_id, 'm_dev_1');
+  assert.equal(waits()[0].expires_at, now().getTime() + 900000);
+  const later = createThinPairing(home, { now: () => new Date(now().getTime() + 300000) });
+  later.confirmFingerprint('m_dev_1', readHomeState(home).members.m_dev_1.fingerprint);
+  assert.equal(waits()[0].expires_at, now().getTime() + 1200000);
+  later.confirmFingerprint('m_dev_1', readHomeState(home).members.m_dev_1.fingerprint);
+  assert.equal(waits()[0].expires_at, now().getTime() + 1200000);
+  later.revoke('m_dev_1'); assert.equal(waits().length, 0);
+});
+
+test('scoped pair starts a pre-join response window and replacement closes it without activating legacy pairing', async t => {
+  const { createPairingService } = await import('../../src/pairing.js');
+  const { home } = setup(t); let n = 0;
+  const service = createPairingService({ home, publicKey: identity.public_key, agentName: 'Test', now,
+    relay: { baseUrl: 'https://relay.example', createPairing: async () => ({ pairing_id: 'p_' + String(++n).repeat(22), pairing_token: 'pt_' + 'T'.repeat(43), expires_at: new Date(now().getTime() + 600000).toISOString() }) } });
+  const first = await service.startPairing({ read: ['steps'] });
+  let waits = Object.values(readHomeState(home).transport.response_waits);
+  assert.equal(waits.length, 1); assert.equal(waits[0].member_id, null); assert.equal(waits[0].state, 'queued');
+  assert.equal(waits[0].opened_at, now().getTime()); assert.equal(waits[0].expires_at, Date.parse(first.expires_at));
+  const second = await service.startPairing({ write: ['body_mass'] });
+  waits = Object.values(readHomeState(home).transport.response_waits);
+  assert.equal(waits.length, 1); assert.equal(waits[0].pairing_id, second.pairing_id);
+  await service.startPairing(); assert.equal(Object.keys(readHomeState(home).transport.response_waits).length, 0);
 });

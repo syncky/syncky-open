@@ -51,3 +51,12 @@ describe("agent.mjs size and imports", () => {
     assert.deepEqual(specifiers(sample).sort(), ["../../agent/src/crypto.js", "./x.js", "fs", "left-pad", "lodash", "node:path", "side-effect"].sort());
   });
 });
+
+it("documents the runtime's scope omission and full-agent fallback", () => {
+  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+  assert.match(readme, /⚠️ Requested scope is deliberately not handled/);
+  assert.match(readme, /no `--read`\/`--write`, generic `send`/);
+  assert.match(readme, /full agent.*agent\/SETUP\.md/);
+  assert.match(readme, /old-parser behavior, not scope validation/);
+  assert.doesNotMatch(source, /requested_scope|request_ref/);
+});

@@ -1,13 +1,16 @@
 import { isB64u, utf8, utf8Decode } from "./encoding.js";
 import { isHubId, isPairingToken } from "./ids.js";
 import { isUrlScheme, URL_SCHEMES } from "./url-scheme.js";
+import { validateAccessScope } from './access-scope.js';
 
 export const PAIR_URI_ERROR_CODES = Object.freeze(["invalid_uri", "unsupported_version", "insecure_relay"]);
 
 const PREFIXES = URL_SCHEMES.map((scheme) => `${scheme}://`);
 const HTTPS = "https://";
 const HTTP = "http://";
-const KNOWN = new Set(["v", "r", "h", "t", "k", "n", "c", "s"]);
+const SITES = new Set(["syncky.app", "dev.syncky.app", "staging.syncky.app"]);
+const SCOPE_KEYS = ['request_ref', 'read', 'write'];
+const KNOWN = new Set(["v", "r", "h", "t", "k", "n", "c", "s", ...SCOPE_KEYS]);
 const REQUIRED = ["r", "h", "t", "k", "n"];
 const RELAY_RE = /^(?:[A-Za-z0-9.-]{1,253}|\[[0-9A-Fa-f:.]{2,45}\])(?::([1-9][0-9]{0,4}))?$/;
 const HEX_PAIR_RE = /^[0-9A-Fa-f]{2}$/;
@@ -55,17 +58,27 @@ function percentDecode(value) {
 }
 
 export function parsePairUri(uri, { allowInsecureRelay = false } = {}) {
-  const prefix = typeof uri === "string" && PREFIXES.find((p) => uri.startsWith(p));
-  if (!prefix) return invalid("scheme");
-  const rest = uri.slice(prefix.length);
-  const end = rest.search(/[?#]/);
-  const authorityEnd = end < 0 ? rest.length : end;
-  if (rest.slice(0, authorityEnd) !== "pair") return invalid("host");
-  if (rest.includes("#")) return invalid("fragment");
-  const query = authorityEnd < rest.length ? rest.slice(authorityEnd + 1) : "";
+  let payload;
+  if (typeof uri === "string" && uri.startsWith(HTTPS)) {
+    const rest = uri.slice(HTTPS.length), end = rest.search(/[/?#]/);
+    const authorityEnd = end < 0 ? rest.length : end;
+    if (!SITES.has(rest.slice(0, authorityEnd))) return invalid("host");
+    const path = rest.slice(authorityEnd).split(/[?#]/, 1)[0], pathEnd = authorityEnd + path.length;
+    if (path !== "/pair") return invalid("path");
+    if (rest[pathEnd] === "?") return invalid("query");
+    payload = rest.slice(pathEnd + 1);
+  } else {
+    const prefix = typeof uri === "string" && PREFIXES.find((p) => uri.startsWith(p));
+    if (!prefix) return invalid("scheme");
+    const rest = uri.slice(prefix.length), end = rest.search(/[?#]/);
+    const authorityEnd = end < 0 ? rest.length : end;
+    if (rest.slice(0, authorityEnd) !== "pair") return invalid("host");
+    if (rest.includes("#")) return invalid("fragment");
+    payload = rest.slice(authorityEnd + 1);
+  }
 
   const params = new Map();
-  for (const segment of query.split("&")) {
+  for (const segment of payload.split("&")) {
     const eq = segment.indexOf("=");
     if (eq < 0) continue;
     const key = segment.slice(0, eq);
@@ -93,6 +106,19 @@ export function parsePairUri(uri, { allowInsecureRelay = false } = {}) {
   if (c !== undefined && !isB64u(c, { length: PAIR_SECRET_BYTES })) return invalid("c");
   if (s !== undefined && s !== "http") return invalid("s");
   if (s !== undefined && !allowInsecureRelay) return { ok: false, code: "insecure_relay" };
+  let requestedScope;
+  if (SCOPE_KEYS.some(key => params.has(key))) {
+    for (const key of SCOPE_KEYS) if (!params.has(key)) return invalid(key);
+    const scope = { request_ref: params.get('request_ref') };
+    if (!/^[0-9a-f]{32}$/.test(scope.request_ref)) return invalid('request_ref');
+    for (const side of ['read', 'write']) {
+      try { scope[side] = JSON.parse(params.get(side)); } catch { return invalid(side); }
+      if (!Array.isArray(scope[side]) || scope[side].some((v, i, a) => typeof v !== 'string' || (i > 0 && a[i - 1] >= v))) return invalid(side);
+    }
+    const result = validateAccessScope(scope);
+    if (!result.ok) return invalid(result.param);
+    requestedScope = result.value;
+  }
 
   return {
     ok: true,
@@ -103,6 +129,7 @@ export function parsePairUri(uri, { allowInsecureRelay = false } = {}) {
       agentPublicKey: k,
       agentName: n,
       ...(c !== undefined && { pairSecret: c }),
+      ...(requestedScope !== undefined && { requestedScope }),
     },
   };
 }
@@ -114,11 +141,13 @@ function relayHostOf(relayBase) {
   return { host: relayBase.slice((insecure ? HTTP : HTTPS).length), insecure };
 }
 
-export function buildPairUri({ relayBase, hubId, pairingToken, agentPublicKey, agentName, pairSecret, urlScheme = "syncky" }) {
-  if (!isUrlScheme(urlScheme)) throw new TypeError("url scheme must be syncky, syncky-dev or syncky-staging");
+export function buildPairUri({ relayBase, hubId, pairingToken, agentPublicKey, agentName, pairSecret, requestedScope, urlScheme = null }) {
+  if (urlScheme !== null && !isUrlScheme(urlScheme)) throw new TypeError("url scheme must be syncky, syncky-dev or syncky-staging");
   const { host, insecure } = relayHostOf(relayBase);
+  const relayHost = host.split(":")[0].toLowerCase();
+  const site = relayHost === "relay-dev.syncky.app" ? "dev.syncky.app" : relayHost === "relay-staging.syncky.app" ? "staging.syncky.app" : "syncky.app";
   const v2 = pairSecret !== undefined && pairSecret !== null;
-  let uri = `${urlScheme}://pair?v=${v2 ? 2 : 1}`;
+  let uri = `${urlScheme === null ? `https://${site}/pair#` : `${urlScheme}://pair?`}v=${v2 ? 2 : 1}`;
   const params = [
     ["r", host],
     ["h", hubId],
@@ -132,6 +161,11 @@ export function buildPairUri({ relayBase, hubId, pairingToken, agentPublicKey, a
     uri +=`&${key}=${percentEncode(value)}`;
   }
   if (insecure) uri += "&s=http";
+  if (requestedScope !== undefined) {
+    const result = validateAccessScope(requestedScope, { normalize: true });
+    if (!result.ok) throw new TypeError(`invalid pairing scope (${result.param})`);
+    for (const key of SCOPE_KEYS) uri += `&${key}=${percentEncode(key === 'request_ref' ? result.value[key] : JSON.stringify(result.value[key]))}`;
+  }
   const check = parsePairUri(uri, { allowInsecureRelay: true });
   if (!check.ok) throw new TypeError(`pairing info does not form a valid pair URI (${check.code}${check.param ? `: ${check.param}` : ""})`);
   return uri;

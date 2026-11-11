@@ -80,6 +80,10 @@
       "kind": "control",
       "max_envelope_bytes": 4096
     },
+    "scope_release": {
+      "kind": "control",
+      "max_envelope_bytes": 4096
+    },
     "sync": {
       "kind": "data",
       "max_envelope_bytes": 262144,

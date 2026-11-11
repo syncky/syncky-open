@@ -6,7 +6,6 @@ import { parseArgs } from "node:util";
 import { build } from "esbuild";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
-const SCHEMES = ["syncky", "syncky-dev", "syncky-staging"];
 export const STATIC_FILES = ["index.html", "demo.css"];
 
 export function relayOrigin(value) {
@@ -15,9 +14,8 @@ export function relayOrigin(value) {
   return url.origin;
 }
 
-export async function buildDemo({ relay = "https://relay.syncky.app", scheme = "syncky", out = join(HERE, "dist") } = {}) {
+export async function buildDemo({ relay = "https://relay.syncky.app", out = join(HERE, "dist") } = {}) {
   const origin = relayOrigin(relay);
-  if (!SCHEMES.includes(scheme)) throw new Error(`--scheme must be one of ${SCHEMES.join(", ")}`);
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
   await build({
@@ -30,17 +28,17 @@ export async function buildDemo({ relay = "https://relay.syncky.app", scheme = "
     minify: true,
     legalComments: "eof",
     logLevel: "warning",
-    define: { __SYNCKY_RELAY__: JSON.stringify(origin), __SYNCKY_SCHEME__: JSON.stringify(scheme) },
+    define: { __SYNCKY_RELAY__: JSON.stringify(origin) },
   });
   for (const file of STATIC_FILES) copyFileSync(join(HERE, file), join(out, file));
-  return { out, files: ["demo.js", ...STATIC_FILES], relay: origin, scheme, size: readFileSync(join(out, "demo.js")).length };
+  return { out, files: ["demo.js", ...STATIC_FILES], relay: origin, size: readFileSync(join(out, "demo.js")).length };
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const { values } = parseArgs({ options: { relay: { type: "string" }, scheme: { type: "string" }, out: { type: "string" } }, strict: true });
+  const { values } = parseArgs({ options: { relay: { type: "string" }, out: { type: "string" } }, strict: true });
   try {
     const result = await buildDemo(values);
-    console.log(`browser demo: ${result.files.join(", ")} in ${result.out} (relay ${result.relay}, ${result.scheme}://, demo.js ${result.size} bytes)`);
+    console.log(`browser demo: ${result.files.join(", ")} in ${result.out} (relay ${result.relay}, demo.js ${result.size} bytes)`);
   } catch (err) {
     console.error(err.message);
     process.exitCode = 2;

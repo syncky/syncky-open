@@ -58,7 +58,7 @@ test('credentials, CEKs, all Health kinds and inner bodies stay out of logs/stat
   await phone.postEnvelope(await phone.seal(raw)); await runtime.poller.once();
   await phone.sendPairProof(); at += 300000; await runtime.poller.once(); await runtime.outbox.flush();
   const receipt = await runtime.send({ type:'future', inner:{ type:'future', private:'SEND_CANARY' } });
-  const params = new URL(pair.uri).searchParams;
+  const params = new URLSearchParams(new URL(pair.uri).hash.slice(1) || new URL(pair.uri).search.slice(1));
   for (const key of ['t', 'c']) assert.ok(params.get(key), `pairing URI lacks ${key} credential`);
   const credentials = ['private-log-invite', secrets.token, secrets.private_key, toHex(secrets.privateKeyBytes), secrets.webhook_secret, params.get('t'), params.get('c'), ...ceks.flatMap(b => [b64uEncode(b),toHex(b)])].filter(Boolean);
   const health = ['INNER_CANARY','SEND_CANARY','DIAGNOSTICS_CANARY','"samples"','"points"','"beats"', ...samples.map(s => s.uuid)];

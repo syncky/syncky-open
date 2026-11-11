@@ -8,10 +8,11 @@ import { openEnvelope, sealEnvelope, serializeEnvelope } from "./envelope.js";
 import { fingerprint as computeFingerprint } from "../../src/fingerprint.js";
 import { pairProof as computePairProof } from "../../src/pair-code.js";
 import { parsePairUri } from "../../src/pair-uri.js";
-import { parseRawInner } from "../../src/thin-transport.js";
+import { createThinTransport, parseRawInner } from "../../src/thin-transport.js";
 
 export const MAX_INNER_BYTES = 180000;
 const validator = await createValidator();
+const transport = createThinTransport({ table: loadJson("messages.json") });
 const writable = new Set(loadJson("types.json").types.filter(t => t.write).map(t => t.name));
 
 export class FakePhoneError extends Error {
@@ -202,6 +203,12 @@ export function createFakePhone({
     const body = await phone.seal(JSON.stringify({ v: 1, ...fields }), { ...options, kind: "control" });
     return { ...(await phone.postEnvelope(body)), body };
   };
+
+  phone.sendAccessReply = async fields => phone.postEnvelope(transport.serialize(await transport.sealMessage({
+    hubId: phone.hubId, from: phone.memberId, senderPrivateKey: phone.keys.privateKey,
+    recipients: [{ memberId: phone.agentMemberId, publicKey: agentKey() }],
+    innerText: JSON.stringify({ v: 1, type: "access_reply", ...fields }), random,
+  })));
 
   phone.postEnvelope = async (body) => {
     requirePaired();

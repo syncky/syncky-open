@@ -11,7 +11,94 @@ import { saveSecrets } from '../../src/secrets.js';
 import { saveConfig } from '../../src/config.js';
 import { acquireHomeLock } from '../../src/protected-files.js';
 import { createRuntime } from '../../src/runtime.js';
+import { activateResponseWaits, responseCorrelations } from '../../src/response-waits.js';
 import { setup, keys, identity, now, delivery, messageId } from '../support/thin-transport.js';
+import { scopedRequest, pairingId, requestedScope, resolvedReply } from '../support/pairing-scope.js';
+
+for (const code of ['home_locked', 'unsafe_home']) test(`runtime initialization synchronously propagates ${code} within its retry budget`, t => {
+  const { home } = homeFixture(t), openSync = fs.openSync, waits = [];
+  const error = Object.assign(new Error('fixture read failure'), { code });
+  let reads = 0;
+  t.mock.method(fs, 'openSync', (file, ...args) => {
+    if (file === join(home, 'state.json')) { reads++; throw error; }
+    return openSync(file, ...args);
+  });
+  t.mock.method(Atomics, 'wait', (array, index, value, timeout) => { waits.push(timeout); return 'timed-out'; });
+  assert.throws(() => createRuntime({ home, env: {} }), e => e === error);
+  assert.equal(reads, code === 'home_locked' ? 201 : 1);
+  assert.deepEqual(waits, code === 'home_locked' ? Array.from({ length: 200 }, (_, n) => 5 + n % 13) : []);
+});
+
+test('CLI and MCP project awaiting, missing and late resolved pairing access independently of scope', async t => {
+  const { home } = homeFixture(t); scopedRequest(home);
+  const runtime = createRuntime({ home, now, env: {}, fetch: () => { throw Error('unexpected network'); } });
+  const request = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'syncky_status', arguments: {} } };
+  for (const missing of [false, true]) {
+    if (missing) updateHomeState(home, s => { s.pairings[pairingId].access.notice_at = now().toISOString(); });
+    for (const output of [await cli(home, ['status']), await cli(home, ['status', '--json']), await cli(home, ['mcp'], JSON.stringify(request) + '\n')]) {
+      assert.equal(output.code, 0);
+      const status = output.json.result?.structuredContent ?? output.json;
+      const member = status.members.find(m => m.member_id === 'm_dev_1');
+      assert.equal(member.pairing_access.state, 'awaiting'); assert.equal(member.scope, null);
+      assert.deepEqual(member.pairing_access.requested_scope, { read: ['steps'], write: ['body_mass'] });
+      assert.ok(!(output.stdout + output.stderr).includes(requestedScope.request_ref));
+      assert.equal(Boolean(member.pairing_access.notice), missing);
+      if (missing) assert.match(member.pairing_access.notice, /older app.*send --type access_request/);
+      assert.doesNotMatch(output.stdout + output.stderr, /pair_secret|pairing_token|pair_proof|private_key|ciphertext|uri/);
+    }
+  }
+  const later = () => new Date(now().getTime() + 900000);
+  const before = fs.readFileSync(join(home, 'state.json')), transaction = acquireHomeLock(home, 'state');
+  try {
+    const status = createRuntime({ home, now: later, env: {} }).status();
+    const expired = status.members.find(m => m.member_id === 'm_dev_1').pairing_access;
+    assert.equal(expired.state, 'no_reply'); assert.match(expired.notice, /access reply not received/);
+    assert.equal(status.pairings.find(p => p.pairing_id === pairingId).state, 'no_reply');
+    assert.deepEqual(fs.readFileSync(join(home, 'state.json')), before);
+    assert.equal(readHomeState(home).pairings[pairingId].access.state, 'awaiting');
+  } finally { transaction.release(); }
+  await createRuntime({ home, now: later, env: {} }).inbound.receive(await delivery(runtime.transport, 1, resolvedReply()));
+  const result = runtime.status().members.find(m => m.member_id === 'm_dev_1');
+  assert.equal(result.pairing_access.state, 'resolved'); assert.equal(result.pairing_access.notice, null);
+  assert.deepEqual(result.pairing_access.outcomes.read, resolvedReply().read); assert.equal(result.scope, null);
+  assert.ok(!JSON.stringify(runtime.status()).includes(requestedScope.request_ref));
+});
+
+test('status and MCP omit pairing, access and diagnostics refs and wait keys while replies still match', async t => {
+  const { home } = homeFixture(t); scopedRequest(home);
+  const accessRef = 'b'.repeat(32), diagnosticsRef = 'c'.repeat(32), at = now().getTime();
+  updateHomeState(home, s => {
+    const base = { v: 1, created_at: now().toISOString(), expires_at: new Date(at + 600000).toISOString() };
+    const response_waits = [
+      { ...base, type: 'access_request', request_ref: accessRef, read: ['steps'], write: [] },
+      { ...base, type: 'diagnostics_request', request_ref: diagnosticsRef },
+      { v: 1, type: 'commands', commands: [{ command_id: 'private-command', version: 2 }] },
+    ].flatMap(inner => responseCorrelations(inner, s.members.m_dev_1, at));
+    activateResponseWaits(s, [{ state: 'sent', sent_at: now().toISOString(), response_waits }], at);
+  });
+  const runtime = createRuntime({ home, now, env: {}, fetch: () => { throw Error('unexpected network'); } });
+  const request = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'syncky_status', arguments: {} } };
+  async function check(completed) {
+    for (const output of [await cli(home, ['status']), await cli(home, ['status', '--json']), await cli(home, ['mcp'], JSON.stringify(request) + '\n')]) {
+      assert.equal(output.code, 0);
+      const status = output.json.result?.structuredContent ?? output.json;
+      assert.deepEqual(status.transport.response_waits.map(w => w.kind).sort(), ['access', 'command', 'diagnostics', ...(completed ? [] : ['pairing'])]);
+      for (const ref of [requestedScope.request_ref, accessRef, diagnosticsRef]) assert.ok(!(output.stdout + output.stderr).includes(ref));
+      assert.doesNotMatch(output.stdout + output.stderr, /"request_ref"\s*:|private-command/);
+      assert.deepEqual(status.transport.response_waits.filter(w => w.completed_at !== undefined).map(w => w.kind).sort(), completed ? ['access', 'diagnostics'] : []);
+    }
+  }
+  await check(false);
+  const stored = readHomeState(home);
+  assert.equal(stored.pairings[pairingId].requested_scope.request_ref, requestedScope.request_ref);
+  for (const ref of [accessRef, diagnosticsRef]) assert.ok(Object.keys(stored.transport.response_waits).some(k => k.includes(ref)));
+  await runtime.inbound.receive(await delivery(runtime.transport, 1, { ...resolvedReply(), request_ref: accessRef, write: [],
+    decided_at: now().toISOString().replace('.000Z', 'Z') }));
+  await runtime.inbound.receive(await delivery(runtime.transport, 2, { v: 1, type: 'diagnostics_reply', request_ref: diagnosticsRef, outcome: 'declined', reason: 'user' }));
+  await runtime.inbound.receive(await delivery(runtime.transport, 3, resolvedReply()));
+  await check(true);
+  assert.equal(runtime.status().members.find(m => m.member_id === 'm_dev_1').pairing_access.state, 'resolved');
+});
 
 function homeFixture(t) {
   const fixture = setup(t);
@@ -30,6 +117,38 @@ async function cli(home, args, input = '', fetch = () => { throw Error('unexpect
 test('thin command surface and send input-path flag are unambiguous', () => {
   assert.deepEqual(commandNames().sort(), ['init','pair','wait','confirm','reject','revoke','forget','status','send','inbox','receive','ack','skill','mcp','selftest','help'].sort());
   assert.equal(parseArgs(['send','--type','future','--json','-']).flags.json, '-');
+});
+
+for (const emit of [false, true]) test(`CLI receive --once ${emit ? '--emit-records emits JSONL' : 'keeps stdout quiet'} while retaining records`, async t => {
+  const { home, transport } = homeFixture(t), inner = { type: 'future', extra: 'PRIVATE_RECORD_CANARY' };
+  const message = await delivery(transport, 1, inner), requests = [];
+  const record = { seq: 1, from: keys.dev1.member_id, kind: message.kind, type: inner.type, received_at: now().toISOString(), inner };
+  const stored = { ...record, cursor: 1 };
+  const result = await cli(home, ['receive', '--once', ...(emit ? ['--emit-records'] : [])], '', async (url, options) => {
+    const path = new URL(url).pathname; requests.push([path, options.method]);
+    if (path === '/v1/messages' && options.method === 'GET') return Response.json({ messages: [message], next_after: 1 });
+    if (path === '/v1/acks' && options.method === 'POST') {
+      assert.deepEqual(JSON.parse(options.body), { up_to_seq: 1 });
+      assert.deepEqual(createInbox(home).read(), [stored]);
+      return new Response(null, { status: 204 });
+    }
+    if (path === '/v1/heartbeat' && options.method === 'POST') return new Response(null, { status: 204 });
+    if (path === '/v1/hub/state' && options.method === 'GET') return Response.json({ state: 'active' });
+    assert.fail('unexpected relay request');
+  });
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(result.stdout, emit ? JSON.stringify(record) + '\n' : '');
+  assert.doesNotMatch(result.stderr, /PRIVATE_RECORD_CANARY/);
+  const cycle = result.stderr.trim().split('\n').map(line => JSON.parse(line)).find(line => line.event === 'receive_cycle');
+  assert.equal(cycle.fetched, 1); assert.equal(cycle.acked_up_to, 1);
+  assert.equal(requests.filter(([path, method]) => path === '/v1/messages' && method === 'GET').length, 1);
+  assert.equal(requests.filter(([path]) => path === '/v1/acks').length, 1);
+  assert.equal(readHomeState(home).transport.acked_seq, 1);
+  const inbox = await cli(home, ['inbox']);
+  assert.equal(inbox.code, 0, inbox.stderr); assert.deepEqual(inbox.json.records, [stored]);
+  const request = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'syncky_inbox', arguments: {} } };
+  const mcp = await cli(home, ['mcp'], JSON.stringify(request) + '\n');
+  assert.equal(mcp.code, 0, mcp.stderr); assert.deepEqual(mcp.json.result.structuredContent.records, [stored]);
 });
 
 test('local status/inbox/skill are offline; initialized init cannot change legacy files', async t => {
@@ -228,4 +347,13 @@ test('MCP starts no receiver, heartbeat, retry or update network work', async t 
   assert.deepEqual(fs.readFileSync(join(home,'state.json')), before);
   assert.equal(fs.existsSync(join(home,'.receiver.lock')), false);
   assert.equal(readHomeState(home).transport.heartbeat_day, undefined);
+});
+
+test('receive once exposes the authoritative floor reason and deadline to the operator', async t => {
+  const { home } = homeFixture(t), at = now().getTime();
+  updateHomeState(home, s => { s.transport.last_poll_at = at; s.transport.next_poll_at = at + 1800000; s.transport.poll_interval_s = 1800; });
+  const result = await cli(home, ['receive', '--once']);
+  assert.equal(result.code, 0);
+  const cycle = result.stderr.trim().split('\n').map(s => JSON.parse(s)).find(s => s.event === 'receive_cycle');
+  assert.equal(cycle.deferred, true); assert.equal(cycle.reason, 'poll_floor'); assert.equal(cycle.next_poll_at, at + 300000);
 });

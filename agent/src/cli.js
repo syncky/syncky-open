@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { spawn as nodeSpawn } from 'node:child_process';
 import { join, resolve } from 'node:path';
-import { LocalStateError, agentHome, resolveConfig } from './config.js';
+import { LocalStateError, agentHome, errorDetail, resolveConfig } from './config.js';
 import { LEVELS, createLogger } from './log.js';
 import { createRuntime, readSkill, AGENT_VERSION, INBOX_MAX_LIMIT } from './runtime.js';
 import { createSkillUpdater } from './skill-update.js';
@@ -18,31 +18,14 @@ import { isPairUriName } from './pair-uri.js';
 import { abortableSleep } from './transport-time.js';
 import { retryHomeLock, retryReceiverLock } from './thin-lock.js';
 import { openPrivateAppend, receiverLockHeld } from './protected-files.js';
+import { pairingAccessView, PAIRING_REPLY_MS } from './pairing-access.js';
+import { commands, globalFlags } from './cli-commands.js';
+export { commandNames } from './cli-commands.js';
 
 export const EXIT = Object.freeze({ ok: 0, usage: 1, relay: 2, invalidToken: 3, local: 4 });
 export class UsageError extends Error { constructor(message) { super(message); this.name = 'UsageError'; this.code = 'invalid_arguments'; } }
-const globalFlags = { home: 'string', relay: 'string', 'url-scheme': 'string', 'log-level': 'string', help: 'boolean' };
 const internalCommands = { 'pair-waiter': { max: 1 } };
 const PAIR_WAITER_GRACE_MS = 60000;
-const commands = {
-  init: { usage: 'init --name <name> [--invite <secret>]', flags: { name: 'string', invite: 'string' } },
-  pair: { usage: 'pair [--v1] [--wait] [--timeout <seconds>] [--no-qr]', flags: { v1: 'boolean', wait: 'boolean', timeout: 'string', 'no-qr': 'boolean' } },
-  wait: { usage: 'wait [--timeout <seconds>]', flags: { timeout: 'string' } },
-  confirm: { usage: 'confirm <member_id> <fingerprint>', max: 8 },
-  reject: { usage: 'reject <member_id>', max: 1 },
-  revoke: { usage: 'revoke <member_id>', max: 1, details: 'Revoke a known phone on the relay, then stop trusting it locally. History stays until forget.' },
-  forget: { usage: 'forget <member_id> [--yes]', max: 1, flags: { yes: 'boolean' } },
-  status: { usage: 'status' },
-  send: { usage: 'send --type <type> --json <file|-> [--to <member_id>] [--validate]', flags: { type: 'string', to: 'string', validate: 'boolean' } },
-  inbox: { usage: 'inbox [--type <type>] [--member <member_id>] [--after-seq <seq>] [--since <date>] [--until <date>] [--limit <n>]', flags: { type: 'string', member: 'string', 'after-seq': 'string', since: 'string', until: 'string', limit: 'string' } },
-  receive: { usage: 'receive [--once] [--poll-interval <seconds>]', flags: { once: 'boolean', 'poll-interval': 'string' } },
-  ack: { usage: 'ack --up-to-seq <seq>', flags: { 'up-to-seq': 'string' } },
-  skill: { usage: 'skill [--diff]', flags: { diff: 'boolean' } },
-  mcp: { usage: 'mcp' },
-  selftest: { usage: 'selftest' },
-  help: { usage: 'help [command]', max: 1 },
-};
-export const commandNames = () => Object.keys(commands);
 export function generalHelp() { return `usage: syncky-agent <command> [options]\n\n${Object.values(commands).map(c => '  ' + c.usage).join('\n')}\n\nGlobal: --home <dir> --relay <url> --url-scheme <scheme> --log-level <level> --help\nJSON output: --json (send instead requires --json <file|-> as input).\nExit: 0 success, 1 usage, 2 relay, 3 invalid_token, 4 local state.\n`; }
 export function commandHelp(command) { return `usage: syncky-agent ${commands[command]?.usage ?? '<command>'}\n${commands[command]?.details ? '\n' + commands[command].details + '\n' : ''}`; }
 export function parseArgs(argv) {
@@ -89,50 +72,60 @@ async function inputText(path, input) {
   catch { throw new LocalStateError('invalid_input','JSON input must be UTF-8'); }
 }
 const confirmationReceipt = (runtime, id) => runtime.outbox.receipts().find(e => e.type === 'confirmed' && e.to?.includes(id));
-async function waitPair(runtime, pairing, started, { timeout = 900, signal, sleep, now, deadline = now().getTime() + timeout * 1000, isCurrent, retryRelayErrors = false }) {
-  let outcome, failures = 0;
+async function waitPair(runtime, pairing, started, { timeout = 900, signal, sleep, now, deadline = now().getTime() + timeout * 1000, deadlineOf, isCurrent, retryRelayErrors = false }) {
+  let outcome, completedResult, failures = 0;
+  const until = () => deadlineOf?.() ?? deadline;
   function confirmation() {
     const member = readHomeState(runtime.home).members[outcome.member.member_id];
     if (member?.state === 'confirmed') return { ...outcome, member: { ...outcome.member, state: 'confirmed' } };
     if (member?.proof_invalidated) throw new LocalStateError('pair_proof_invalid','compare the fingerprint with the phone before confirming');
     if (member?.state !== 'joined') throw new LocalStateError('invalid_transition','phone is no longer joined');
   }
-  while (now().getTime() < deadline) {
+  while (now().getTime() < until()) {
     signal?.throwIfAborted();
     if (isCurrent && !await isCurrent()) return;
     let delayMs = 2000;
     try {
       if (!outcome) {
-        const result = await pairing.refreshPairing(started.pairing_id, { signal, deadline });
+        const result = await pairing.refreshPairing(started.pairing_id, { signal, deadline: until() });
         if (result.status === 'expired') throw new LocalStateError('pairing_expired','pairing expired');
         if (result.status === 'completed') outcome = result;
       }
       if (outcome) {
         if (isCurrent && !await isCurrent()) return;
-        if (started.version === 1) return outcome;
+        let row = readHomeState(runtime.home).pairings[started.pairing_id];
+        if (started.version === 1 && (!row?.requested_scope || readHomeState(runtime.home).members[outcome.member.member_id]?.state !== 'confirmed')) return outcome;
         const confirmed = confirmation();
-        if (!confirmed) await runtime.poller.once({ signal, deadline });
+        if (!confirmed || row?.access?.state === 'awaiting') await runtime.poller.once({ signal, deadline: until(), operator: false });
         const completed = confirmed ?? confirmation();
         if (completed) {
-          await runtime.inbound.releaseHeld({ signal, deadline });
+          await runtime.inbound.releaseHeld({ signal, deadline: until() });
           await runtime.outbox.flush({ signal });
-          if (!retryRelayErrors) return completed;
+          row = readHomeState(runtime.home).pairings[started.pairing_id];
+          const result = row?.requested_scope ? { ...completed, member: { ...completed.member, pairing_access: pairingAccessView(row) } } : completed;
+          completedResult = result;
+          if (!retryRelayErrors && row?.access?.state !== 'awaiting') return result;
           const receipt = confirmationReceipt(runtime, outcome.member.member_id);
-          if (receipt?.state === 'sent') return completed;
+          if (receipt?.state === 'sent' && row?.access?.state !== 'awaiting') return result;
           if (receipt?.state === 'failed') throw new LocalStateError('invalid_transition', 'pairing confirmation delivery failed');
           delayMs = Math.max(delayMs, (typeof receipt?.next_attempt_at === 'string' ? Date.parse(receipt.next_attempt_at) : receipt?.next_attempt_at ?? 0) - now().getTime());
+          if (receipt?.state === 'sent' && row?.access?.state === 'awaiting') {
+            const transport = readHomeState(runtime.home).transport;
+            delayMs = Math.max(delayMs, Math.min(30000, Math.max(transport.next_poll_at ?? 0, transport.poll_retry_at ?? 0) - now().getTime()));
+          }
         }
       }
       failures = 0;
     } catch (err) {
-      if (!signal?.aborted && now().getTime() >= deadline) throw new LocalStateError('timeout', 'pairing wait timed out');
+      if (!signal?.aborted && now().getTime() >= until()) break;
       const recoverable = err.status === 0 || err.status === 429 || err.status >= 500 || err.name === 'AbortError' || ['network_error', 'timeout'].includes(err.code);
       if (signal?.aborted || (err.code !== 'home_locked' && err.status !== 429 && !(retryRelayErrors && recoverable))) throw err;
       if (retryRelayErrors && recoverable) delayMs = Math.min(30000, 1000 * 2 ** Math.min(++failures, 5));
       if ((err.status === 429 || (retryRelayErrors && recoverable)) && Number.isFinite(err.retryAfterS) && err.retryAfterS >= 0) delayMs = Math.max(1000, err.retryAfterS * 1000);
     }
-    await abortableSleep(Math.min(delayMs, Math.max(0, deadline - now().getTime())), sleep, signal);
+    await abortableSleep(Math.min(delayMs, Math.max(0, until() - now().getTime())), sleep, signal);
   }
+  if (!retryRelayErrors && completedResult) return completedResult;
   throw new LocalStateError('timeout','pairing wait timed out; receive can continue automatic code-proof confirmation');
 }
 function spawnPairWaiter(home, id, { spawn, env, logger, flags }) {
@@ -172,22 +165,23 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
     if (command === 'init') {
       const config = resolveConfig({ env, flags: { relay_url: flags.relay, url_scheme: flags['url-scheme'], name: flags.name } });
       if (!isPairUriName(config.name)) throw new UsageError('init requires a name that fits the pairing URI');
-      json({ ...await registerAgent({ home, relayUrl: config.relay_url, name: config.name, invite: flags.invite ?? (env.SYNCKY_INVITE || undefined), urlScheme: config.url_scheme, fetch, now, sleep, random, logger }), home }); return 0;
+      json({ ...await registerAgent({ home, relayUrl: config.relay_url, name: config.name, invite: flags.invite ?? (env.SYNCKY_INVITE || undefined), urlScheme: config.url_scheme, fetch, now, sleep, random, logger, timers }), home }); return 0;
     }
     if (command === 'skill') {
-      const result = readSkill(createSkillUpdater({ home }), { diff: flags.diff });
+      const result = await readSkill(createSkillUpdater({ home }), { diff: flags.diff });
       if (flags.json) json(result); else print((flags.diff ? result.diff : result.skill) + '\n'); return 0;
     }
     if (command === 'selftest') { const result = await runSelftest({ dir: protocolDir(env) }); json(result); return result.ok ? 0 : 4; }
     if (command === 'mcp') {
-      const runtime = () => createRuntime({ home, flags, env, fetch, now, sleep, random, logger });
+      const runtime = () => createRuntime({ home, flags, env, fetch, now, sleep, random, logger, timers });
       await runMcp({ input: stdin, write: print, version: AGENT_VERSION, logger, handlers: {
-        syncky_status: () => retryHomeLock(() => runtime().status()), syncky_inbox: args => retryHomeLock(() => runtime().inbox(args)),
-        syncky_send: async args => (await retryHomeLock(runtime)).send({ ...args, validate: args.type === 'access_request' || args.validate === true }),
-        syncky_ack: async args => (await retryHomeLock(runtime)).poller.ack(args.up_to_seq), syncky_skill: args => readSkill(createSkillUpdater({ home }), args),
+        syncky_status: () => { const current = runtime(); return retryHomeLock(() => current.status()); },
+        syncky_inbox: args => { const current = runtime(); return retryHomeLock(() => current.inbox(args)); },
+        syncky_send: args => runtime().send({ ...args, validate: ['access_request', 'scope_release'].includes(args.type) || args.validate === true }),
+        syncky_ack: args => runtime().poller.ack(args.up_to_seq), syncky_skill: args => readSkill(createSkillUpdater({ home }), args),
       } }); return 0;
     }
-    const runtime = await retryHomeLock(() => createRuntime({ home, flags, env, fetch, now, sleep, random, logger, outboxMaxAttempts: command === 'pair-waiter' ? Infinity : undefined, createPoller, timers, onRecord: command === 'receive' ? json : undefined }));
+    const runtime = createRuntime({ home, flags, env, fetch, now, sleep, random, logger, outboxMaxAttempts: command === 'pair-waiter' ? Infinity : undefined, createPoller, timers, onRecord: command === 'receive' && flags['emit-records'] ? json : undefined });
     if (command === 'status') { json(await retryHomeLock(() => runtime.status())); return 0; }
     if (command === 'inbox') { json(await retryHomeLock(() => runtime.inbox(inboxArgs(flags)))); return 0; }
     if (command === 'send') {
@@ -207,26 +201,35 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
     const pairing = createPairingService({ home, relay: runtime.relay, publicKey: loadSecrets(home).public_key, agentName: runtime.config.name, urlScheme: runtime.config.url_scheme, now });
     if (command === 'pair-waiter') {
       const current = () => pairing.currentPairing({ includeCompleted: true, graceMs: PAIR_WAITER_GRACE_MS });
-      const started = current();
+      const started = await retryHomeLock(current);
       if (!started || started.pairing_id !== positionals[0] || started.version !== 2) return 0;
       const isCurrent = () => retryHomeLock(() => {
+        if (receiverLockHeld(home)) return false;
         if (current()?.pairing_id !== started.pairing_id) return false;
         const state = readHomeState(home), member = state.members[state.pairings[started.pairing_id]?.member_id];
         if (member?.state === 'confirmed') {
           const receipt = confirmationReceipt(runtime, member.member_id);
-          return Boolean(member.confirmation || (receipt && receipt.state !== 'sent'));
+          return Boolean(state.pairings[started.pairing_id]?.access?.state === 'awaiting' || member.confirmation || (receipt && receipt.state !== 'sent'));
         }
         return !member || (member.state === 'joined' && !member.proof_invalidated);
       });
       const deadline = Date.parse(started.expires_at) + PAIR_WAITER_GRACE_MS, controller = new AbortController();
+      const scoped = Boolean(readHomeState(home).pairings[started.pairing_id]?.requested_scope);
+      const deadlineOf = () => {
+        const access = readHomeState(home).pairings[started.pairing_id]?.access;
+        return access?.state === 'awaiting' && access.joined_at ? Date.parse(access.deadline_at) : deadline;
+      };
       const waiterSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
-      const timer = timers.setTimeout(() => controller.abort(), Math.max(0, deadline - now().getTime()));
+      const timer = timers.setTimeout(() => controller.abort(), Math.max(0, deadline + (scoped ? PAIRING_REPLY_MS * 2 : 0) - now().getTime()));
       logger.info('pair_waiter_started', { pid: process.pid });
       try {
-        await waitPair(runtime, pairing, started, { now, sleep, signal: waiterSignal, deadline, isCurrent, retryRelayErrors: true });
+        await waitPair(runtime, pairing, started, { now, sleep, signal: waiterSignal, deadline, ...(scoped && { deadlineOf }), isCurrent, retryRelayErrors: true });
         logger.info('pair_waiter_finished');
       } catch { logger.info('pair_waiter_stopped'); }
-      finally { timers.clearTimeout(timer); }
+      finally {
+        timers.clearTimeout(timer);
+        if (scoped) await retryHomeLock(() => pairing.currentPairing({ includeCompleted: true }));
+      }
       return 0;
     }
     if (['confirm','reject','revoke','forget'].includes(command)) {
@@ -238,7 +241,8 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
       if (command === 'forget') json(await retryHomeLock(() => pairing.forgetMember(id, { yes: flags.yes === true })));
       return 0;
     }
-    const started = command === 'pair' ? await pairing.startPairing({ v1: flags.v1 }) : pairing.currentPairing({ includeCompleted: true });
+    const started = command === 'pair' ? await pairing.startPairing({ v1: flags.v1,
+      ...(flags.read !== undefined && { read: flags.read.split(',') }), ...(flags.write !== undefined && { write: flags.write.split(',') }) }) : pairing.currentPairing({ includeCompleted: true });
     if (!started) throw new LocalStateError('pairing_expired','no pending pairing');
     if (command === 'pair' && !flags.wait) {
       if (flags.json) json(started);
@@ -254,7 +258,7 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
   } catch (error) {
     const usage = error instanceof UsageError, relay = error instanceof RelayError;
     const code = usage ? 'invalid_arguments' : typeof error.code === 'string' && /^[a-z_]{1,64}$/.test(error.code) ? error.code : 'local_error';
-    stderr.write(JSON.stringify({ error: code, ...(usage && parsed?.command && commands[parsed.command] ? { usage: commandHelp(parsed.command).trim() } : {}) }) + '\n');
+    stderr.write(JSON.stringify({ error: code, ...errorDetail(error), ...(usage && parsed?.command && commands[parsed.command] ? { usage: commandHelp(parsed.command).trim() } : {}) }) + '\n');
     return usage ? 1 : relay ? error.code === 'invalid_token' ? 3 : 2 : 4;
   }
 }

@@ -1,5 +1,8 @@
+import { scopedRequest, resolvedReply } from "../support/pairing-scope.js";
+import { waitFor } from "../support/helpers.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { createGenericSender } from "../../src/send.js";
 import { createThinPoller } from "../../src/thin-poller.js";
 import { createRelayClient } from "../../src/relay-client.js";
 import { createInbox } from "../../src/inbox.js";
@@ -10,6 +13,7 @@ import { fixture } from "../support/thin-home.js";
 import { createHomeState } from "../../src/home-state.js";
 import { createThinTransport } from "../../src/thin-transport.js";
 import { createThinPairing } from "../../src/thin-pairing.js";
+import { createPairingService, readPairingFile } from "../../src/pairing.js";
 import { createOutbox } from "../../src/outbox.js";
 import { acquireHomeLock } from "../../src/protected-files.js";
 import { pairProof } from "../../src/pair-code.js";
@@ -73,8 +77,34 @@ test('one-shot pairing watcher receives the caller cancellation and bounded dead
   await assert.rejects(poller.once({ signal: controller.signal, deadline }), /pairing watcher cancelled/);
 });
 
+for (const operation of ['once', 'ack']) test(`${operation} cancels a contended state snapshot before another read`, async t => {
+  const { home, transport } = setup(t), controller = new AbortController();
+  const reason = new DOMException('snapshot cancelled', 'AbortError');
+  let armed = operation === 'ack', attempts = 0, calls = 0;
+  const io = new Proxy(fs, { get(target, key) {
+    if (key !== 'openSync') return target[key];
+    return (path, ...args) => {
+      if (armed && path === `${home}/state.json`) {
+        attempts++;
+        if (attempts === 1) setImmediate(() => controller.abort(reason));
+        throw Object.assign(new Error('fixture snapshot contention'), { code: 'home_locked' });
+      }
+      return target.openSync(path, ...args);
+    };
+  } });
+  const poller = createThinPoller({ home, transport, self, fs: io, now,
+    watchPairing: async () => { armed = true; },
+    relay: { getMessages: async () => { calls++; return { messages: [] }; }, ack: async () => { calls++; } },
+  });
+  await assert.rejects(operation === 'once' ? poller.once({ signal: controller.signal }) : poller.ack(0, { signal: controller.signal }), error => error === reason);
+  assert.equal(attempts, 1); assert.equal(calls, 0);
+  armed = false;
+  assert.equal((await createThinPoller({ home, transport, self, now, relay: { getMessages: async () => ({ messages: [] }) } }).once()).pages, 1);
+});
+
 for (const confirmed of [true, false]) for (const failStore of [false, true]) test(`extended relay responses reach durable ${confirmed ? "inbox" : "hold"} before ACK${failStore ? " after a storage failure and restart" : ""}`, async t => {
   const { home, transport, pairing } = setup(t, { confirmed });
+  let at = now().getTime(); const clock = () => new Date(at);
   const raws = ['{ "type":"sync", "v":999, "future":{"value":1e+2} }', '{ "type":"future", "future":[true,{"extra":null}] }'];
   const messages = await Promise.all(raws.map(async (raw, i) => {
     const row = await delivery(transport, i + 1, raw);
@@ -89,15 +119,18 @@ for (const confirmed of [true, false]) for (const failStore of [false, true]) te
   } });
   if (failStore) {
     const io = confirmed ? diskFailure("writeSync", 1, /\.jsonl$/) : diskFailure("renameSync", 1, /\/held\/\./);
-    await assert.rejects(createThinPoller({ home, transport, self, relay, now, fs: io }).once(), { code: "ENOSPC" });
+    await assert.rejects(createThinPoller({ home, transport, self, relay, now: clock, fs: io }).once(), { code: "ENOSPC" });
     assert.equal(acks, 0); assert.equal(readHomeState(home).transport.cursor, 0);
+    at += 299999;
+    assert.equal((await createThinPoller({ home, transport, self, relay, now: clock }).once()).reason, 'poll_floor');
+    assert.equal(acks, 0); at++;
   }
-  await createThinPoller({ home, transport, self, relay, now }).once();
+  await createThinPoller({ home, transport, self, relay, now: clock }).once();
   assert.equal(acks, 1); assert.equal(readHomeState(home).transport.acked_seq, 2);
   assert.deepEqual(readHomeState(home).transport.events ?? [], []);
   if (!confirmed) {
     pairing.confirmFingerprint("m_dev_1", readHomeState(home).members.m_dev_1.fingerprint);
-    await createThinPoller({ home, transport, self, relay, now }).once();
+    await createThinPoller({ home, transport, self, relay, now: clock }).once();
     assert.equal(createCipherFiles(home, "held").list().length, 0);
   }
   assert.deepEqual(createInbox(home).read().map(r => r.inner), raws.map(raw => JSON.parse(raw)));
@@ -199,20 +232,22 @@ test("failed held release stops the page before revocation and recovers before A
   updateHomeState(home, s => { s.members.m_dev_1.pair_proof = proof; });
   const messages = [await delivery(transport, 1), await delivery(transport, 2, { v: 1, type: "pair_proof", proof }),
     { seq: 3, kind: "system", event: "member_revoked", body: { member_id: "m_dev_1" } }];
-  let acks = 0, reconciliations = 0;
+  let acks = 0, reconciliations = 0, at = now().getTime();
   const relay = { getMessages: async () => ({ messages, next_after: 3 }), listMembers: async () => { reconciliations++; return { members: [] }; },
     ack: async () => { acks++; assert.deepEqual(createInbox(home).read().map(r => r.seq), [2, 1]); } };
   await assert.rejects(createThinPoller({ home, transport, self, relay, now, fs: diskFailure("writeSync", 2, /\.jsonl$/) }).once(), { code: "ENOSPC" });
   assert.equal(acks, 0); assert.equal(reconciliations, 0); assert.equal(readHomeState(home).members.m_dev_1.state, "confirmed");
   assert.equal(createCipherFiles(home, "held").list().length, 1);
-  await createThinPoller({ home, transport, self, relay, now }).once();
+  assert.equal((await createThinPoller({ home, transport, self, relay, now }).once()).reason, 'poll_floor');
+  at += 300000;
+  await createThinPoller({ home, transport, self, relay, now: () => new Date(at) }).once();
   assert.equal(acks, 1); assert.equal(reconciliations, 1);
 });
 
 for (const messages of [null, [null], [{ seq: 2 }, { seq: 1 }], [{ seq: 1 }]]) test(`malformed page ${JSON.stringify(messages)} persists a retry floor across restart`, async t => {
   const { home, transport } = setup(t); let at = now().getTime(), gets = 0, acks = 0;
   updateHomeState(home, s => { s.transport.next_poll_at = at - 1; });
-  const relay = { getMessages: async () => { gets++; return { messages, next_after: 9 }; }, ack: async () => { acks++; } };
+  const relay = { getMessages: async () => { gets++; return { messages, next_after: 9, has_more: true }; }, ack: async () => { acks++; } };
   const create = () => createThinPoller({ home, transport, self, relay, now: () => new Date(at) });
   await assert.rejects(create().once(), { code: "invalid_response" });
   assert.equal(readHomeState(home).transport.poll_retry_at, at + 300000);
@@ -246,12 +281,14 @@ test("durable data/poison checkpoints precede ACK; restart retries ACK before po
   assert.equal(readHomeState(home).transport.acked_seq, 2);
   await assert.rejects(create().ack(3), { code: "unsafe_ack" });
 });
-for (const [operation, pattern] of [["writeSync", /\.jsonl$/], ["fsyncSync", /\.jsonl$/], ["renameSync", /\.state\.json\./]]) test(`ACK never precedes ${operation} durability`, async t => {
-  const { home, transport } = setup(t), message = await delivery(transport, 1); let acked = 0;
+for (const [operation, count, pattern] of [["writeSync", 1, /\.jsonl$/], ["fsyncSync", 1, /\.jsonl$/], ["renameSync", 2, /\.state\.json\./]]) test(`ACK never precedes ${operation} durability`, async t => {
+  const { home, transport } = setup(t), message = await delivery(transport, 1); let acked = 0, at = now().getTime();
   const relay = { getMessages: async () => ({ messages: [message], next_after: 1 }), ack: async () => { acked++; } };
-  const poller = createThinPoller({ home, transport, self, now, relay, fs: diskFailure(operation, 1, pattern) });
+  const poller = createThinPoller({ home, transport, self, now, relay, fs: diskFailure(operation, count, pattern) });
   await assert.rejects(poller.once()); assert.equal(acked, 0);
-  await createThinPoller({ home, transport, self, now, relay }).once(); assert.equal(acked, 1); assert.equal(createInbox(home).read().length, 1);
+  assert.equal((await createThinPoller({ home, transport, self, now, relay }).once()).reason, 'poll_floor');
+  at += 300000;
+  await createThinPoller({ home, transport, self, now: () => new Date(at), relay }).once(); assert.equal(acked, 1); assert.equal(createInbox(home).read().length, 1);
 });
 test("ACK Retry-After persists across restart and explicit ACK cannot bypass it", async t => {
   const { home, transport } = setup(t), message = await delivery(transport, 1); let at = now().getTime(), calls = 0;
@@ -279,14 +316,14 @@ for (const intervalS of [300, 1800, 25]) test(`ACK timeout preserves successful 
     ack: async () => { if (++acks === 1) throw { status: 0, code: "timeout" }; } };
   const create = () => createThinPoller({ home, transport, self, relay, now: () => new Date(at), intervalS: Math.max(300, intervalS) });
   if (intervalS === 25) await create().startFastPoll("m_dev_1", at + 900000);
-  await assert.rejects(create().once(), { code: "timeout" });
+  await assert.rejects(create().once({ operator: false }), { code: "timeout" });
   const fetchedAt = at, checkpoint = readHomeState(home).transport;
   assert.equal(checkpoint.last_poll_at, fetchedAt);
   assert.equal(checkpoint.next_poll_at, fetchedAt + intervalS * 1000);
-  at += 1000; assert.equal((await create().once()).deferred, true);
+  at += 1000; assert.equal((await create().once({ operator: false })).deferred, true);
   assert.equal(acks, 2); assert.equal(gets, 1);
-  at = fetchedAt + intervalS * 1000 - 1; await create().once(); assert.equal(gets, 1);
-  at++; await create().once(); assert.equal(gets, 2);
+  at = fetchedAt + intervalS * 1000 - 1; await create().once({ operator: false }); assert.equal(gets, 1);
+  at++; await create().once({ operator: false }); assert.equal(gets, 2);
 });
 
 for (const restart of [false, true]) for (const [failure, retryMs] of [
@@ -373,19 +410,20 @@ test("receiver lease, advertised first-sync cadence, heartbeat hook and shutdown
   await createThinPoller({ home, transport, self, relay, now }).once();
 });
 
-for (const [operation, count, pattern] of [["writeSync", 1, /\.state\.json\./], ["fsyncSync", 1, /\.state\.json\./], ["renameSync", 2, /\.state\.json\./], ["fsyncSync", 2, /\.state\.json\./]]) test(`checkpoint/ACK intent ${operation} ${count} failure is retryable`, async t => {
-  const { home, transport } = setup(t), message = await delivery(transport, 1); let acked = 0;
+for (const [operation, count, pattern] of [["writeSync", 2, /\.state\.json\./], ["fsyncSync", 2, /\.state\.json\./], ["renameSync", 3, /\.state\.json\./], ["fsyncSync", 3, /\.state\.json\./]]) test(`checkpoint/ACK intent ${operation} ${count} failure is retryable`, async t => {
+  const { home, transport } = setup(t), message = await delivery(transport, 1); let acked = 0, at = now().getTime();
   const relay = { getMessages: async () => ({ messages: [message], next_after: 1 }), ack: async () => { acked++; } };
   await assert.rejects(createThinPoller({ home, transport, self, relay, now, fs: diskFailure(operation, count, pattern) }).once());
   assert.equal(acked, 0);
-  await createThinPoller({ home, transport, self, relay, now }).once();
+  at += 300000;
+  await createThinPoller({ home, transport, self, relay, now: () => new Date(at) }).once();
   assert.equal(acked, 1); assert.equal(createInbox(home).read().length, 1);
 });
 
 test("successful remote ACK with failed local commit retries the same checkpoint after restart", async t => {
   const { home, transport } = setup(t), message = await delivery(transport, 1); const acks = [];
   const relay = { getMessages: async () => ({ messages: [message], next_after: 1 }), ack: async seq => { acks.push(seq); } };
-  await assert.rejects(createThinPoller({ home, transport, self, relay, now, fs: diskFailure("renameSync", 3, /\.state\.json\./) }).once());
+  await assert.rejects(createThinPoller({ home, transport, self, relay, now, fs: diskFailure("renameSync", 4, /\.state\.json\./) }).once());
   assert.deepEqual(acks, [1]); assert.equal(readHomeState(home).transport.pending_ack.up_to_seq, 1);
   await createThinPoller({ home, transport, self, relay, now }).once();
   assert.deepEqual(acks, [1, 1]); assert.equal(createInbox(home).read().length, 1);
@@ -396,9 +434,11 @@ test("encrypted hold failure prevents ACK; replay keeps the first durable receiv
   const relay = { getMessages: async () => ({ messages: [message], next_after: 1 }), ack: async () => { acks++; } };
   await assert.rejects(createThinPoller({ home, transport, self, relay, now, fs: diskFailure("renameSync", 1, /\/held\/\./) }).once());
   assert.equal(acks, 0);
-  await assert.rejects(createThinPoller({ home, transport, self, relay, now, fs: diskFailure("renameSync", 1, /\.state\.json\./) }).once());
+  assert.equal((await createThinPoller({ home, transport, self, relay, now }).once()).reason, 'poll_floor');
+  at += 300000;
+  await assert.rejects(createThinPoller({ home, transport, self, relay, now: () => new Date(at), fs: diskFailure("renameSync", 2, /\.state\.json\./) }).once());
   assert.equal(acks, 0); const first = createCipherFiles(home, "held").list()[0].received_at;
-  at += 60000;
+  at += 300000;
   await createThinPoller({ home, transport, self, relay, now: () => new Date(at) }).once();
   assert.equal(acks, 1); assert.equal(createCipherFiles(home, "held").list()[0].received_at, first);
 });
@@ -468,7 +508,8 @@ test("member reconciliation 429 cannot ACK or lose its deadline on restart", asy
   const relay = { getMessages: async () => ({ messages: [message], next_after: 1 }), listMembers: async () => { if (++calls === 1) throw { status: 429, retryAfterS: 120 }; return { members: [] }; }, ack: async () => { acks++; } };
   const poller = () => createThinPoller({ home, transport, self, relay, now: () => new Date(at) });
   await assert.rejects(poller().once()); await poller().once(); assert.equal(acks, 0); assert.equal(calls, 1);
-  at += 120000; await poller().once(); assert.equal(calls, 2); assert.equal(acks, 1);
+  at += 120000; assert.equal((await poller().once()).reason, 'poll_floor'); assert.equal(calls, 1); assert.equal(acks, 0);
+  at += 180000; await poller().once(); assert.equal(calls, 2); assert.equal(acks, 1);
 });
 
 test("migrated system reconciliation retains its ciphertext and Retry-After across restart", async t => {
@@ -486,15 +527,16 @@ test("migrated system reconciliation retains its ciphertext and Retry-After acro
 });
 
 test("malformed envelopes make progress while an unexplained cursor jump cannot be ACKed", async t => {
-  const { home, transport } = setup(t); let acks = 0;
+  const { home, transport } = setup(t); let acks = 0, at = now().getTime();
+  const clock = () => new Date(at);
   const valid = await delivery(transport, 2);
   const relay = { getMessages: async () => ({ messages: [null, { kind: "data" }, valid], next_after: 2 }), ack: async () => { acks++; } };
-  await createThinPoller({ home, transport, self, relay, now }).once();
+  await createThinPoller({ home, transport, self, relay, now: clock }).once();
   assert.equal(acks, 1); assert.equal(createInbox(home).read().length, 1);
   assert.ok(readHomeState(home).transport.events.some(e => e.status === "poison" && e.code === "malformed" && e.count === 2));
-  updateHomeState(home, s => { s.transport.next_poll_at = 0; });
+  at += 300000;
   relay.getMessages = async () => ({ messages: [await delivery(transport, 3)], next_after: 100 });
-  await assert.rejects(createThinPoller({ home, transport, self, relay, now }).once(), { code: "invalid_response" });
+  await assert.rejects(createThinPoller({ home, transport, self, relay, now: clock }).once(), { code: "invalid_response" });
   assert.equal(acks, 1); assert.equal(readHomeState(home).transport.cursor, 2);
 });
 
@@ -543,7 +585,7 @@ test("continuous receive sleeps until the migrated first poll deadline", async t
   finally { await loop.stop(); }
 });
 
-for (const retry of ["retry_after_until", "poll_progress.retry_after_until", "poll_progress.retry_at"]) test(`migrated ${retry} defers pending ACK and fetch across restart`, async t => {
+for (const retry of ["retry_after_until", "poll_retry_at", "ack_retry_at", "poll_progress.retry_after_until", "poll_progress.retry_at"]) test(`migrated ${retry} defers pending ACK and fetch across restart`, async t => {
   const { home, transport } = setup(t); let at = now().getTime(); const calls = [];
   updateHomeState(home, s => {
     s.transport.cursor = 5; s.transport.pending_ack = { up_to_seq: 5 };
@@ -613,4 +655,258 @@ test("fast scheduling preserves a poll Retry-After across restart", async t => {
   at += 119999; assert.equal((await create().once()).deferred, true); assert.equal(gets, 1);
   at++; await create().once(); assert.equal(gets, 2);
   assert.equal(readHomeState(home).transport.next_poll_at, at + 25000);
+});
+
+for (const intervalS of [300, 1800]) test(`operator once uses the real floor independently of ${intervalS}s cadence and restart`, async t => {
+  const { home, transport } = setup(t); let at = now().getTime(), calls = 0;
+  const create = () => createThinPoller({ home, transport, self, intervalS, now: () => new Date(at),
+    relay: { getMessages: async () => { calls++; return { messages: [] }; } } });
+  await create().once(); const first = at;
+  at = first + 299999;
+  assert.deepEqual(await create().once(), { deferred: true, reason: 'poll_floor', next_poll_at: first + 300000 });
+  assert.equal(calls, 1);
+  at++; assert.equal((await create().once()).pages, 1); assert.equal(calls, 2);
+  assert.equal(readHomeState(home).transport.next_poll_at, at + intervalS * 1000);
+});
+
+test('response activation brings background cadence forward and expiry restores it without polling early', async t => {
+  const { home, transport } = setup(t); let at = now().getTime(), calls = 0;
+  const send = createGenericSender({ home, transport, self, now: () => new Date(at) });
+  const relay = { getMessages: async () => { calls++; return { messages: [] }; }, postMessage: async () => ({ seq: 1 }) };
+  const create = () => createThinPoller({ home, transport, self, relay, intervalS: 1800, now: () => new Date(at) });
+  await create().once(); const first = at;
+  await send({ type: 'diagnostics_request', innerText: JSON.stringify({ v: 1, type: 'diagnostics_request', request_ref: '1'.repeat(32), created_at: now().toISOString(), expires_at: new Date(first + 600000).toISOString() }) });
+  assert.equal((await create().once({ operator: false })).reason, 'poll_floor');
+  await createOutbox({ home, relay, now: () => new Date(at) }).flush();
+  at = first + 299999;
+  assert.deepEqual(await create().once({ operator: false }), { deferred: true, reason: 'poll_floor', next_poll_at: first + 300000 });
+  at++; await create().once({ operator: false }); assert.equal(calls, 2);
+  at = first + 600000;
+  assert.deepEqual(await create().once({ operator: false }), { deferred: true, reason: 'cadence', next_poll_at: first + 2100000 });
+  assert.equal(Object.keys(readHomeState(home).transport.response_waits).length, 0);
+});
+
+test('operator bypasses transient backoff after floor but persists authoritative Retry-After beyond it', async t => {
+  const { home, transport } = setup(t); let at = now().getTime(), calls = 0;
+  const relay = { getMessages: async () => { if (++calls === 1) throw { status: 0 }; if (calls === 2) throw { status: 429, retryAfterS: 500 }; return { messages: [] }; } };
+  const create = () => createThinPoller({ home, transport, self, relay, intervalS: 1800, now: () => new Date(at) });
+  await assert.rejects(create().once());
+  at += 300000; await assert.rejects(create().once());
+  const retry = at + 500000;
+  at += 300000;
+  assert.deepEqual(await create().once(), { deferred: true, reason: 'retry_after', next_poll_at: retry });
+  assert.equal(calls, 2); at = retry; await create().once(); assert.equal(calls, 3);
+});
+
+test('capped pagination resumes after restart without borrowing eligibility from an empty page', async t => {
+  const { home, transport } = setup(t); let calls = 0;
+  const message = await delivery(transport, 1);
+  const relay = { getMessages: async () => { calls++; return calls === 1 ? { messages: [message], next_after: 1, has_more: true } : { messages: [], next_after: 1, has_more: true }; }, ack: async () => {} };
+  const create = () => createThinPoller({ home, transport, self, relay, now, intervalS: 1800, maxPages: 1 });
+  await create().once(); await create().once(); assert.equal(calls, 2);
+  assert.equal((await create().once()).reason, 'poll_floor'); assert.equal(calls, 2);
+});
+
+test('simultaneous waiter, operator and receiver share the E11 gate', async t => {
+  const { home, transport } = setup(t); let calls = 0, release, started;
+  const reached = new Promise(r => { started = r; });
+  const relay = { getMessages: async () => { calls++; started(); return new Promise(r => { release = () => r({ messages: [] }); }); } };
+  const create = () => createThinPoller({ home, transport, self, relay, now });
+  const waiter = create().once({ operator: false }); await reached;
+  const operator = create().once();
+  assert.throws(() => create().start(), { code: 'home_locked' });
+  release(); await waiter; assert.equal((await operator).reason, 'poll_floor'); assert.equal(calls, 1);
+  const loop = create().start(); await new Promise(r => setTimeout(r, 20)); await loop.stop(); assert.equal(calls, 1);
+});
+
+test('join completion restores the response floor, then response completion restores configured cadence', async t => {
+  const { home, transport } = setup(t); let at = now().getTime(), calls = 0, seq = 0;
+  const send = createGenericSender({ home, transport, self, now });
+  await send({ type: 'commands', innerText: JSON.stringify({ v: 1, type: 'commands', commands: [{ command_id: 'one', version: 1 }] }) });
+  const relay = { getMessages: async () => { calls++; const message = await delivery(transport, ++seq, calls === 2 ? { v: 1, type: 'sync', more: false, acks: [] } : calls === 3 ? { v: 1, type: 'sync', acks: [{ command_id: 'one', version: 1, status: 'applied' }] } : { type: 'future' }); return { messages: [message], next_after: seq }; }, postMessage: async () => ({ seq: 1 }), ack: async () => {} };
+  await createOutbox({ home, relay, now }).flush();
+  const create = () => createThinPoller({ home, transport, self, relay, now: () => new Date(at), intervalS: 1800 });
+  await create().startFastPoll('m_dev_1', at + 900000);
+  await create().once(); at += 24999; assert.equal((await create().once()).reason, 'poll_floor');
+  at++; await create().once(); assert.equal(readHomeState(home).transport.next_poll_at, at + 300000);
+  at += 299999; assert.equal((await create().once()).reason, 'poll_floor');
+  at++; await create().once(); assert.equal(calls, 3);
+  assert.equal(readHomeState(home).transport.next_poll_at, at + 1800000);
+});
+
+test('an already sleeping receiver notices a newly sent response wait without waiting for configured cadence', async t => {
+  const { home, transport } = setup(t); let at = now().getTime(), wake, asleep;
+  const waiting = new Promise(r => { asleep = r; }), polls = [];
+  const relay = { getMessages: async () => { polls.push(at); return { messages: [] }; }, postMessage: async () => ({ seq: 1 }) };
+  const loop = createThinPoller({ home, transport, self, relay, intervalS: 1800, now: () => new Date(at), sleep: () => { asleep(); return new Promise(r => { wake = r; }); } }).start();
+  try {
+    await waiting;
+    await createGenericSender({ home, transport, self, now })({ type: 'diagnostics_request', innerText: JSON.stringify({ v: 1, type: 'diagnostics_request', request_ref: '1'.repeat(32),
+      created_at: now().toISOString(), expires_at: new Date(at + 86400000).toISOString() }) });
+    await createOutbox({ home, relay, now }).flush();
+    at += 299999; wake();
+    await waitFor(() => readHomeState(home).transport.next_poll_at === now().getTime() + 300000);
+    assert.equal(polls.length, 1);
+    at++; wake();
+    await waitFor(() => polls.length === 2 && readHomeState(home).transport.last_poll_at === at);
+    assert.deepEqual(polls, [now().getTime(), now().getTime() + 300000]);
+  } finally { await loop.stop(); }
+});
+
+test('scoped one-shot receive holds before proof and learns scope only from an empty sync across restarts', async t => {
+  const home = fixture(t), transport = createThinTransport({ tablePath }); createHomeState(home, identity);
+  let at = now().getTime(), rows = [], acked = 0;
+  const clock = () => new Date(at++), pairingId = 'p_' + 'B'.repeat(22);
+  const member = { member_id: keys.dev1.member_id, role: 'device', public_key: keys.dev1.pk, pairing_id: pairingId, joined_at: clock().toISOString() };
+  const relay = { baseUrl: 'https://relay.example',
+    createPairing: async () => ({ pairing_id: pairingId, pairing_token: 'pt_' + 'B'.repeat(43), expires_at: new Date(at + 600000).toISOString() }),
+    getPairing: async () => ({ status: 'completed', member_id: member.member_id, public_key: member.public_key, completed_at: member.joined_at }),
+    listMembers: async () => ({ members: [member] }),
+    getMessages: async ({ after }) => { const messages = rows.filter(r => r.seq > after); return { messages, next_after: messages.at(-1)?.seq ?? after }; },
+    ack: async seq => { acked = seq; },
+  };
+  const service = () => createPairingService({ home, relay, publicKey: identity.public_key, agentName: 'Lab', now: clock });
+  await service().startPairing({ read: ['steps'], write: ['body_mass'] });
+  const credentials = readPairingFile(home), request = credentials.requested_scope;
+  rows = [{ seq: 1, kind: 'system', event: 'member_joined', body: member },
+    await delivery(transport, 2, { ...resolvedReply(), request_ref: request.request_ref })];
+  const poll = () => createThinPoller({ home, transport, self, relay, now: clock,
+    watchPairing: async context => { const pending = service().currentPairing({ includeExpired: true }); if (pending) await service().refreshPairing(pending.pairing_id, context); },
+  }).once();
+  await poll();
+  let state = readHomeState(home);
+  assert.equal(acked, 2); assert.equal(state.members[member.member_id].state, 'joined');
+  assert.equal(state.pairings[pairingId].access.state, 'awaiting');
+  assert.equal(state.members[member.member_id].scope, undefined);
+  assert.deepEqual(createInbox(home).read(), []); assert.equal(createCipherFiles(home, 'held').list().length, 1);
+  assert.equal(readPairingFile(home), null);
+  rows.push(await delivery(transport, 3, { v: 1, type: 'pair_proof', proof: pairProof(credentials.pair_secret, identity.public_key, member.public_key) }));
+  at += 300000; await poll(); state = readHomeState(home);
+  assert.equal(acked, 3); assert.equal(state.members[member.member_id].state, 'confirmed');
+  assert.equal(state.pairings[pairingId].access.state, 'resolved');
+  assert.equal(state.members[member.member_id].scope, undefined);
+  assert.equal(createCipherFiles(home, 'held').list().length, 0);
+  rows.push(await delivery(transport, 4, { v: 1, type: 'sync', samples: [], acks: [], more: false, scope: { read: ['steps'], write: 'none' } }));
+  at += 300000; await poll(); state = readHomeState(home);
+  assert.equal(acked, 4); assert.deepEqual(state.members[member.member_id].scope, { read: ['steps'], write: 'none', seq: 4 });
+  assert.equal(createInbox(home).read().filter(r => r.type === 'access_reply').length, 1);
+  assert.equal(createCipherFiles(home, 'outbox').list().filter(r => r.type === 'access_request').length, 0);
+});
+
+test('a pairing reply before scope closes its response wait while preserving first-sync join polling', async t => {
+  const { home, transport } = setup(t); scopedRequest(home);
+  let at = now().getTime(), calls = 0;
+  const relay = { getMessages: async () => { const seq = ++calls; return { messages: [await delivery(transport, seq, seq === 1 ? resolvedReply() : { v: 1, type: 'sync', more: false, scope: { read: 'none', write: 'none' } })], next_after: seq }; }, ack: async () => {} };
+  const create = () => createThinPoller({ home, transport, self, relay, intervalS: 1800, now: () => new Date(at) });
+  await create().startFastPoll('m_dev_1', at + 900000);
+  await create().once();
+  let state = readHomeState(home);
+  assert.equal(Object.keys(state.transport.response_waits).length, 0);
+  assert.deepEqual(state.transport.fast_poll.devices, ['m_dev_1']);
+  assert.equal(state.members.m_dev_1.scope, undefined); assert.equal(state.transport.next_poll_at, at + 25000);
+  at += 25000; await create().once(); state = readHomeState(home);
+  assert.deepEqual(state.members.m_dev_1.scope, { read: 'none', write: 'none', seq: 2 });
+  assert.equal(state.transport.next_poll_at, at + 1800000);
+});
+
+test('a failed join poll cannot retain the join exception after verified grace ends', async t => {
+  const { home, transport } = setup(t); let at = now().getTime(), calls = 0;
+  const relay = { getMessages: async () => { if (++calls === 2) return { messages: null }; return { messages: [] }; } };
+  const create = () => createThinPoller({ home, transport, self, relay, intervalS: 1800, now: () => new Date(at) });
+  await create().startFastPoll('m_dev_1', at + 900000); await create().once();
+  at = readHomeState(home).transport.fast_poll.until - 1;
+  const failed = at; await assert.rejects(create().once(), { code: 'invalid_response' });
+  at += 25000;
+  assert.deepEqual(await create().once(), { deferred: true, reason: 'poll_floor', next_poll_at: failed + 300000 });
+  assert.equal(calls, 2); at = failed + 300000; await create().once(); assert.equal(calls, 3);
+});
+
+test('a stale page cannot manufacture another pagination exception', async t => {
+  const { home, transport } = setup(t), message = await delivery(transport, 1); let calls = 0;
+  const relay = { getMessages: async () => { calls++; return { messages: [message], next_after: 1, has_more: true }; }, ack: async () => {} };
+  const result = await createThinPoller({ home, transport, self, relay, now }).once();
+  assert.equal(calls, 2); assert.equal(result.pages, 2); assert.equal(result.capped, false);
+  assert.equal(readHomeState(home).transport.pagination_after, undefined);
+});
+
+for (const failure of ['cancellation', 'reconciliation']) test(`successful E11 keeps its floor after ${failure} and restart`, async t => {
+  const { home, transport } = setup(t), controller = new AbortController();
+  const first = now().getTime(); let at = first, gets = 0, lists = 0, acks = 0;
+  const message = failure === 'reconciliation'
+    ? { seq: 1, kind: 'system', event: 'member_revoked', body: { member_id: 'm_dev_1' } }
+    : await delivery(transport, 1);
+  const relay = {
+    getMessages: async () => { if (++gets === 1 && failure === 'cancellation') controller.abort(); return { messages: [message], next_after: 1 }; },
+    listMembers: async () => { if (++lists === 1) throw { status: 429, retryAfterS: 120 }; return { members: [] }; },
+    ack: async () => { acks++; },
+  };
+  const create = () => createThinPoller({ home, transport, self, relay, intervalS: 1800, now: () => new Date(at) });
+  await assert.rejects(create().once({ signal: controller.signal }), failure === 'cancellation' ? { name: 'AbortError' } : { status: 429 });
+  assert.equal(readHomeState(home).transport.cursor, 0); assert.equal(acks, 0);
+  for (const elapsed of [120000, 299999]) {
+    at = first + elapsed;
+    assert.deepEqual(await create().once(), { deferred: true, reason: 'poll_floor', next_poll_at: first + 300000 });
+    assert.equal(gets, 1); assert.equal(acks, 0);
+  }
+  at = first + 300000;
+  assert.equal((await create().once()).pages, 1); assert.equal(gets, 2); assert.equal(acks, 1);
+});
+
+test('a lost pagination response consumes its exception before a retry or restart', async t => {
+  const { home, transport } = setup(t), message = await delivery(transport, 1);
+  let at = now().getTime(), gets = 0;
+  const relay = {
+    getMessages: async () => {
+      if (++gets === 1) return { messages: [message], next_after: 1, has_more: true };
+      if (gets === 2) throw { status: 0, code: 'timeout' };
+      return { messages: [], next_after: 1, has_more: false };
+    }, ack: async () => {},
+  };
+  const create = () => createThinPoller({ home, transport, self, relay, maxPages: 1, now: () => new Date(at) });
+  await create().once(); at += 1000;
+  await assert.rejects(create().once(), { code: 'timeout' });
+  const failedAt = at;
+  for (const elapsed of [0, 299999]) {
+    at = failedAt + elapsed;
+    assert.deepEqual(await create().once(), { deferred: true, reason: 'poll_floor', next_poll_at: failedAt + 300000 });
+    assert.equal(gets, 2);
+  }
+  at++; assert.equal((await create().once()).pages, 1); assert.equal(gets, 3);
+  assert.equal(readHomeState(home).transport.pagination_after, undefined);
+});
+
+test('a failed attempt checkpoint prevents E11 dispatch', async t => {
+  const { home, transport } = setup(t); let gets = 0;
+  const relay = { getMessages: async () => { gets++; return { messages: [] }; } };
+  await assert.rejects(createThinPoller({ home, transport, self, relay, now,
+    fs: diskFailure('renameSync', 1, /\.state\.json\./) }).once(), { code: 'ENOSPC' });
+  assert.equal(gets, 0);
+});
+
+test('successful E11 retains its floor when its first response checkpoint fails and the process restarts', async t => {
+  const { home, transport } = setup(t), message = await delivery(transport, 1);
+  const first = now().getTime(); let at = first, gets = 0, acks = 0, failCheckpoint = false;
+  const io = new Proxy(fs, { get(target, key) {
+    if (key !== 'renameSync') return target[key];
+    return (path, ...args) => {
+      if (failCheckpoint && /\.state\.json\./.test(path)) {
+        failCheckpoint = false; throw Object.assign(new Error('fixture disk failure'), { code: 'ENOSPC' });
+      }
+      return target.renameSync(path, ...args);
+    };
+  } });
+  const relay = {
+    getMessages: async () => { failCheckpoint = ++gets === 1; return { messages: [message], next_after: 1 }; },
+    ack: async () => { acks++; },
+  };
+  const create = fs => createThinPoller({ home, transport, self, relay, fs, intervalS: 1800, now: () => new Date(at) });
+  await assert.rejects(create(io).once(), { code: 'ENOSPC' });
+  assert.equal(readHomeState(home).transport.cursor, 0); assert.equal(acks, 0);
+  for (const elapsed of [0, 299999]) {
+    at = first + elapsed;
+    assert.deepEqual(await create().once(), { deferred: true, reason: 'poll_floor', next_poll_at: first + 300000 });
+    assert.equal(gets, 1); assert.equal(acks, 0);
+  }
+  at++; assert.equal((await create().once()).pages, 1);
+  assert.equal(gets, 2); assert.equal(acks, 1); assert.equal(readHomeState(home).transport.cursor, 1);
 });

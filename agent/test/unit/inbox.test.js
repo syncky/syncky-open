@@ -134,6 +134,54 @@ test("append and fsync failures leave records retryable without advancing state"
     assert.deepEqual(retry.read().map(r => r.seq), [1, 2]);
   }
 });
+test("a failed partial append preserves its original error when rollback cannot allocate space", t => {
+  const home = fixture(t), inbox = createInbox(home);
+  inbox.append(record(1));
+  const path = join(home, "inbox/2026-11-05.jsonl"), inode = fs.statSync(path).ino;
+  const original = Object.assign(new Error("append failed"), { code: "ENOSPC" });
+  let writes = 0;
+  const io = new Proxy(fs, { get(target, key) {
+    if (key === "openSync") return (name, ...args) => {
+      if (String(name).startsWith(join(home, "inbox/.2026-11-05.jsonl."))) throw new Error("rollback failed");
+      return target.openSync(name, ...args);
+    };
+    if (key === "writeSync") return (fd, bytes, offset, length) => {
+      if (fs.fstatSync(fd).ino !== inode) return target.writeSync(fd, bytes, offset, length);
+      if (++writes > 1) throw original;
+      return target.writeSync(fd, bytes, offset, length - 3);
+    };
+    return target[key];
+  } });
+  assert.throws(() => createInbox(home, { fs: io }).append(record(2)), error => error === original);
+  assert.equal(writes, 2);
+  assert.deepEqual(readInbox(home).records.map(r => r.seq), [1]);
+  assert.equal(fs.readFileSync(path).at(-1) === 10, false);
+  assert.deepEqual(inbox.append(record(2)), { inserted: true, seq: 2 });
+  assert.deepEqual(inbox.read().map(r => [r.seq, r.cursor]), [[1, 1], [2, 3]]);
+});
+for (const point of ["file", "directory"]) test(`a complete append remains visible after ${point} fsync fails and replay retains its cursor`, t => {
+  const home = fixture(t), inbox = createInbox(home);
+  inbox.append(record(1));
+  const path = join(home, "inbox/2026-11-05.jsonl"), dir = join(home, "inbox");
+  const original = Object.assign(new Error("append sync failed"), { code: "ENOSPC" });
+  let observed;
+  const interrupted = syncTrace(name => {
+    if (name !== (point === "file" ? path : dir) || observed) return;
+    const snapshot = readInbox(home);
+    if (!snapshot.records.some(r => r.seq === 2)) return;
+    observed = snapshot;
+    throw original;
+  });
+  assert.throws(() => createInbox(home, interrupted).append(record(2)), error => error === original);
+  assert.deepEqual(observed.records.map(r => [r.seq, r.cursor]), [[1, 1], [2, 2]]);
+  assert.deepEqual(readInbox(home), observed);
+  const before = fs.readFileSync(path), cursor = fs.readFileSync(join(home, ".inbox-cursor.json")), trace = syncTrace();
+  assert.deepEqual(createInbox(home, trace).append(record(2)), { inserted: false, seq: 2 });
+  assert.deepEqual(trace.synced.filter(name => name === path || name === dir), [dir, path, dir]);
+  assert.deepEqual(fs.readFileSync(path), before);
+  assert.deepEqual(fs.readFileSync(join(home, ".inbox-cursor.json")), cursor);
+  assert.deepEqual(readInbox(home), observed);
+});
 test("multiline JSON keeps unknown fields and numeric lexemes on one durable JSONL line", (t) => {
   const home = fixture(t), inbox = createInbox(home);
   inbox.append({ ...record(1), type: "future_echo" }, { innerText: '{\n "type":"future_echo",\n "number":1e3, "text":"escaped\\nvalue"\n}' });
@@ -168,12 +216,18 @@ test("retention and partial-tail repair failures preserve committed records for 
     inbox.prune(new Date("2026-11-05T12:00:00Z"));
     assert.deepEqual(inbox.read().map(r => r.seq), [2]);
   }
-  const home = fixture(t), inbox = createInbox(home);
-  inbox.append(record(1));
-  fs.appendFileSync(join(home, "inbox/2026-11-05.jsonl"), '{"incomplete":');
-  assert.throws(() => createInbox(home, { fs: diskFailure("ftruncateSync", 1, /\.jsonl$/) }).append(record(2)), { code: "ENOSPC" });
-  inbox.append(record(2));
-  assert.equal(inbox.read().length, 2);
+  for (const op of ["writeSync", "fsyncSync", "renameSync"]) {
+    const home = fixture(t), inbox = createInbox(home);
+    inbox.append(record(1));
+    const path = join(home, "inbox/2026-11-05.jsonl"), inode = fs.statSync(path).ino;
+    fs.appendFileSync(path, '{"incomplete":');
+    const original = fs.readFileSync(path);
+    assert.throws(() => createInbox(home, { fs: diskFailure(op, 1, /\.2026-11-05\.jsonl\./) }).append(record(2)), { code: "ENOSPC" });
+    assert.deepEqual(fs.readFileSync(path), original);
+    assert.equal(fs.statSync(path).ino, inode);
+    inbox.append(record(2));
+    assert.equal(inbox.read().length, 2);
+  }
 });
 
 test("retention retries sync unchanged replacements and removed daily files", (t) => {

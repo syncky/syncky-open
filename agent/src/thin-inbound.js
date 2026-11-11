@@ -1,3 +1,4 @@
+import { completeResponseWaits, maintainResponseWaits } from "./response-waits.js";
 import { join } from "node:path";
 import { LocalStateError } from "./config.js";
 import { b64uDecode, isB64u } from "./encoding.js";
@@ -7,6 +8,8 @@ import { createInbox } from "./inbox.js";
 import { isMemberId, isUuidV7, uuidv7 } from "./ids.js";
 import { createThinPairing } from "./thin-pairing.js";
 import { retryHomeLock } from "./thin-lock.js";
+import { recordPairingReply } from './pairing-access.js';
+import { settleScopeRelease } from './scope-release.js';
 import { atomicPrivateWrite, privateDirectory, privateStat, removePrivateFile, syncDirectory, syncPrivateFile, withHomeLock } from "./protected-files.js";
 import metadata from "../package.json" with { type: "json" };
 
@@ -66,9 +69,9 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
       const pending = member.confirmation;
       let entry = (await locked(() => outbox.list(), context)).find(e => e.msg_id === pending.msg_id);
       if (!entry) {
-        const envelope = await transport.sealMessage({ hubId: state.identity.hub_id, from: self.memberId, senderPrivateKey: self.privateKey,
-          recipients: [{ memberId: member.member_id, publicKey: b64uDecode(member.public_key) }], innerText: '{"v":1,"type":"confirmed"}', msgId: pending.msg_id, createdAt: pending.created_at });
-        entry = { msg_id: envelope.msg_id, kind: envelope.kind, type: "confirmed", to: [member.member_id], lane: transport.lane(envelope), body: transport.serialize(envelope), state: "pending", attempts: 0, next_attempt_at: 0 };
+        const envelope = await locked(() => transport.sealMessage({ hubId: state.identity.hub_id, from: self.memberId, senderPrivateKey: self.privateKey,
+          recipients: [{ memberId: member.member_id, publicKey: b64uDecode(member.public_key) }], innerText: '{"v":1,"type":"confirmed"}', msgId: pending.msg_id, createdAt: pending.created_at }), context);
+        entry = await locked(() => ({ msg_id: envelope.msg_id, kind: envelope.kind, type: "confirmed", to: [member.member_id], lane: transport.lane(envelope), body: transport.serialize(envelope), state: "pending", attempts: 0, next_attempt_at: 0 }), context);
       }
       await locked(() => withHomeLock(home, () => {
         const current = readHomeState(home, options);
@@ -94,10 +97,10 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
       let entry = (await locked(() => outbox.list(), context)).find(e => matches(e, member.member_id));
       if (!entry) {
         const at = now();
-        const envelope = await transport.sealMessage({ hubId: state.identity.hub_id, from: self.memberId, senderPrivateKey: self.privateKey,
+        const envelope = await locked(() => transport.sealMessage({ hubId: state.identity.hub_id, from: self.memberId, senderPrivateKey: self.privateKey,
           recipients: [{ memberId: member.member_id, publicKey: b64uDecode(member.public_key) }],
-          innerText: JSON.stringify({ v: 1, type: "agent_info", version }), msgId: uuidv7({ now: () => at.getTime() }), createdAt: at.toISOString() });
-        entry = { msg_id: envelope.msg_id, kind: envelope.kind, type: "agent_info", agent_version: version, to: [member.member_id], lane: transport.lane(envelope), body: transport.serialize(envelope), state: "pending", attempts: 0, next_attempt_at: 0 };
+          innerText: JSON.stringify({ v: 1, type: "agent_info", version }), msgId: uuidv7({ now: () => at.getTime() }), createdAt: at.toISOString() }), context);
+        entry = await locked(() => ({ msg_id: envelope.msg_id, kind: envelope.kind, type: "agent_info", agent_version: version, to: [member.member_id], lane: transport.lane(envelope), body: transport.serialize(envelope), state: "pending", attempts: 0, next_attempt_at: 0 }), context);
       }
       await locked(() => withHomeLock(home, () => {
         const current = readHomeState(home, options);
@@ -143,15 +146,15 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
   async function receive(message, { receivedAt = now().toISOString(), releasing = false, signal, deadline } = {}) {
     const context = { signal, deadline }; check(context);
     if (!Number.isSafeInteger(message?.seq) || message.seq < 0) return poison("malformed");
-    if (message.kind === "system") return transport.hasMarker(message) ? poison("malformed") : system(message, context);
+    if (message.kind === "system") return (await locked(() => transport.hasMarker(message), context)) ? poison("malformed") : system(message, context);
     const { seq, ...envelope } = message;
-    if (!isUuidV7(envelope.msg_id) || transport.validateShape(envelope, { caller: envelope.from, allowUnknown: true }).status !== 201) return poison("malformed");
+    if (!isUuidV7(envelope.msg_id) || (await locked(() => transport.validateShape(envelope, { caller: envelope.from, allowUnknown: true }), context)).status !== 201) return poison("malformed");
     const state = await locked(() => readHomeState(home, options), context), member = state.members[envelope.from];
     if (!member || ["revoked", "rejected"].includes(member.state) || [true, "1"].includes(state.transport.hub_revoked) || [true, "1"].includes(state.transport.hub_deleted)) return poison("unknown_sender");
     let parsed;
     if (member.state === "joined") {
       if (envelope.kind === "control" && !member.proof_invalidated) {
-        try { parsed = await transport.receive({ envelope, hubId: state.identity.hub_id, self, senderKeyOf: id => id === member.member_id ? b64uDecode(member.public_key) : null }); }
+        try { parsed = await locked(() => transport.receive({ envelope, hubId: state.identity.hub_id, self, senderKeyOf: id => id === member.member_id ? b64uDecode(member.public_key) : null }), context); }
         catch (e) { if (!(e instanceof EnvelopeError)) throw e; }
       }
       if (parsed?.inner.type === "pair_proof" && parsed.inner.v === 1 && isB64u(parsed.inner.proof, { length: 32 })) {
@@ -171,22 +174,30 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
       return { status: "held", code: "held_unconfirmed" };
     }
     try {
-      parsed = await transport.receive({ envelope, hubId: state.identity.hub_id, self, senderKeyOf: id => {
-        const key = pairing.trustedKey(id); return key ? b64uDecode(key) : null;
-      } });
+      const key = await locked(() => pairing.trustedKey(envelope.from), context);
+      parsed = await locked(() => transport.receive({ envelope, hubId: state.identity.hub_id, self,
+        senderKeyOf: id => id === envelope.from && key ? b64uDecode(key) : null }), context);
     } catch (e) { if (e instanceof EnvelopeError) return poison(e.code); throw e; }
     check(context);
     const { inner, innerText } = parsed;
     const fresh = (await locked(() => readHomeState(home, options), context)).members[envelope.from];
     if (fresh?.state !== "confirmed" || fresh.public_key !== member.public_key) return poison("unknown_sender");
     await appendRecord({ seq, from: envelope.from, kind: envelope.kind, type: inner.type, received_at: receivedAt, inner }, innerText, context);
+    const waits = (await locked(() => readHomeState(home, options), context)).transport.response_waits;
+    if (inner.type === 'access_reply' || Object.keys(waits ?? {}).length) await mutate(s => {
+      if (inner.type === 'access_reply') recordPairingReply(s, envelope.from, member.public_key, inner);
+      completeResponseWaits(s, envelope.from, member.public_key, inner, now().getTime());
+    }, context);
     if (inner.type === "unpair" && inner.v === 1 && ["user", "reset", "replaced", "delete_relay_data"].includes(inner.reason)) {
-      await mutate(s => { s.members[envelope.from].unpair_reason ??= inner.reason; }, context);
+      await mutate(s => { s.members[envelope.from].unpair_reason ??= inner.reason; maintainResponseWaits(s, now().getTime()); }, context);
     }
     if (inner.type === "sync" && inner.scope && typeof inner.scope === "object") {
       const valid = side => side === "all" || side === "none" || (Array.isArray(side) && side.length <= 1000 && side.every(v => typeof v === "string" && /^[a-z][a-z0-9_]{0,63}$/.test(v)));
       if (valid(inner.scope.read) && valid(inner.scope.write)) await mutate(s => { s.members[envelope.from].scope = { read: inner.scope.read, write: inner.scope.write, seq }; }, context);
     }
+    if (inner.type === "sync" && fresh.scope_release && !["applied", "failed"].includes(fresh.scope_release.state)) await mutate(s => {
+      settleScopeRelease(s.members[envelope.from], seq, cipherEntries(home, "outbox", options));
+    }, context);
     if (inner.type === "sync" && inner.more === false) await mutate(s => {
       const fast = s.transport.fast_poll;
       if (fast?.devices) fast.devices = fast.devices.filter(id => id !== envelope.from);

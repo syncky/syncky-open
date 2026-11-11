@@ -84,7 +84,10 @@ export function createSkillUpdater({ home, trust = productionSkillTrust, fetch =
       if (active.document.skill_version !== state.high_water || previous.document.skill_version >= state.high_water) throw new Error();
       installedBundle = { ...active, high_water: state.high_water, previous }; installedBytes = bytes;
       return installedBundle;
-    } catch { return { ...bundled(), fallback: true, code: 'skill_state_invalid' }; }
+    } catch (error) {
+      if (error.code === 'home_locked') throw error;
+      return { ...bundled(), fallback: true, code: 'skill_state_invalid' };
+    }
   }
   function cache() {
     try {
@@ -93,7 +96,10 @@ export function createSkillUpdater({ home, trust = productionSkillTrust, fetch =
       const s = parseDocumentJSON(bytes, MAX_CACHE_BYTES);
       if (s.schema !== 1 || !Number.isSafeInteger(s.attempts) || s.attempts < 0 || !Number.isSafeInteger(s.next_attempt_at) || s.next_attempt_at < 0) throw new Error();
       return s;
-    } catch { return { ...emptyCache(), state: 'failed', code: 'skill_state_invalid' }; }
+    } catch (error) {
+      if (error.code === 'home_locked') throw error;
+      return { ...emptyCache(), state: 'failed', code: 'skill_state_invalid' };
+    }
   }
   const save = s => {
     const bytes = Buffer.from(JSON.stringify(s));
@@ -162,7 +168,7 @@ export function createSkillUpdater({ home, trust = productionSkillTrust, fetch =
   async function run({ signal } = {}) {
     let hint;
     try {
-      const s = cache(); hint = s.hint;
+      const s = await retryHomeLock(() => { signal?.throwIfAborted(); return cache(); }); hint = s.hint;
       if (!hint) return { state: s.state === 'stale' ? 'stale' : 'idle' };
       if (s.next_attempt_at > now() || s.attempts >= maxAttempts) return { state: 'backoff' };
       trust.requireKey();

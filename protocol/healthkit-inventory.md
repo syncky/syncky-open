@@ -8,7 +8,7 @@ Every data kind the iOS 27 HealthKit SDK declares, with how an app may read and 
 
 | Kind | SDK identifier or accessor | Read | Write | Typical size | Syncky |
 | --- | --- | --- | --- | --- | --- |
-| Quantity types `quantity` | `HKQuantityTypeIdentifier*` (121, see `types.json`) | yes, standard read sheet | yes, except the types computed by Apple | ~180 B, 1 value | read since plan 4 |
+| Quantity types `quantity` | `HKQuantityTypeIdentifier*` (121, see `types.json`) | yes, standard read sheet | yes, except the types computed by Apple | ~180 B, 1 value | read since plan 4; an agent receives activity totals (`interval_sums` in `types.json`) as 15-minute interval sums and logged entries such as food and insulin raw |
 | Category types `category` | `HKCategoryTypeIdentifier*` (71, see `types.json`) | yes, standard read sheet | yes, except the types computed by Apple | ~175 B, 1 value | read since plan 4 |
 | Characteristics `characteristic` | `HKCharacteristicTypeIdentifier*` (6) | yes, standard read sheet | no, set in the Health app | ~105 B, 1 value | read since plan 4 |
 | Workout `workout` (activities, events, statistics, metadata) | `HKWorkoutTypeIdentifier` | yes, standard read sheet | yes, `HKWorkoutBuilder` required | ~220 B flat; 1–5 KB with details, bounded to 60 000 B | read since plan 4; details plan 11 |

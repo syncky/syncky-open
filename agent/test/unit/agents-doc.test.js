@@ -40,6 +40,17 @@ test('agent access guidance requires the TTL accepted by phones 0.1.1 and 0.1.2'
   }
 });
 
+test('operator limits are identical and describe per-side filtering and merged root waits', () => {
+  const paragraphs = ['README.md', 'SETUP.md', 'AGENTS.md'].map(name => docs[name].split('\n').find(s => s.startsWith('Access requests use generic')));
+  assert.ok(paragraphs[0]); assert.ok(paragraphs.every(p => p === paragraphs[0]));
+  for (const name of ['README.md', 'SETUP.md', 'AGENTS.md', 'docs/REFERENCE.md', 'cookbook/README.md']) {
+    for (const pattern of [/five admitted events per rolling 24 hours/, /three admitted amendments/, /read and write independently/i,
+      /requested_recently/, /declined_recently/, /next_available_at/, /merged_into/, /merged_refs/, /remaining needed types/,
+      /Never.*(?:evade|bypass).*wait/, /No local admission\/cooldown policy/]) assert.match(docs[name], pattern, name);
+    assert.doesNotMatch(docs[name], /one admission per rolling (?:24 hours|day)/, name);
+  }
+});
+
 test('rejected-write reference covers every reason/detail pair in the policy vectors', () => {
   const policy = JSON.parse(readFileSync(resolve(root, '../protocol/test-vectors/command-policy.json'), 'utf8'));
   const pairs = new Set(policy.cases.filter(c => c.detail).map(c => `| \`${c.reason}\` | \`${c.detail}\` |`));
@@ -64,7 +75,7 @@ test('rejected-write reference covers every reason/detail pair in the policy vec
 
 test('operator and cookbook write gates require type allowance, agent scope and HealthKit authorization', () => {
   for (const name of ['SETUP.md', 'cookbook/README.md']) {
-    assert.match(docs[name], /[Tt]he type must be in the app's write allowance, within the agent's scope, and authorized by HealthKit\./, name);
+    assert.match(docs[name], /[Tt]he type must be in the app write allowance \(device-wide\) or granted to this agent at pairing, within the agent's scope, and authorized by HealthKit\./, name);
     assert.doesNotMatch(docs[name], /Allow writing to Health/, name);
   }
 });
@@ -308,4 +319,25 @@ test('cookbook links the direct-server alternative without changing the agent re
   const text = docs['cookbook/README.md'];
   assert.match(text, /direct-server[\s\S]*\]\(\.\.\/\.\.\/examples\/own-server\/README\.md\)/);
   for (const name of ['weight', 'calories', 'workouts']) assert.ok(text.includes('](' + name + '.md)'));
+});
+
+test('pairing and polling guides distinguish outcomes, scope, fallback and bounded waits', () => {
+  for (const name of ['README.md', 'SETUP.md', 'AGENTS.md', 'docs/REFERENCE.md', 'skills/syncky/SKILL.md', 'cookbook/README.md']) {
+    const text = readFileSync(resolve(root, name), 'utf8');
+    for (const pattern of [/--read/, /--write/, /request_ref/, /needs_health_settings/, /sync\.scope/, /no_reply/, /15.minute/, /300.second/, /poll_floor/, /retry_after/, /next_poll_at/, /send --type access_request/, /no quota; a type declined at pairing starts the same seven-day wait/]) assert.match(text, pattern, name);
+    assert.match(text, /(?:no flags|without.*flags|no.scope).*legacy|legacy.*(?:no.scope|without.*flags)/i, name);
+    assert.match(text, /From agent 0\.1\.4, with explicit owner approval for the exact types/, name);
+    assert.ok(text.includes('Allow all submits your choices and continues pairing; iOS asks only about listed types it has not decided yet.'), name);
+    assert.ok(text.includes('Choices made at pairing have no quota; a type declined at pairing starts the same seven-day wait.'), name);
+    assert.ok(text.includes("An old app ignores the requested scope and pairs as before: the owner's existing Health selection applies and no per-type reply arrives."), name);
+    assert.ok(text.includes('The link contains credentials and the requested Health type names; anyone who sees its full text can read them.'), name);
+    assert.ok(text.includes('Pairing grants stay with this agent and do not change the app-wide Health selection or write allowance.'), name);
+    assert.doesNotMatch(text, /opens Health authorization for exactly|pair without a grant|neither scope nor credentials enter an HTTPS query or server request/, name);
+  }
+});
+
+test('reference names the local not_writable refusal of an access request', () => {
+  const row = reference.split('\n').find(line => line.startsWith('| `schema_invalid` |'));
+  for (const text of ['`detail`', '`not_writable`', '`types`', 'Nothing was sent']) assert.ok(row.includes(text), text);
+  assert.match(reference, /fails locally with `schema_invalid`, `detail` `not_writable` and the offending `types`, while the same type under `read` passes/);
 });

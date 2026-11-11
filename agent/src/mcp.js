@@ -1,4 +1,5 @@
 import Ajv from 'ajv/dist/2020.js';
+import { errorDetail } from './config.js';
 import { MEMBER_ID_RE } from './ids.js';
 
 export const MCP_PROTOCOL_VERSIONS = Object.freeze(['2025-06-18','2024-11-05']);
@@ -56,7 +57,7 @@ export function createMcpServer({ handlers, version, logger }) {
       return reply(id, response);
     } catch (err) {
       const code = safeCode(err); logger?.warn('mcp_tool_failed', { code });
-      return reply(id, { ...result({ code }), isError: true });
+      return reply(id, { ...result({ code, ...errorDetail(err) }), isError: true });
     }
   }
   async function handleLine(line) {

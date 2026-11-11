@@ -6,7 +6,7 @@ import { saveSecrets } from "../../src/secrets.js";
 import { saveConfig } from "../../src/config.js";
 import { createThinTransport, parseRawInner } from "../../src/thin-transport.js";
 import { b64uDecode, utf8 } from "../../src/encoding.js";
-import { loadVectors } from "../../src/protocol-files.js";
+import { loadJson, loadVectors } from "../../src/protocol-files.js";
 import { createGenericSender, createLocalValidator } from "../../src/send.js";
 import { createCipherFiles } from "../../src/home-state.js";
 import { createInbox } from "../../src/inbox.js";
@@ -177,4 +177,35 @@ test("CLI and MCP expose invalid access replies and MCP validates access request
   assert.equal(replies[2].result.structuredContent.code, "schema_invalid");
   assert.equal(replies[2].result.isError, true);
   assert.deepEqual(createCipherFiles(home, "outbox").list(), []);
+});
+
+test("CLI and MCP refuse a write request for types computed by Apple before sending and still queue the same types for reading", async t => {
+  const { home } = setup(t);
+  saveSecrets(home, { private_key: keys.agent.sk, public_key: keys.agent.pk, token: `sk_${identity.hub_id}_${"T".repeat(40)}`, webhook_secret: `whsec_${"W".repeat(43)}` });
+  saveConfig(home, { relay_url: "http://127.0.0.1:8787", name: "Test" });
+  const computed = ["walking_step_length", "walking_speed"], sorted = [...computed].sort();
+  const catalog = loadJson("types.json").types;
+  for (const name of computed) assert.deepEqual([name, catalog.find(type => type.name === name).computed_by_apple], [name, true]);
+  const options = { now, fetch: () => { assert.fail("local validation must stay offline"); } };
+  const send = inner => runCli(["--home", home, "send", "--type", "access_request", "--json", "-", "--validate"], { ...options, stdin: Readable.from([JSON.stringify(inner)]) });
+  const refused = await send({ ...accessRequest(), read: [], write: computed });
+  assert.equal(refused.code, 4);
+  assert.deepEqual(JSON.parse(refused.stderr.trim().split("\n").at(-1)), { error: "schema_invalid", detail: "not_writable", types: sorted });
+  const mixed = await send({ ...accessRequest(), write: ["dietary_water", "walking_speed"] });
+  assert.deepEqual(JSON.parse(mixed.stderr.trim().split("\n").at(-1)), { error: "schema_invalid", detail: "not_writable", types: ["walking_speed"] });
+  const rpc = (inner, id) => JSON.stringify({ jsonrpc: "2.0", id, method: "tools/call", params: { name: "syncky_send", arguments: { type: "access_request", inner } } });
+  const input = [rpc({ ...accessRequest(), read: [], write: computed }, 1),
+    rpc({ ...accessRequest(), request_ref: "b".repeat(32), read: computed, write: [] }, 2)].join("\n") + "\n";
+  const mcp = await runCli(["--home", home, "mcp"], { ...options, stdin: Readable.from([input]) });
+  assert.equal(mcp.code, 0);
+  const replies = mcp.stdout.trim().split("\n").map(line => JSON.parse(line));
+  assert.equal(replies[0].result.isError, true);
+  assert.deepEqual(replies[0].result.structuredContent, { code: "schema_invalid", detail: "not_writable", types: sorted });
+  assert.equal(replies[1].result.isError, false);
+  assert.equal(replies[1].result.structuredContent.state, "pending");
+  assert.deepEqual(createCipherFiles(home, "outbox").list().map(entry => entry.type), ["access_request"]);
+  const read = await send({ ...accessRequest(), request_ref: "c".repeat(32), read: computed, write: [] });
+  assert.equal(read.code, 0);
+  assert.equal(JSON.parse(read.stdout).state, "pending");
+  assert.equal(createCipherFiles(home, "outbox").list().length, 2);
 });

@@ -217,7 +217,7 @@
         "normalized": { "type": "object" },
         "dropped": {
           "type": "array",
-          "items": { "type": "string", "pattern": "^(/(samples|deleted|acks|commands)/(0|[1-9][0-9]*)|/acks/(0|[1-9][0-9]*)/detail|/scope|/type)$" }
+          "items": { "type": "string", "pattern": "^(/(samples|deleted|acks|commands|summaries)/(0|[1-9][0-9]*)|/acks/(0|[1-9][0-9]*)/detail|/scope|/summaries|/type)$" }
         }
       },
       "if": { "type": "object", "properties": { "expect": { "type": "string", "const": "ok" } } },
@@ -347,6 +347,29 @@
         }
       }
     },
+    "pair_requested_scope_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_ref", "read", "write"],
+      "properties": {
+        "request_ref": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+        "read": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$" } },
+        "write": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$" } }
+      },
+      "anyOf": [
+        { "type": "object", "properties": { "read": { "type": "array", "minItems": 1 } } },
+        { "type": "object", "properties": { "write": { "type": "array", "minItems": 1 } } }
+      ]
+    },
+    "pair_requested_scope": {
+      "allOf": [
+        { "$ref": "#/$defs/pair_requested_scope_input" },
+        { "type": "object", "properties": {
+          "read": { "type": "array", "uniqueItems": true },
+          "write": { "type": "array", "uniqueItems": true }
+        } }
+      ]
+    },
     "pair_uri_parse_case": {
       "type": "object",
       "additionalProperties": false,
@@ -355,6 +378,14 @@
         "name": { "$ref": "#/$defs/case_name" },
         "uri": { "type": "string" },
         "allow_insecure": { "type": "boolean" },
+        "envelope_bytes": {
+          "type": "object", "additionalProperties": false, "required": ["request", "reply", "refusal"],
+          "properties": {
+            "request": { "type": "integer", "minimum": 1 },
+            "reply": { "type": "integer", "minimum": 1 },
+            "refusal": { "type": "integer", "minimum": 1 }
+          }
+        },
         "expect": {
           "oneOf": [
             {
@@ -368,7 +399,8 @@
                 "pairing_token": { "$ref": "#/$defs/pairing_token" },
                 "agent_public_key": { "$ref": "#/$defs/b64url_32" },
                 "agent_name": { "$ref": "#/$defs/agent_name" },
-                "pair_secret": { "$ref": "#/$defs/b64url_16" }
+                "pair_secret": { "$ref": "#/$defs/b64url_16" },
+                "requested_scope": { "$ref": "#/$defs/pair_requested_scope" }
               }
             },
             {
@@ -401,15 +433,22 @@
             "agent_public_key": { "$ref": "#/$defs/b64url_32" },
             "agent_name": { "$ref": "#/$defs/agent_name" },
             "pair_secret": { "$ref": "#/$defs/b64url_16" },
-            "url_scheme": { "type": "string", "enum": ["syncky", "syncky-dev", "syncky-staging"], "default": "syncky" }
+            "url_scheme": { "type": "string", "enum": ["syncky", "syncky-dev", "syncky-staging"] },
+            "requested_scope": { "$ref": "#/$defs/pair_requested_scope_input" }
           }
         },
         "uri": {
-          "description": "v=2 with c exactly when input has pair_secret",
+          "description": "Absent input.url_scheme selects an inferred HTTPS site with fragment payload; explicit url_scheme selects the legacy query form. v=2 with c exactly when input has pair_secret",
           "type": "string",
-          "pattern": "^syncky(?:-dev|-staging)?://pair\\?(v=1&r=[^&]+&h=[^&]+&t=[^&]+&k=[^&]+&n=[^&]+|v=2&r=[^&]+&h=[^&]+&t=[^&]+&k=[^&]+&n=[^&]+&c=[A-Za-z0-9_-]{22})(&s=http)?$"
+          "pattern": "^(?:syncky(?:-dev|-staging)?://pair\\?|https://(?:syncky\\.app|(?:dev|staging)\\.syncky\\.app)/pair#)(v=1&r=[^&#?]+&h=[^&#?]+&t=[^&#?]+&k=[^&#?]+&n=[^&#?]+|v=2&r=[^&#?]+&h=[^&#?]+&t=[^&#?]+&k=[^&#?]+&n=[^&#?]+&c=[A-Za-z0-9_-]{22})(&s=http)?(&request_ref=[0-9a-f]{32}&read=%5B[^&#?]*%5D&write=%5B[^&#?]*%5D)?$"
         }
       },
+      "if": {
+        "type": "object",
+        "properties": { "input": { "type": "object", "properties": { "url_scheme": true }, "required": ["url_scheme"] } }
+      },
+      "then": { "type": "object", "properties": { "uri": { "type": "string", "pattern": "^syncky(?:-dev|-staging)?://pair\\?" } } },
+      "else": { "type": "object", "properties": { "uri": { "type": "string", "pattern": "^https://" } } },
       "not": { "type": "object", "properties": { "expect": true }, "required": ["expect"] }
     },
     "pair_codes_file": {

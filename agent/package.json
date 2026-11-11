@@ -1,6 +1,6 @@
 {
   "name": "@syncky/agent",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "mcpName": "io.github.syncky/syncky-health",
   "description": "Send Apple Health data you choose to your AI agent via MCP, end-to-end encrypted between your iPhone and the local Syncky agent, and write Health entries for the types you allow on your iPhone.",
   "keywords": [
@@ -40,7 +40,7 @@
     "build": "node build.mjs",
     "prepack": "npm run build",
     "test:bundle": "node test/support/bundle-suite.js",
-    "test": "node --test --experimental-test-coverage --test-coverage-include='src/**/*.js' --test-coverage-exclude='test/**' --test-coverage-lines=85 --test-coverage-branches=75 --test-coverage-functions=85 'test/unit/**/*.test.js' 'test/vectors/**/*.test.js'"
+    "test": "node test/support/source-suite.js"
   },
   "devDependencies": {
     "@hpke/chacha20poly1305": "1.8.0",

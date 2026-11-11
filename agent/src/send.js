@@ -1,29 +1,28 @@
 import Ajv from "ajv/dist/2020.js";
 import { LocalStateError } from "./config.js";
 import { b64uDecode } from "./encoding.js";
-import { readHomeState, createCipherFiles } from "./home-state.js";
+import { cipherEntries, readHomeState, createCipherFiles, updateHomeState } from "./home-state.js";
 import { parseRawInner } from "./thin-transport.js";
-import { loadJson } from "./protocol-files.js";
 import { retryHomeLock } from "./thin-lock.js";
+import { normalizeAccessRequest, scopeReleaseProblem, validateAccessScope } from './access-scope.js';
+import { recordScopeRelease } from './scope-release.js';
 
-export function normalizeAccessRequest(inner) {
-  if (inner.type !== "access_request") return inner;
-  for (const side of ["read", "write"]) {
-    if (Array.isArray(inner[side]) && inner[side].every(name => typeof name === "string")) inner[side] = [...new Set(inner[side])].sort();
-  }
-  return inner;
-}
+import { responseCorrelations } from "./response-waits.js";
+
+export { normalizeAccessRequest } from './access-scope.js';
 
 function validateAccessRequest(inner) {
   if (inner.type !== "access_request") return;
-  const catalog = loadJson("types.json");
-  const types = new Map([...catalog.types, ...catalog.characteristics, { name: "workout", write: false }].map(t => [t.name, t]));
   const ttl = Date.parse(inner.expires_at) - Date.parse(inner.created_at);
-  const detail = ttl !== 86400000 ? "ttl"
-    : !Array.isArray(inner.read) || !Array.isArray(inner.write) ? "malformed"
-    : [...inner.read, ...inner.write].some(name => !types.has(name)) ? "unknown_type"
-    : inner.write.some(name => types.get(name).write !== true) ? "not_writable" : null;
-  if (detail) throw new LocalStateError("schema_invalid", `invalid access request: ${detail}`);
+  const scope = validateAccessScope(inner, { request: inner });
+  const detail = ttl !== 86400000 ? "ttl" : scope.ok ? null : scope.detail;
+  if (detail) throw new LocalStateError("schema_invalid", `invalid access request: ${detail}`, { detail, ...(detail === "not_writable" && { types: scope.types }) });
+}
+
+function validateScopeRelease(inner) {
+  if (inner.type !== "scope_release") return;
+  const detail = scopeReleaseProblem(inner);
+  if (detail) throw new LocalStateError("schema_invalid", `invalid scope release: ${detail}`);
 }
 
 export function createLocalValidator(schemas = []) {
@@ -42,6 +41,7 @@ export function createLocalValidator(schemas = []) {
   return inner => {
     normalizeAccessRequest(inner);
     validateAccessRequest(inner);
+    validateScopeRelease(inner);
     const matches = definitions.get(inner.type);
     if (!matches) return;
     try {
@@ -60,16 +60,22 @@ export function createGenericSender({ home, transport, self, now = () => new Dat
     const { inner } = parseRawInner(innerText);
     if (inner.type !== type) throw new LocalStateError("invalid_input", "send type must match input type");
     normalizeAccessRequest(inner);
-    if (validate) validateLocal(inner);
-    if (inner.type === "access_request") innerText = JSON.stringify(inner);
+    // The phone never answers a release, so a malformed one would vanish without a trace.
+    if (validate || inner.type === "scope_release") validateLocal(inner);
+    if (["access_request", "scope_release"].includes(inner.type)) innerText = JSON.stringify(inner);
     const state = readHomeState(home, { fs });
     const targets = to === undefined ? Object.values(state.members).filter(m => m.role === "device" && m.state === "confirmed" && m.unpair_reason == null) : [state.members[to]];
     if (to === undefined && targets.length !== 1) throw new LocalStateError("ambiguous_target", "select one confirmed phone");
     if (!targets[0] || targets[0].state !== "confirmed" || targets[0].unpair_reason != null || [true, "1"].includes(state.transport.hub_revoked) || [true, "1"].includes(state.transport.hub_deleted)) throw new LocalStateError("target_not_confirmed", "target is not confirmed");
-    const target = targets[0], envelope = await transport.sealMessage({ hubId: state.identity.hub_id, from: self.memberId, senderPrivateKey: self.privateKey,
-      recipients: [{ memberId: target.member_id, publicKey: b64uDecode(target.public_key) }], innerText, createdAt: now().toISOString() });
-    const entry = { msg_id: envelope.msg_id, kind: envelope.kind, type, to: [target.member_id], lane: transport.lane(envelope), body: transport.serialize(envelope), state: "pending", attempts: 0, next_attempt_at: 0 };
+    const target = targets[0], envelope = await retryHomeLock(() => transport.sealMessage({ hubId: state.identity.hub_id, from: self.memberId, senderPrivateKey: self.privateKey,
+      recipients: [{ memberId: target.member_id, publicKey: b64uDecode(target.public_key) }], innerText, createdAt: now().toISOString() }));
+    const entry = await retryHomeLock(() => ({ msg_id: envelope.msg_id, kind: envelope.kind, type, to: [target.member_id], lane: transport.lane(envelope), body: transport.serialize(envelope), state: "pending", attempts: 0, next_attempt_at: 0 }));
+    const waits = responseCorrelations(inner, target, now().getTime());
+    if (waits.length) entry.response_waits = waits;
     await retryHomeLock(() => outbox.put(entry));
+    if (inner.type === "scope_release") await retryHomeLock(() => updateHomeState(home, s => {
+      if (s.members[target.member_id]) recordScopeRelease(s.members[target.member_id], inner, entry.msg_id, now().getTime(), cipherEntries(home, "outbox", { fs }));
+    }, { fs }));
     return { msg_id: entry.msg_id, kind: entry.kind, type, to: entry.to, state: entry.state };
   };
 }

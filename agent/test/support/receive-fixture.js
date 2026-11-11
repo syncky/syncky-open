@@ -5,7 +5,13 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
-export async function createFixtureRuntime({ home, agentBin, ...options }) {
+export async function createFixtureRuntime({ home, agentBin, clockStepMs, ...options }) {
+  let offset = 0;
+  if (clockStepMs !== undefined) {
+    if (!Number.isSafeInteger(clockStepMs) || clockStepMs < 0) throw Error('invalid fixture clock step');
+    options.now = () => new Date(Date.now() + offset);
+    options.sleep = async ms => { await delay(Math.min(ms, 1000)); offset += clockStepMs; };
+  }
   const bin = resolve(agentBin);
   const modules = bin.endsWith('.js')
     ? { 'runtime.js': await import(pathToFileURL(join(dirname(bin), '../src/runtime.js'))),
@@ -32,8 +38,8 @@ export async function createFixtureRuntime({ home, agentBin, ...options }) {
 
 async function main() {
   process.umask(0o077);
-  const { values } = parseArgs({ options: { home: { type: 'string' }, 'agent-bin': { type: 'string' }, once: { type: 'boolean' } } });
-  const runtime = await createFixtureRuntime({ home: values.home, agentBin: values['agent-bin'] });
+  const { values } = parseArgs({ options: { home: { type: 'string' }, 'agent-bin': { type: 'string' }, once: { type: 'boolean' }, 'clock-step-ms': { type: 'string' } } });
+  const runtime = await createFixtureRuntime({ home: values.home, agentBin: values['agent-bin'], clockStepMs: values['clock-step-ms'] === undefined ? undefined : Number(values['clock-step-ms']) });
   if (values.once) { await runtime.poller.once(); return; }
   const receiver = runtime.poller.start();
   const stop = () => { receiver.stop(); };

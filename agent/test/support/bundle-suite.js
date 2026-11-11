@@ -1,24 +1,23 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { existsSync, globSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { build } from "esbuild";
+import { discoverTests } from "./source-suite.js";
+export { discoverTests } from "./source-suite.js";
 
 const AGENT = fileURLToPath(new URL("../../", import.meta.url));
-const TEST_GLOBS = ["test/unit/**/*.test.js", "test/vectors/**/*.test.js"];
-
-export function discoverTests(patterns = TEST_GLOBS, cwd = AGENT) {
-  return [...globSync(patterns, { cwd })].sort();
-}
 
 export function suiteFiles(pkg = JSON.parse(readFileSync(join(AGENT, "package.json"), "utf8"))) {
-  const sourceGlobs = [...pkg.scripts.test.matchAll(/'([^']+\.test\.js)'/g)].map((match) => match[1]);
+  assert.equal(pkg.scripts.test, "node test/support/source-suite.js", "source/bundle test inventories differ: unexpected source runner");
+  const source = spawnSync(process.execPath, [join(AGENT, "test/support/source-suite.js"), "--list-test-files"], { encoding: "utf8" });
+  assert.equal(source.status, 0, source.stderr);
   const files = discoverTests();
   assert.ok(files.length > 0, "empty bundle test inventory");
-  assert.deepEqual(discoverTests(sourceGlobs), files, "source/bundle test inventories differ");
+  assert.deepEqual(JSON.parse(source.stdout), files, "source/bundle test inventories differ");
   return files;
 }
 

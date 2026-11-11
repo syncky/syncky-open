@@ -60,7 +60,8 @@ export async function proveSkillExtension(t) {
   const source = join(root, 'source'); fs.mkdirSync(source);
   for (const name of ['src', 'skills', 'package.json']) fs.cpSync(join(agent, name), join(source, name), { recursive: true });
   fs.symlinkSync(join(agent, 'node_modules'), join(source, 'node_modules'), 'dir');
-  fs.mkdirSync(join(root, 'protocol')); fs.copyFileSync(join(agent, '../protocol/messages.json'), join(root, 'protocol/messages.json'));
+  fs.mkdirSync(join(root, 'protocol'));
+  for (const name of ['messages.json', 'types.json']) fs.copyFileSync(join(agent, '../protocol', name), join(root, 'protocol', name));
   const provisionPin = (path, pattern) => {
     const text = fs.readFileSync(path, 'utf8');
     assert.equal([...text.matchAll(pattern)].length, 1, 'exactly one empty package pin');

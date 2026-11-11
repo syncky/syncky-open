@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 
 import { build } from "esbuild";
+import { TOOLS } from "./src/mcp.js";
 import { VECTOR_FILES } from "./src/protocol-files.js";
 
 const ROOT = fileURLToPath(new URL("./", import.meta.url));
@@ -115,6 +116,7 @@ async function distributions(outdir, payload, hash, notices) {
     description: pkg.description,
     author: { name: "Syncky" }, license: pkg.license,
     server: { type: "node", entry_point: "syncky-agent.mjs", mcp_config: { command: "node", args: ["${__dirname}/syncky-agent.mjs", "mcp"] } },
+    tools: TOOLS.map(({ name, description }) => ({ name, description })),
     compatibility: { runtimes: { node: pkg.engines.node } },
   };
   const mcpb = archiveZip([
