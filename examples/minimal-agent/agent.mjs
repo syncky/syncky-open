@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execFileSync } from "node:child_process";
 import { createHash, createHmac, getRandomValues, timingSafeEqual } from "node:crypto";
 import { chmodSync, linkSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -27,26 +28,29 @@ export function loadState(home) {
 export function saveState(home, state) {
   mkdirSync(home, { recursive: true, mode: 0o700 });
   chmodSync(home, 0o700);
-  const file = join(home, "state.json");
-  const tmp = `${file}.${process.pid}.tmp`;
+  const file = join(home, "state.json"), tmp = `${file}.${process.pid}.tmp`;
   writeFileSync(tmp, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
   chmodSync(tmp, 0o600);
   renameSync(tmp, file);
 }
-// poll may run beside pair or send-water, so each change re-reads state.json under state.lock, which holds its owner's pid. Only the waiter holding state.lock.claim may remove a lock whose owner is gone; a claim whose owner is gone is left for the user, because two waiters removing it could each delete the other's fresh claim.
+// poll may run beside pair or send-water, so each change re-reads state.json under state.lock, which holds its owner's pid and when that process started: a pid alone outlives its process, because a later process or boot can reuse it. An owner whose start cannot be read counts as running. Only the waiter holding state.lock.claim may remove a lock whose owner is gone; a claim whose owner is gone is left for the user, because two waiters removing it could each delete the other's fresh claim.
+export const lockOwner = (pid) => { try { if (process.platform !== "linux") return `${pid} ${execFileSync("/bin/ps", ["-o", "lstart=", "-p", String(pid)], { encoding: "utf8", timeout: 2000, stdio: ["ignore", "pipe", "ignore"], env: { ...process.env, LC_ALL: "C", TZ: "UTC" } }).trim()}`; const stat = readFileSync(`/proc/${pid}/stat`, "utf8"); return `${pid} ${readFileSync("/proc/sys/kernel/random/boot_id", "utf8").trim()}:${stat.slice(stat.lastIndexOf(")") + 2).split(" ")[19]}`; } catch { return `${pid} `; } };
 export function updateState(home, change) {
-  const lock = join(home, "state.lock"), claim = `${lock}.claim`, me = String(process.pid), mine = `${lock}.${me}`;
-  const dead = (file) => { const owner = readFileSync(file, "utf8"); try { return owner === me || !process.kill(Number(owner), 0); } catch (err) { return err.code === "ESRCH"; } };
+  const lock = join(home, "state.lock"), claim = `${lock}.claim`, me = (updateState.me ??= lockOwner(process.pid)), mine = `${lock}.${process.pid}`, running = {};
+  const dead = (file) => {
+    const owner = readFileSync(file, "utf8"), pid = owner.split(" ")[0];
+    try { if (pid === String(process.pid) || !process.kill(Number(pid), 0)) return true; } catch (err) { if (err.code !== "EPERM") return err.code === "ESRCH"; }
+    if (owner.length < pid.length + 2 || performance.now() < running[owner]) return false;
+    return ![`${pid} `, owner].includes(lockOwner(pid)) || !(running[owner] = performance.now() + 1000);
+  };
   const take = (file) => { try { return linkSync(mine, file), true; } catch (err) { if (err.code === "EEXIST") return false; throw err; } };
   writeFileSync(mine, me, { mode: 0o600 });
   try {
-    for (; !take(lock); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10)) {
-      try {
-        if (!dead(lock)) continue;
-        if (!take(claim)) { if (dead(claim)) throw new Error(`${claim} was left by a process that is no longer running; remove it and retry`); continue; }
-        try { if (dead(lock)) unlinkSync(lock); } finally { unlinkSync(claim); }
-      } catch (err) { if (err.code !== "ENOENT") throw err; }
-    }
+    for (; !take(lock); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10)) try {
+      if (!dead(lock)) continue;
+      if (!take(claim)) { if (dead(claim)) throw new Error(`${claim} was left by a process that is no longer running; remove it and retry`); continue; }
+      try { if (dead(lock)) unlinkSync(lock); } finally { unlinkSync(claim); }
+    } catch (err) { if (err.code !== "ENOENT") throw err; }
   } finally { unlinkSync(mine); }
   try { const state = loadState(home); change(state); saveState(home, state); return state; } finally { try { if (readFileSync(lock, "utf8") === me) unlinkSync(lock); } catch {} }
 }
@@ -124,9 +128,7 @@ export async function openEnvelope(e, { hubId, memberId, sk, registry, kind = "d
     const senderPublicKey = await importPublic(registry[e.from]);
     const ctx = await suite.createRecipientContext({ recipientKey: await importPrivate(sk), enc, info: CEK_INFO, senderPublicKey });
     cek = new Uint8Array(await ctx.open(wrapped, aad));
-  } catch {
-    throw fail("hpke_open_failed", "cannot unwrap the content key");
-  }
+  } catch { throw fail("hpke_open_failed", "cannot unwrap the content key"); }
   try {
     const plain = await new Chacha20Poly1305().createEncryptionContext(cek).open(nonce, ciphertext, aad);
     const text = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(plain);
@@ -136,9 +138,7 @@ export async function openEnvelope(e, { hubId, memberId, sk, registry, kind = "d
   } catch (err) {
     if (err.code === "inner_invalid") throw err;
     throw fail("aead_failed", "cannot decrypt the payload");
-  } finally {
-    cek.fill(0);
-  }
+  } finally { cek.fill(0); }
 }
 
 const PAIR_SCHEMES = ["syncky", "syncky-dev", "syncky-staging"];

@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -11,6 +11,18 @@ export function tempDir(prefix = "syncky-agent-") {
 export function tempHome() {
   const { dir, cleanup } = tempDir();
   return { root: dir, home: join(dir, "home"), cleanup };
+}
+
+// fs.cpSync on Linux (Node 22.18) creates copied directories with the umask mode, which privateStat rejects.
+export function copyPrivateHome(source, target) {
+  const st = lstatSync(source);
+  if (st.isDirectory()) {
+    mkdirSync(target, { mode: 0o700 });
+    chmodSync(target, 0o700);
+    for (const name of readdirSync(source)) copyPrivateHome(join(source, name), join(target, name));
+  } else if (st.isFile()) copyFileSync(source, target);
+  else throw new Error(`unexpected entry in home: ${source}`);
+  chmodSync(target, st.mode & 0o7777);
 }
 
 export const fileMode = (st) => st.mode & 0o777;

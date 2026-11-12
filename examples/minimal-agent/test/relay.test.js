@@ -11,7 +11,7 @@ import { sealEnvelope as sealMarkedEnvelope } from '../../../agent/test/support/
 import { b64uDecode } from '../../../agent/src/encoding.js';
 import { diagnosticsFixture } from "../../../agent/test/support/diagnostics.js";
 import { tempHome } from "../../../agent/test/support/helpers.js";
-import { b64u, generateKeys, handleMessage, loadState, openEnvelope, pairCode, pairProof, parsePairUri, saveState, sealEnvelope, unb64u, updateState, uuidv7 } from "../agent.mjs";
+import { b64u, generateKeys, handleMessage, loadState, lockOwner, openEnvelope, pairCode, pairProof, parsePairUri, saveState, sealEnvelope, unb64u, updateState, uuidv7 } from "../agent.mjs";
 
 const AGENT = fileURLToPath(new URL("../agent.mjs", import.meta.url));
 const HUB = "hub_AAAAAAAAAAAAAAAAAAAAAA";
@@ -1284,6 +1284,62 @@ describe("state lock", () => {
     assert.match(r.stderr, /state\.lock\.claim was left by a process that is no longer running; remove it and retry/);
     assert.equal(relay.requests.length, 0);
     assert.deepEqual(loadState(s.home).commands, {});
+    assert.deepEqual(readdirSync(s.home).sort(), ["state.json", "state.lock", "state.lock.claim"]);
+  });
+
+  const REUSED = `${process.pid} Thu Jan  1 00:00:00 1970`;
+  const NO_IDENTITY = lockOwner(process.pid).endsWith(" ") && "this platform exposes no process start identity, so a running pid always counts as the owner";
+
+  it("records a start identity beside the pid on platforms that expose one", { skip: !["darwin", "linux"].includes(process.platform) }, async (t) => {
+    const s = await seeded(t, "http://127.0.0.1:9");
+    const owner = lockOwner(process.pid);
+    assert.match(owner, new RegExp(`^${process.pid} \\S`));
+    assert.equal(lockOwner(process.pid), owner);
+    assert.equal(lockOwner(spawnSync(process.execPath, ["-e", ""]).pid).endsWith(" "), true);
+    let written;
+    updateState(s.home, () => { written = readFileSync(join(s.home, "state.lock"), "utf8"); });
+    assert.equal(written, owner);
+    assert.deepEqual(readdirSync(s.home), ["state.json"]);
+  });
+
+  it("takes over a lock whose pid now belongs to a running process that started at another time", { skip: NO_IDENTITY }, async (t) => {
+    const relay = await sendRelay(t);
+    const s = await seeded(t, relay.url);
+    writeFileSync(join(s.home, "state.lock"), REUSED);
+    const r = await run(["send-water", "0.5", "--to", "m_dev_1"], { home: s.home });
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(loadState(s.home).commands.c_1.state, "sent");
+    assert.deepEqual(readdirSync(s.home), ["state.json"]);
+  });
+
+  for (const [title, owner] of [["a running owner whose start identity matches", () => lockOwner(process.pid)], ["a running owner whose lock records no start identity", () => `${process.pid} `]]) {
+    it(`waits for ${title}`, async (t) => {
+      const relay = await sendRelay(t);
+      const s = await seeded(t, relay.url);
+      const lock = join(s.home, "state.lock");
+      writeFileSync(lock, owner());
+      const sent = run(["send-water", "0.5", "--to", "m_dev_1"], { home: s.home });
+      await new Promise((done) => setTimeout(done, 1500));
+      assert.equal(relay.requests.length, 0);
+      assert.deepEqual(loadState(s.home).commands, {});
+      assert.equal(readFileSync(lock, "utf8"), owner());
+      unlinkSync(lock);
+      const r = await sent;
+      assert.equal(r.status, 0, r.stderr);
+      assert.equal(loadState(s.home).commands.c_1.state, "sent");
+      assert.deepEqual(readdirSync(s.home), ["state.json"]);
+    });
+  }
+
+  it("fails closed when the claim beside an orphaned lock names a reused pid", { skip: NO_IDENTITY }, async (t) => {
+    const relay = await sendRelay(t);
+    const s = await seeded(t, relay.url);
+    orphaned(join(s.home, "state.lock"));
+    writeFileSync(join(s.home, "state.lock.claim"), REUSED);
+    const r = await run(["send-water", "0.5", "--to", "m_dev_1"], { home: s.home });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /state\.lock\.claim was left by a process that is no longer running; remove it and retry/);
+    assert.equal(relay.requests.length, 0);
     assert.deepEqual(readdirSync(s.home).sort(), ["state.json", "state.lock", "state.lock.claim"]);
   });
 

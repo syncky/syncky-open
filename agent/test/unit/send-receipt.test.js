@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
-import { cpSync } from 'node:fs';
 import { Readable } from 'node:stream';
 import { after, before, describe, test } from 'node:test';
 import { createRuntime } from '../../src/runtime.js';
 import { createThinPoller } from '../../src/thin-poller.js';
 import { createGenericSender } from '../../src/send.js';
-import { runCli, tempHome } from '../support/helpers.js';
+import { copyPrivateHome, runCli, tempHome } from '../support/helpers.js';
 import { createFakePhone } from '../support/fake-phone.js';
 import { startRelayDouble } from '../support/relay-double.js';
 import { waitForSend } from '../support/send-receipt.js';
@@ -63,7 +62,7 @@ describe('pending send receipts', () => {
     phone.controlReceived.length = 0;
     phone.openFailures.length = 0;
     const tmp = tempHome();
-    cpSync(prepared.home, tmp.home, { recursive: true });
+    copyPrivateHome(prepared.home, tmp.home);
     let receiver, delivery, queuedDelivery, posting;
     t.after(async () => {
       delivery?.release(); queuedDelivery?.release();
