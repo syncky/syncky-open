@@ -42,6 +42,7 @@ describe("release bundle", () => {
       result = await buildAgent({ outdir: join(root, "first") });
     }
     bundle = await import(pathToFileURL(result.bundlePath));
+    assert.doesNotMatch(readFileSync(result.bundlePath, "utf8"), /unit-sync\.mjs/);
     isolated = join(root, "copied bundle with spaces");
     cwd = join(root, "unrelated cwd");
     mkdirSync(isolated);

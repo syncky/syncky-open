@@ -8,7 +8,7 @@ import { pollClock } from "../support/poll-clock.js";
 import { createLogger } from "../../src/log.js";
 import { createRelayClient, JSON_CONTENT_TYPE, MAX_PAGE_RESPONSE_BYTES, MAX_RESPONSE_BYTES, RelayError, RETRY_POLICY } from "../../src/relay-client.js";
 
-const BASE = "http://relay.test";
+const BASE = "https://relay.test";
 const TOKEN = `sk_hub_${"A".repeat(22)}_${"B".repeat(40)}`;
 const INVITE = "invite-secret-value";
 
@@ -166,7 +166,7 @@ describe("relay client request shapes", () => {
     await assert.rejects(client.postMessage({ v: 1 }), TypeError);
     const anonymous = createRelayClient({ baseUrl: BASE, fetch: async () => jsonResponse(200, {}) });
     await assert.rejects(anonymous.listMembers(), /no token/);
-    assert.throws(() => createRelayClient({ baseUrl: "relay.syncky.app" }), TypeError);
+    assert.throws(() => createRelayClient({ baseUrl: "relay.syncky.app" }), { code: "invalid_config" });
     assert.equal(requests.length, 0);
   });
 
@@ -628,10 +628,11 @@ describe("relay client insecure URL warning", () => {
     return records;
   };
 
-  it("warns once per process and host for an http relay that is not loopback, naming only the host", () => {
-    assert.deepEqual(warnings("http://plain-a.test/some/path?q=1"), [{ event: "relay_url_insecure", fields: { host: "plain-a.test" } }]);
+  it("warns once per process and host for a non-loopback HTTP relay, naming only the host", () => {
+    assert.deepEqual(warnings("http://plain-a.test"), [{ event: "relay_url_insecure", fields: { host: "plain-a.test" } }]);
     assert.deepEqual(warnings("http://plain-a.test/"), []);
     assert.deepEqual(warnings("http://plain-b.test:8080"), [{ event: "relay_url_insecure", fields: { host: "plain-b.test" } }]);
+    assert.throws(() => warnings("http://plain-a.test/some/path?q=1"), { code: "invalid_config" });
   });
 
   it("stays quiet for https and for a loopback http relay", () => {
@@ -640,7 +641,26 @@ describe("relay client insecure URL warning", () => {
     }
   });
 
-  it("does not throw for a URL that passes the scheme check but does not parse", () => {
-    assert.doesNotThrow(() => warnings("http://[bad"));
+  it("refuses a malformed URL before fetching", () => {
+    assert.throws(() => warnings("http://[bad"), { code: "invalid_config" });
   });
+});
+
+for (const status of [301, 302, 307, 308]) it(`registration redirect ${status} never delivers credentials to its destination`, async t => {
+  const { createServer } = await import('node:http');
+  let destinationCalls = 0, sourceCalls = 0;
+  const destination = createServer((req, res) => { destinationCalls++; res.writeHead(200); res.end('{}'); });
+  await new Promise(resolve => destination.listen(0, '127.0.0.1', resolve));
+  const source = createServer((req, res) => { sourceCalls++; req.resume(); res.writeHead(status, { Location: `http://127.0.0.1:${destination.address().port}/register` }); res.end(); });
+  await new Promise(resolve => source.listen(0, '127.0.0.1', resolve));
+  t.after(async () => { await Promise.all([source, destination].map(server => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }))); });
+  const client = createRelayClient({ baseUrl: `http://127.0.0.1:${source.address().port}`, token: TOKEN, sleep: async () => {}, retry: { ...RETRY_POLICY, maxAttempts: 1 } });
+  await assert.rejects(client.register({ invite: INVITE, name: 'fixture', publicKey: 'key' }), { code: 'network_error' });
+  assert.equal(sourceCalls, 1); assert.equal(destinationCalls, 0);
+});
+it('all relay methods disable redirects, including auth:false registration', async () => {
+  const calls = [];
+  const client = createRelayClient({ baseUrl: BASE, token: TOKEN, fetch: async (url, init) => { calls.push(init); return Response.json(url.includes('/v1/messages?') ? { messages: [] } : {}); } });
+  await client.health(); await client.register({ invite: INVITE }); await client.listMembers(); await client.getMessages(); await client.ack(1);
+  assert.ok(calls.every(c => c.redirect === 'error'));
 });

@@ -68,7 +68,7 @@ export function client(runtime) {
     const signature = "v1=" + hex(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(timestamp + "." + body)));
     const headers = { Authorization: "Bearer " + b.token, "Content-Type": "application/json", "X-Syncky-Delivery": message.delivery.id, "X-Syncky-Destination": message.delivery.destination, "X-Syncky-Timestamp": timestamp, "X-Syncky-Signature": signature, ...(options.results ? { "X-Syncky-Kind": "results" } : { "X-Syncky-Format": "native" }), ...options.headers };
     const response = await b.send("/server", { method: "POST", headers, body: options.body ?? body });
-    return { response, message };
+    return { response, message, timestamp: Number(timestamp) };
   };
   b.empty = async (extra = {}, options = {}) => {
     const { response } = await b.upload(extra, options);
@@ -100,7 +100,8 @@ export async function flow(runtime, manual = false) {
   const sent = await b.upload();
   const body = await sent.response.text();
   check(sent.response.status === 200 && JSON.parse(body).commands[0].command_id === command.command_id, "runtime ordinary reply delivery");
-  check(sent.response.headers.get("x-syncky-signature") === await signReply(b.hmac, sent.message.delivery.id, runtime.now(), body), "runtime signed reply bytes");
+  const signature = sent.response.headers.get("x-syncky-signature"), signedAt = Number(signature?.match(/^t=(\d+),/)?.[1]);
+  check(signedAt >= sent.timestamp && signedAt <= runtime.now() && signature === await signReply(b.hmac, sent.message.delivery.id, signedAt, body), "runtime signed reply bytes");
   const retry = await b.upload();
   check((await retry.response.json()).commands.length === 1, "runtime retries until result");
   await b.empty({}, { results: [{ command_id: command.command_id, version: 1, status: "rejected", reason: "healthkit_denied" }] });

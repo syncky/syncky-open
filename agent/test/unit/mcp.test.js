@@ -1,10 +1,45 @@
+import { ERROR_GUIDANCE, errorHint } from '../../src/error-guidance.js';
+import { LocalStateError } from '../../src/config.js';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { Readable } from 'node:stream';
 import { test } from 'node:test';
 import { createMcpServer, runMcp, MCP_MAX_BYTES, TOOLS } from '../../src/mcp.js';
 import { setup, now } from '../support/thin-transport.js';
 import { scopedRequest, requestedScope } from '../support/pairing-scope.js';
 import { localStatus } from '../../src/runtime.js';
+
+test('MCP compiles tool schemas only on the first tool call and shares them across servers', () => {
+  const url = process.env.SYNCKY_AGENT_BUNDLE_FIXTURE
+    ? pathToFileURL(JSON.parse(readFileSync(process.env.SYNCKY_AGENT_BUNDLE_FIXTURE, 'utf8')).release.bundlePath).href
+    : new URL('../../src/mcp.js', import.meta.url).href;
+  const child = spawnSync(process.execPath, ['--input-type=module', '--eval', `
+    import assert from 'node:assert/strict';
+    let compiled = 0;
+    globalThis.Function = new Proxy(Function, { construct(target, args) { compiled++; return Reflect.construct(target, args); } });
+    const module = await import(${JSON.stringify(url)});
+    const { createMcpServer, TOOLS } = module.modules?.['mcp.js'] ?? module;
+    assert.equal(compiled, 0);
+    const handlers = Object.fromEntries(TOOLS.map(tool => [tool.name, () => ({ skill: 'verified' })]));
+    const server = createMcpServer({ handlers });
+    const request = (method, params) => ({ jsonrpc: '2.0', id: 1, method, params });
+    for (const method of ['initialize', 'ping', 'tools/list', 'resources/list']) await server.handle(request(method));
+    await server.handle(request('resources/read', { uri: 'syncky://skill' }));
+    assert.equal(compiled, 0);
+    assert.equal((await server.handle(request('tools/call', { name: 'syncky_send', arguments: {} }))).error.code, -32602);
+    assert.ok(compiled > 0);
+    const count = compiled;
+    for (const instance of [server, createMcpServer({ handlers })]) {
+      assert.equal((await instance.handle(request('tools/call', { name: 'syncky_status' }))).result.isError, false);
+      assert.equal((await instance.handle(request('tools/call', { name: 'syncky_inbox', arguments: { extra: true } }))).error.code, -32602);
+      assert.equal((await instance.handle(request('tools/call', { name: 'unknown' }))).error.code, -32602);
+    }
+    assert.equal(compiled, count);
+  `], { encoding: 'utf8', timeout: 10000 });
+  assert.equal(child.status, 0, child.stdout + child.stderr);
+});
 
 test('MCP status carries safe pairing request metadata without adding a pair tool', async t => {
   const { home } = setup(t); scopedRequest(home);
@@ -49,4 +84,29 @@ test('invalid RPC, retired tools, schemas, resource errors and handler failures 
   assert.equal((await server.handle(request('tools/call', { name:'syncky_inbox', arguments:{} }))).result.structuredContent.code, 'result_too_large');
   for (const args of [{ limit:1001 }, { after_seq:-1 }, { since:'invalid' }, { since:'2026-11-05', until:'2026-11-01' }, { member:'bad' }, { extra:true }]) assert.equal((await server.handle(request('tools/call', { name:'syncky_inbox', arguments:args }))).error.code, -32602);
   assert.deepEqual((await server.handle(request('tools/list'))).result.tools, TOOLS);
+});
+
+
+test('MCP public tool failures cover every known code, preserve isError and redact remote guidance', async () => {
+  for (const code of [...Object.keys(ERROR_GUIDANCE), 'future_error', 'constructor', 'PRIVATE_CANARY\nunsafe']) {
+    for (const local of [false, true]) {
+      const err = local ? new LocalStateError(code, 'PRIVATE_CANARY', { detail: 'not_writable', types: ['steps'] })
+        : Object.assign(Error('PRIVATE_CANARY'), { code, detail: 'not_writable', types: ['steps'], details: 'PRIVATE_CANARY' });
+      err.hint = 'PRIVATE_CANARY';
+      let log;
+      const server = createMcpServer({ handlers: { syncky_status: () => { throw err; } }, logger: { warn: (event, meta) => { log = { event, ...meta }; } } });
+      const response = await server.handle(request('tools/call', { name: 'syncky_status' }));
+      const value = response.result.structuredContent;
+      assert.equal(response.result.isError, true);
+      assert.equal(value.code, /^[a-z_]{1,64}$/.test(code) ? code : 'tool_failed');
+      assert.equal(value.hint, errorHint(value.code));
+      assert.equal(value.detail, local ? 'not_writable' : undefined);
+      assert.deepEqual(value.types, local ? ['steps'] : undefined);
+      assert.deepEqual(JSON.parse(response.result.content[0].text), value);
+      assert.ok(!JSON.stringify({ response, log }).includes('PRIVATE_CANARY'));
+    }
+  }
+  const server = createMcpServer({ handlers: { syncky_status: () => { throw new LocalStateError('schema_invalid', 'PRIVATE_CANARY', { detail: 'PRIVATE_CANARY', types: ['PRIVATE_CANARY'] }); } } });
+  const value = (await server.handle(request('tools/call', { name: 'syncky_status' }))).result.structuredContent;
+  assert.equal(value.detail, undefined); assert.equal(value.types, undefined);
 });

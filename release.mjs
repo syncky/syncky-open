@@ -156,17 +156,25 @@ function verifyNpm(published, tarball, pkg) {
   ensure(published.version === pkg.version && published["dist.integrity"] === `sha512-${createHash("sha512").update(readFileSync(tarball)).digest("base64")}`, "existing npm version/integrity mismatch");
 }
 
-function waitForNpm(root, tarball, pkg, env) {
-  const attempts = Number(env.RELEASE_NPM_WAIT_ATTEMPTS ?? 10);
+export function npmWaitDelays(env) {
+  const attempts = Number(env.RELEASE_NPM_WAIT_ATTEMPTS ?? 30);
   const seconds = Number(env.RELEASE_NPM_WAIT_SECONDS ?? 15);
-  ensure(Number.isSafeInteger(attempts) && attempts > 0, "RELEASE_NPM_WAIT_ATTEMPTS must be a positive integer");
+  const limit = Number(env.RELEASE_NPM_WAIT_MAX_SECONDS ?? 60);
+  ensure(Number.isSafeInteger(attempts) && attempts > 0 && attempts <= 1000, "RELEASE_NPM_WAIT_ATTEMPTS must be a positive integer up to 1000");
   ensure(Number.isFinite(seconds) && seconds >= 0 && seconds * 1000 <= 2_147_483_647, "RELEASE_NPM_WAIT_SECONDS must be a non-negative delay");
-  for (let attempt = 1; attempt <= attempts; attempt++) {
+  ensure(Number.isFinite(limit) && limit >= 0 && limit * 1000 <= 2_147_483_647, "RELEASE_NPM_WAIT_MAX_SECONDS must be a non-negative delay");
+  return Array.from({ length: attempts - 1 }, (_, i) => Math.min(limit, seconds * 2 ** Math.min(i, 30)));
+}
+
+function waitForNpm(root, tarball, pkg, env) {
+  const delays = npmWaitDelays(env);
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
     const published = npmVersion(root, pkg);
     if (published !== null) { verifyNpm(published, tarball, pkg); return; }
-    if (attempt < attempts && seconds > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, seconds * 1000);
+    if (delays[attempt] > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delays[attempt] * 1000);
   }
-  throw new Error(`npm ${pkg.name}@${pkg.version} not visible after ${attempts} attempts (${seconds}s between attempts)`);
+  const waited = Number(delays.reduce((sum, delay) => sum + delay, 0).toFixed(3));
+  throw new Error(`npm ${pkg.name}@${pkg.version} not visible after ${delays.length + 1} attempts (${waited}s waited)`);
 }
 
 export function publishRelease(root, releaseDir, env = process.env) {

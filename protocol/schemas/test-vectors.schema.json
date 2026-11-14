@@ -233,6 +233,40 @@
         }
       }
     },
+    "scope_filter_file": {
+      "description": "Pre-collected workout input and effective agent scope replayed through the phone's final read filter, with filtered raw output and enclosing-item drop count.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "generated_by", "cases"],
+      "properties": {
+        "format": { "type": "integer", "const": 1 },
+        "generated_by": { "type": "string", "const": "syncky-core GenerateProtocolArtifacts" },
+        "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/scope_filter_case" } }
+      }
+    },
+    "scope_filter_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "input", "scope", "output", "filtered"],
+      "properties": {
+        "name": { "$ref": "#/$defs/case_name" },
+        "input": { "$ref": "#/$defs/scope_filter_changes" },
+        "scope": { "$ref": "#/$defs/command_policy_scope" },
+        "output": { "$ref": "#/$defs/scope_filter_changes" },
+        "filtered": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "scope_filter_changes": {
+      "description": "Raw collection boundary arrays, including malformed items; this is not an inner sync message.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["samples", "deleted", "summaries"],
+      "properties": {
+        "samples": { "type": "array", "items": true },
+        "deleted": { "type": "array", "items": true },
+        "summaries": { "type": "array", "items": true }
+      }
+    },
     "series_parts_file": {
       "type": "object",
       "additionalProperties": false,

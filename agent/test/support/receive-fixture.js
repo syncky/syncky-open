@@ -5,7 +5,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
-export async function createFixtureRuntime({ home, agentBin, clockStepMs, ...options }) {
+export async function createFixtureRuntime({ home, agentBin, clockStepMs, pollIntervalMs = 1000, ...options }) {
+  if (!Number.isSafeInteger(pollIntervalMs) || pollIntervalMs < 1 || pollIntervalMs > 1000) throw Error('invalid fixture poll interval');
   let offset = 0;
   if (clockStepMs !== undefined) {
     if (!Number.isSafeInteger(clockStepMs) || clockStepMs < 0) throw Error('invalid fixture clock step');
@@ -18,7 +19,7 @@ export async function createFixtureRuntime({ home, agentBin, clockStepMs, ...opt
       'thin-poller.js': await import(pathToFileURL(join(dirname(bin), '../src/thin-poller.js'))) }
     : (await import(pathToFileURL(bin.endsWith('.mjs') ? bin : join(dirname(bin), 'syncky-agent.mjs')))).modules;
   const runtime = modules['runtime.js'].createRuntime({ ...options, home, flags: { 'poll-interval': '300' },
-    createPoller: settings => modules['thin-poller.js'].createThinPoller({ ...settings, schedulePoll: at => at + 1000,
+    createPoller: settings => modules['thin-poller.js'].createThinPoller({ ...settings, schedulePoll: at => at + pollIntervalMs,
       relay: { ...settings.relay, async getMessages(query, context) {
         const requested = join(home, '.e2e-receive-pause'), paused = join(home, '.e2e-receive-paused');
         try {
@@ -39,7 +40,9 @@ export async function createFixtureRuntime({ home, agentBin, clockStepMs, ...opt
 async function main() {
   process.umask(0o077);
   const { values } = parseArgs({ options: { home: { type: 'string' }, 'agent-bin': { type: 'string' }, once: { type: 'boolean' }, 'clock-step-ms': { type: 'string' } } });
-  const runtime = await createFixtureRuntime({ home: values.home, agentBin: values['agent-bin'], clockStepMs: values['clock-step-ms'] === undefined ? undefined : Number(values['clock-step-ms']) });
+  const runtime = await createFixtureRuntime({ home: values.home, agentBin: values['agent-bin'],
+    pollIntervalMs: process.env.SYNCKY_E2E_RECEIVE_POLL_MS === undefined ? undefined : Number(process.env.SYNCKY_E2E_RECEIVE_POLL_MS),
+    clockStepMs: values['clock-step-ms'] === undefined ? undefined : Number(values['clock-step-ms']) });
   if (values.once) { await runtime.poller.once(); return; }
   const receiver = runtime.poller.start();
   const stop = () => { receiver.stop(); };

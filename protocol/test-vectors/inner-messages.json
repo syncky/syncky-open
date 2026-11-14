@@ -3787,6 +3787,64 @@
       "expect": "invalid"
     },
     {
+      "name": "system_access_persisted_ttl_zero",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00.000000100Z\",\"expires_at\":\"2026-10-11T08:00:00.000000101Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
+      "name": "system_access_persisted_ttl_one_ms",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00.000000100Z\",\"expires_at\":\"2026-10-11T08:00:00.001000100Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_request",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-10-11T08:00:00Z",
+        "expires_at": "2026-10-11T08:00:00.001Z",
+        "read": [
+          "biological_sex",
+          "dietary_water",
+          "workout"
+        ],
+        "write": [
+          "dietary_water"
+        ],
+        "reason": "literal <b>💧</b>"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_fractional_ttl_one_day",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00.000000100Z\",\"expires_at\":\"2026-10-12T08:00:00.000000100Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "control",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "access_request",
+        "request_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-10-11T08:00:00Z",
+        "expires_at": "2026-10-12T08:00:00Z",
+        "read": [
+          "biological_sex",
+          "dietary_water",
+          "workout"
+        ],
+        "write": [
+          "dietary_water"
+        ],
+        "reason": "literal <b>💧</b>"
+      },
+      "dropped": []
+    },
+    {
+      "name": "system_access_original_ttl_over_one_day",
+      "json": "{\"v\":1,\"type\":\"access_request\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"created_at\":\"2026-10-11T08:00:00.000000100Z\",\"expires_at\":\"2026-10-12T08:00:00.000000101Z\",\"read\":[\"biological_sex\",\"dietary_water\",\"workout\"],\"write\":[\"dietary_water\"],\"reason\":\"literal <b>💧</b>\"}",
+      "kind": "control",
+      "expect": "invalid"
+    },
+    {
       "name": "system_access_reply_invalid",
       "json": "{\"v\":1,\"type\":\"access_reply\",\"request_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"decided_at\":\"2026-10-11T08:00:00Z\",\"outcome\":\"invalid\",\"read\":[],\"write\":[],\"detail\":\"ttl\"}",
       "kind": "control",
@@ -5505,6 +5563,292 @@
       "json": "{\"app\":{\"build\":\"1\",\"channel\":\"dev\",\"os\":\"26.0\",\"version\":\"1.0\"},\"archive_ref\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checks\":{\"checked_at\":\"2026-11-03T12:00:00Z\",\"findings\":[],\"relay_state\":\"missing\"},\"connections\":[],\"events\":[],\"generated_at\":\"2026-11-03T12:00:00Z\",\"ledger_counts\":{\"status\":\"unavailable\"},\"pairing\":{\"status\":\"unavailable\"},\"relay_summary\":{\"agent_activity\":[],\"as_of\":null,\"history_since\":null,\"http_status\":null,\"is_stale\":false,\"local_last_relay_exchange_at\":null,\"local_last_run_as_of\":\"2026-11-03T12:00:00Z\",\"local_last_run_at\":null,\"local_last_run_source\":\"unknown\",\"pending\":null,\"phone_last_contact_at\":null,\"phone_last_contact_source\":\"unknown\",\"push_sends\":null,\"reason\":null,\"status\":\"not_collected\"},\"request_ref\":null,\"truncation\":{\"archive_events\":0,\"archive_expired\":0,\"available_history_start\":\"2026-11-03T12:00:00Z\",\"connections\":0,\"findings\":0,\"history_status\":\"available\",\"push_sends\":0,\"store_evicted\":0,\"store_expired\":0},\"type\":\"diagnostics\",\"v\":1,\"window_end\":\"2026-11-03T12:00:00Z\",\"window_start\":\"2026-11-01T12:00:00Z\"}",
       "kind": "control",
       "expect": "invalid"
+    },
+    {
+      "name": "commands_depth_32_object",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_deep\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"unknown\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":\"opaque\"}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}},{\"command_id\":\"c_neighbor\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": [
+          {
+            "command_id": "c_deep",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z",
+            "unknown": {
+              "next": {
+                "next": {
+                  "next": {
+                    "next": {
+                      "next": {
+                        "next": {
+                          "next": {
+                            "next": {
+                              "next": {
+                                "next": {
+                                  "next": {
+                                    "next": {
+                                      "next": {
+                                        "next": {
+                                          "next": {
+                                            "next": {
+                                              "next": {
+                                                "next": {
+                                                  "next": {
+                                                    "next": {
+                                                      "next": {
+                                                        "next": {
+                                                          "next": {
+                                                            "next": {
+                                                              "next": {
+                                                                "next": {
+                                                                  "next": {
+                                                                    "next": {
+                                                                      "next": {
+                                                                        "next": {
+                                                                          "next": "opaque"
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "command_id": "c_neighbor",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "commands_depth_33_object",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_deep\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"unknown\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":\"opaque\"}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}},{\"command_id\":\"c_neighbor\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": [
+          {
+            "command_id": "c_neighbor",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          }
+        ]
+      },
+      "dropped": [
+        "/commands/0"
+      ]
+    },
+    {
+      "name": "commands_depth_126_object",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_deep\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"unknown\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":{\"next\":\"opaque\"}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}},{\"command_id\":\"c_neighbor\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": [
+          {
+            "command_id": "c_neighbor",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          }
+        ]
+      },
+      "dropped": [
+        "/commands/0"
+      ]
+    },
+    {
+      "name": "commands_depth_32_array",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_deep\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"unknown\":[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\"opaque\"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]},{\"command_id\":\"c_neighbor\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": [
+          {
+            "command_id": "c_deep",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z",
+            "unknown": [
+              [
+                [
+                  [
+                    [
+                      [
+                        [
+                          [
+                            [
+                              [
+                                [
+                                  [
+                                    [
+                                      [
+                                        [
+                                          [
+                                            [
+                                              [
+                                                [
+                                                  [
+                                                    [
+                                                      [
+                                                        [
+                                                          [
+                                                            [
+                                                              [
+                                                                [
+                                                                  [
+                                                                    [
+                                                                      [
+                                                                        [
+                                                                          "opaque"
+                                                                        ]
+                                                                      ]
+                                                                    ]
+                                                                  ]
+                                                                ]
+                                                              ]
+                                                            ]
+                                                          ]
+                                                        ]
+                                                      ]
+                                                    ]
+                                                  ]
+                                                ]
+                                              ]
+                                            ]
+                                          ]
+                                        ]
+                                      ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          },
+          {
+            "command_id": "c_neighbor",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          }
+        ]
+      },
+      "dropped": []
+    },
+    {
+      "name": "commands_depth_33_array",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_deep\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"unknown\":[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\"opaque\"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]},{\"command_id\":\"c_neighbor\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": [
+          {
+            "command_id": "c_neighbor",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          }
+        ]
+      },
+      "dropped": [
+        "/commands/0"
+      ]
+    },
+    {
+      "name": "commands_depth_126_array",
+      "json": "{\"v\":1,\"type\":\"commands\",\"commands\":[{\"command_id\":\"c_deep\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\",\"unknown\":[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\"opaque\"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]},{\"command_id\":\"c_neighbor\",\"version\":1,\"op\":\"write\",\"type\":\"dietary_water\",\"value\":0.25,\"unit\":\"L\",\"start\":\"2026-10-11T08:00:00Z\",\"end\":\"2026-10-11T08:00:00Z\"}]}",
+      "expect": "ok",
+      "normalized": {
+        "v": 1,
+        "type": "commands",
+        "commands": [
+          {
+            "command_id": "c_neighbor",
+            "version": 1,
+            "op": "write",
+            "type": "dietary_water",
+            "value": 0.25,
+            "unit": "L",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:00:00Z"
+          }
+        ]
+      },
+      "dropped": [
+        "/commands/0"
+      ]
     }
   ]
 }

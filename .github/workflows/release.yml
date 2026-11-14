@@ -33,19 +33,6 @@ jobs:
         run: npm run test:bundle
       - name: Test public manifests and release guards
         run: node --test test/*.test.mjs
-      - name: Install pinned own-server dependencies
-        working-directory: examples/own-server
-        run: npm ci --no-audit --no-fund
-      - name: Test own-server
-        working-directory: examples/own-server
-        env:
-          WRANGLER_SEND_METRICS: 'false'
-        run: npm test
-      - name: Dry-run own-server Worker build
-        working-directory: examples/own-server
-        env:
-          WRANGLER_SEND_METRICS: 'false'
-        run: npm run build:worker
       - name: Pack and verify release assets
         run: node release.mjs prepare "$RUNNER_TEMP/syncky-release"
       - name: Install verified MCP publisher
@@ -59,16 +46,44 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  own-server:
+    if: github.repository == 'syncky/syncky-open'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.18.0'
+      - name: Install pinned own-server dependencies
+        working-directory: examples/own-server
+        run: npm ci --no-audit --no-fund
+      - name: Test own-server
+        working-directory: examples/own-server
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: npm test
+      - name: Dry-run own-server Worker build
+        working-directory: examples/own-server
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: npm run build:worker
+
   publish:
     if: github.repository == 'syncky/syncky-open'
-    needs: build
+    needs: [build, own-server]
+    environment: release
     runs-on: ubuntu-24.04
     permissions:
       contents: write
       id-token: write
     env:
-      RELEASE_NPM_WAIT_ATTEMPTS: '10'
+      RELEASE_NPM_WAIT_ATTEMPTS: '30'
       RELEASE_NPM_WAIT_SECONDS: '15'
+      RELEASE_NPM_WAIT_MAX_SECONDS: '60'
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:

@@ -112,7 +112,7 @@ describe("public installation manifests", () => {
     assert.match(workflow, /permissions:\n      contents: write\n      id-token: write/);
     assert.match(workflow, /runs-on: ubuntu-24\.04/);
     const refs = [...workflow.matchAll(/uses: ([^\s]+)@([^\s]+)/g)];
-    assert.deepEqual(refs.map((m) => m[1]), ["actions/checkout", "actions/setup-node", "actions/upload-artifact", "actions/checkout", "actions/setup-node", "actions/download-artifact"]);
+    assert.deepEqual(refs.map((m) => m[1]), ["actions/checkout", "actions/setup-node", "actions/upload-artifact", "actions/checkout", "actions/setup-node", "actions/checkout", "actions/setup-node", "actions/download-artifact"]);
     for (const ref of refs) assert.match(ref[2], /^[a-f0-9]{40}$/);
     assert.match(workflow, /persist-credentials: false/);
     assert.match(workflow, /node-version: '22\.18\.0'/);
@@ -122,19 +122,25 @@ describe("public installation manifests", () => {
     const release = 'node release.mjs publish "$RUNNER_TEMP/syncky-release"';
     const registry = 'node release.mjs registry "$RUNNER_TEMP/syncky-release"';
     const commands = ["npm ci", "npm run build", "npm test", "npm run test:bundle", "node --test test/*.test.mjs", 'node release.mjs prepare "$RUNNER_TEMP/syncky-release"', install, validate, release, registry];
-    const [build, publish] = workflow.split("\n  build:\n")[1].split("\n  publish:\n");
+    const [build, rest] = workflow.split("\n  build:\n")[1].split("\n  own-server:\n");
+    const [ownServer, publish] = rest.split("\n  publish:\n");
     assert.match(build, /permissions:\n      contents: read/);
     assert.doesNotMatch(build, /id-token:|contents: write|GH_TOKEN|release\.mjs (?:publish|registry)|mcp-publisher (?:login|publish)/);
-    assert.match(publish, /needs: build/);
-    assert.match(publish, /RELEASE_NPM_WAIT_ATTEMPTS: '10'\n +RELEASE_NPM_WAIT_SECONDS: '15'/);
+    assert.match(publish, /needs: \[build, own-server\]/);
+    assert.match(publish, /environment: release/);
+    assert.doesNotMatch(build, /own-server/);
+    assert.match(ownServer, /permissions:\n      contents: read/);
+    assert.match(ownServer, /if: github.repository == 'syncky\/syncky-open'/);
+    assert.doesNotMatch(ownServer, /id-token:|contents: write|GH_TOKEN|secrets\.|release\.mjs|upload-artifact|syncky-release/);
+    assert.match(publish, /RELEASE_NPM_WAIT_ATTEMPTS: '30'\n +RELEASE_NPM_WAIT_SECONDS: '15'\n +RELEASE_NPM_WAIT_MAX_SECONDS: '60'/);
     assert.match(publish, /permissions:\n      contents: write\n      id-token: write/);
-    assert.deepEqual([...build.matchAll(/^ +run: (.+)$/gm)].map((match) => match[1]), ["npm ci --no-audit --no-fund", ...commands.slice(1, 5), "npm ci --no-audit --no-fund", "npm test", "npm run build:worker", ...commands.slice(5, -2)]);
+    assert.deepEqual([...build.matchAll(/^ +run: (.+)$/gm)].map((match) => match[1]), ["npm ci --no-audit --no-fund", ...commands.slice(1, 5), ...commands.slice(5, -2)]);
     assert.deepEqual([...publish.matchAll(/^ +run: (.+)$/gm)].map((match) => match[1]), ["npm install --global npm@11.5.2 --ignore-scripts --no-audit --no-fund", release, install, registry]);
     assert.ok(build.indexOf(validate) < build.indexOf("uses: actions/upload-artifact"));
-    assert.doesNotMatch(publish, /mcp-publisher validate|working-directory: (?:agent|examples\/own-server)|npm (?:ci|test|run)|own-server/);
-    const packageGates = [...build.matchAll(/working-directory: examples\/own-server\n(?: +env:\n(?: +[A-Z_]+: '[^']*'\n)+)? +run: (.+)/g)].map(m => m[1]);
+    assert.doesNotMatch(publish.replace(/^    needs: \[build, own-server\]\n/m, ""), /mcp-publisher validate|working-directory: (?:agent|examples\/own-server)|npm (?:ci|test|run)|own-server/);
+    const packageGates = [...ownServer.matchAll(/working-directory: examples\/own-server\n(?: +env:\n(?: +[A-Z_]+: '[^']*'\n)+)? +run: (.+)/g)].map(m => m[1]);
     assert.deepEqual(packageGates, ["npm ci --no-audit --no-fund", "npm test", "npm run build:worker"]);
-    assert.ok(build.lastIndexOf("npm run build:worker") < build.indexOf('node release.mjs prepare'));
+    assert.deepEqual([...ownServer.matchAll(/^ +run: (.+)$/gm)].map(match => match[1]), packageGates);
     assert.doesNotMatch(readFileSync(join(PUBLIC, "release.mjs"), "utf8"), /own-server/);
     assert.match(publish, /name: Publish MCP Registry entry/);
     for (const job of [build, publish]) {
@@ -561,7 +567,7 @@ if (command === 'npm' && args[0] === 'view') {
       const result = stage === "publish" ? publish(fx) : registry(fx);
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
-      assert.equal(result.stderr, `release: npm @syncky/agent@${json(join(fx.release, "release.json")).version} not visible after 3 attempts (0.001s between attempts)\n`);
+      assert.equal(result.stderr, `release: npm @syncky/agent@${json(join(fx.release, "release.json")).version} not visible after 3 attempts (0.003s waited)\n`);
       const effects = calls(fx).slice(offset);
       assert.equal(effects.filter((call) => call[1] === "view").length, stage === "publish" ? 4 : 3);
       assert.equal(effects.filter((call) => call[1] === "publish").length, stage === "publish" ? 1 : 0);
@@ -574,14 +580,29 @@ if (command === 'npm' && args[0] === 'view') {
     });
   }
 
-  it("defaults to ten npm visibility attempts", (t) => {
+  it("defaults to thirty npm visibility attempts", (t) => {
     const fx = fixture(t);
     assert.equal(prepare(fx).status, 0);
     delete fx.env.RELEASE_NPM_WAIT_ATTEMPTS;
     const result = registry(fx);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /not visible after 10 attempts \(0s between attempts\)/);
-    assert.deepEqual(calls(fx), Array(10).fill(npmView(fx)));
+    assert.match(result.stderr, /not visible after 30 attempts \(0s waited\)/);
+    assert.deepEqual(calls(fx), Array(30).fill(npmView(fx)));
+  });
+
+  it("backs off from the first delay to the cap and outlasts a registry that lags for many minutes", async () => {
+    const { npmWaitDelays } = await import(pathToFileURL(join(PUBLIC, "release.mjs")).href);
+    const defaults = npmWaitDelays({});
+    assert.deepEqual(defaults.slice(0, 4), [15, 30, 60, 60]);
+    assert.equal(defaults.length, 29);
+    assert.ok(defaults.every((delay) => delay <= 60));
+    assert.ok(defaults.reduce((sum, delay) => sum + delay, 0) >= 3 * 7 * 60);
+    const workflow = Object.fromEntries([...readFileSync(join(PUBLIC, ".github/workflows/release.yml"), "utf8").matchAll(/^ +(RELEASE_NPM_WAIT_[A-Z_]+): '([^']+)'$/gm)].map((match) => [match[1], match[2]]));
+    assert.deepEqual(npmWaitDelays(workflow), defaults);
+    assert.deepEqual(npmWaitDelays({ RELEASE_NPM_WAIT_ATTEMPTS: "5", RELEASE_NPM_WAIT_SECONDS: "2", RELEASE_NPM_WAIT_MAX_SECONDS: "5" }), [2, 4, 5, 5]);
+    assert.deepEqual(npmWaitDelays({ RELEASE_NPM_WAIT_ATTEMPTS: "1" }), []);
+    for (const env of [{ RELEASE_NPM_WAIT_ATTEMPTS: "0" }, { RELEASE_NPM_WAIT_ATTEMPTS: "1001" }, { RELEASE_NPM_WAIT_SECONDS: "-1" }, { RELEASE_NPM_WAIT_MAX_SECONDS: "soon" }])
+      assert.throws(() => npmWaitDelays(env), /RELEASE_NPM_WAIT_/);
   });
 
   for (const code of ["EPUBLISHCONFLICT", "E403", "E409"]) {

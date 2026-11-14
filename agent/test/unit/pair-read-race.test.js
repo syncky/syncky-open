@@ -130,6 +130,34 @@ for (const stage of ['access maintenance', 'join', 'expiry', 'join cleanup']) {
   });
 }
 
+for (const stage of ['access maintenance', 'expiry']) test(`waiter startup cleans an expired pairing under a live state lock without relay access during ${stage}`, async t => {
+  const home = homeFixture(t), at = new Date('2026-11-08T00:00:00Z'), now = () => at;
+  const pairingId = `p_${'A'.repeat(22)}`;
+  const pairing = createPairingService({ home, publicKey: keys.agent.pk, agentName: 'Test', now, relay: {
+    baseUrl: 'http://127.0.0.1:8787', createPairing: async () => ({ hub_id: identity.hub_id,
+      pairing_id: pairingId, pairing_token: `pt_${'P'.repeat(43)}`, expires_at: '2026-11-08T00:05:00Z' }),
+  } });
+  await pairing.startPairing({ read: ['steps'] });
+  updateHomeState(home, s => {
+    s.pairings[pairingId].status = 'expired';
+    if (stage === 'expiry') s.pairings[pairingId].access.state = 'cancelled';
+    maintainResponseWaits(s, at.getTime());
+  });
+  let lock, timer, released = false;
+  const result = await runCli(['--home', home, 'pair-waiter', pairingId], {
+    env: {}, now, fetch: () => assert.fail('unexpected relay access'),
+    createPoller: options => {
+      lock = acquireHomeLock(home, 'state');
+      timer = setTimeout(() => { lock.release(); released = true; }, 40);
+      return createThinPoller(options);
+    },
+  }).finally(() => { clearTimeout(timer); lock?.release(); });
+  assert.equal(result.code, 0); assert.equal(released, true);
+  assert.equal(fs.existsSync(join(home, 'pairing.json')), false);
+  const row = readHomeState(home).pairings[pairingId];
+  assert.equal(row.status, 'expired'); assert.equal(row.access.state, 'cancelled');
+});
+
 test('receive --once retries state renames after watching a scoped pairing', async t => {
   const home = homeFixture(t), race = replaceDuringRead(t, home);
   const now = () => new Date('2026-11-08T00:00:00Z');

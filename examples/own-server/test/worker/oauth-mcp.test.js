@@ -14,6 +14,12 @@ beforeEach(async () => {
 afterEach(() => { try { for (const log of logs) expect(log).not.toHaveBeenCalled(); } finally { vi.restoreAllMocks(); } });
 for (const manual of [false, true]) it("Worker+DO full flow with " + (manual ? "manual confidential" : "DCR public") + " client and no external egress", async () => flow(workerRuntime(), manual));
 for (const action of ["revoke", "disable"]) it("Worker lost reply, " + action + ", DO eviction and late results", async () => lostReply(workerRuntime(), action));
+it("Worker+DO full flow holds when the clock moves a second after every response", async () => {
+  let ms = Date.now();
+  vi.spyOn(Date, "now").mockImplementation(() => ms);
+  const runtime = workerRuntime();
+  await flow({ ...runtime, send: async request => { const response = await runtime.send(request); ms += 1000; return response; } }, false);
+});
 it("Worker real routes enforce canonical origin, OAuth isolation, PKCE and rotation", async () => authorization(workerRuntime()));
 it("Worker login remains available with a spent failed-login bucket", async () => loginAvailability(workerRuntime()));
 it("Worker manual clients retain bounded capacity under DCR exhaustion", async () => registrationAvailability(workerRuntime()));

@@ -1,13 +1,26 @@
+import { errorHint } from './error-guidance.js';
+import { RELAY_ERROR_CODES, RELAY_CLIENT_ERROR_CODES } from './relay-client.js';
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { cipherEntries, createCipherFiles, readHomeState, updateHomeState } from "./home-state.js";
 import { retryHomeLock } from "./thin-lock.js";
 import { privateStat, removePrivateFile, syncDirectory, withHomeLock } from "./protected-files.js";
-import { inboxLines } from "./inbox.js";
+import { iterateInbox, committedInboxRecord } from "./inbox.js";
 import { activateResponseWaits, completeResponseWaits } from "./response-waits.js";
 
+const relayCodes = new Set([...RELAY_ERROR_CODES, ...RELAY_CLIENT_ERROR_CODES]);
+const relayCause = error => ({
+  relay_code: relayCodes.has(error.code) ? error.code : 'relay_error',
+  relay_status: Number.isInteger(error.status) && (error.status === 0 || error.status >= 100 && error.status <= 599) ? error.status : 0,
+});
+
 export function sendReceipt(entry) {
-  return Object.fromEntries(["msg_id", "kind", "type", "to", "state", "seq", "attempts", "next_attempt_at", "retry_after_until", "code"].filter(k => entry[k] !== undefined).map(k => [k, entry[k]]));
+  const receipt = Object.fromEntries(["msg_id", "kind", "type", "to", "state", "seq", "attempts", "next_attempt_at", "retry_after_until", "code"].filter(k => entry[k] !== undefined).map(k => [k, entry[k]]));
+  if (['pending', 'failed'].includes(entry.state) && entry.code) {
+    if (entry.code !== 'target_revoked' && (entry.relay_code != null || entry.relay_status != null)) Object.assign(receipt, relayCause({ code: entry.relay_code, status: entry.relay_status }));
+    receipt.hint = (entry.state === 'pending' ? 'Queued; the receiver retries after the receipt deadline. ' : 'Terminal receipt; this send will not retry. ') + errorHint(receipt.relay_code ?? entry.code);
+  }
+  return receipt;
 }
 
 export function createOutbox({ home, relay, fs, now = () => new Date(), maxAttempts = 5, timeoutMs = 15000, timers = globalThis }) {
@@ -35,7 +48,7 @@ export function createOutbox({ home, relay, fs, now = () => new Date(), maxAttem
       const state = await retryHomeLock(() => readHomeState(home, { fs }));
       if (Math.max(state.transport.send_lanes?.[laneId] ?? 0, laneId === "data" ? Number(state.transport.commands_retry_at) || 0 : 0) > now().getTime()) break;
       if (entry.to?.some(id => state.members[id]?.state !== "confirmed" || state.members[id]?.unpair_reason != null) || [true, "1"].includes(state.transport.hub_deleted) || [true, "1"].includes(state.transport.hub_revoked)) {
-        await change(entry.msg_id, { state: "failed", code: "target_revoked" }, e => e.state === "pending"); continue;
+        await change(entry.msg_id, { state: "failed", code: "target_revoked", relay_code: null, relay_status: null }, e => e.state === "pending"); continue;
       }
       const at = now().getTime();
       const claimed = await change(entry.msg_id, { lease_owner: owner, lease_until: at + timeoutMs + 15000, attempts: (entry.attempts ?? 0) + 1 }, e =>
@@ -53,11 +66,11 @@ export function createOutbox({ home, relay, fs, now = () => new Date(), maxAttem
         const retryable = limited || err.status === 0 || err.status >= 500 || ["timeout", "network_error"].includes(err.code) || signal?.aborted;
         const retryAt = now().getTime() + (retryable && Number.isFinite(err.retryAfterS) && err.retryAfterS >= 0 ? err.retryAfterS * 1000 : Math.min(60000, 1000 * 2 ** Math.min(failures, 10)));
         if (limited) await retryHomeLock(() => updateHomeState(home, s => { s.transport.send_lanes ??= {}; s.transport.send_lanes[laneId] = Math.max(s.transport.send_lanes[laneId] ?? 0, retryAt); }, { fs }));
-        await change(entry.msg_id, { state: retryable && failures < maxAttempts ? "pending" : "failed", failures, code: limited ? "rate_limited" : retryable ? "send_retry" : "send_failed",
+        await change(entry.msg_id, { state: retryable && failures < maxAttempts ? "pending" : "failed", failures, ...relayCause(err), code: limited ? "rate_limited" : retryable ? "send_retry" : "send_failed",
           next_attempt_at: retryAt, retry_after_until: limited ? retryAt : 0, lease_owner: null, lease_until: 0 }, owned);
         break;
       } finally { timers.clearTimeout(timer); }
-      await change(entry.msg_id, { state: "sent", seq: result.seq, sent_at: now().toISOString(), code: null, lease_owner: null, lease_until: 0 }, owned);
+      await change(entry.msg_id, { state: "sent", seq: result.seq, sent_at: now().toISOString(), code: null, relay_code: null, relay_status: null, lease_owner: null, lease_until: 0 }, owned);
       await recoverWaits();
     }
   }
@@ -66,9 +79,10 @@ export function createOutbox({ home, relay, fs, now = () => new Date(), maxAttem
     if (sent.length) await retryHomeLock(() => updateHomeState(home, s => {
       const activated = activateResponseWaits(s, sent, now().getTime());
       if (!activated.length) return;
-      for (const { record } of inboxLines(home, { fs })) {
-        const correlations = activated.filter(w => record.from === w.member_id && Date.parse(record.received_at) >= w.opened_at);
-        for (const w of correlations) completeResponseWaits(s, w.member_id, w.public_key, record.inner, now().getTime());
+      for (const { record } of iterateInbox(home, { fs, afterSeq: Math.min(...activated.map(w => w.inbox_after ?? -1)) })) {
+        if (!committedInboxRecord(record, s)) continue;
+        const correlations = activated.filter(w => record.from === w.member_id);
+        for (const w of correlations) completeResponseWaits(s, w.member_id, w.public_key, record.inner, now().getTime(), record);
       }
     }, { fs }));
     return sent;

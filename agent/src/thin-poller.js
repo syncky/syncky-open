@@ -146,6 +146,7 @@ export function createThinPoller({ home, transport, self, relay, fs, now = () =>
   async function receiveCycle({ signal, deadline, operator = false } = {}) {
     const context = { signal, deadline, operator };
     signal?.throwIfAborted();
+    await inbound.reconcile(context);
     await maintain(context);
     const authoritative = inheritedRetry((await state(context)).transport);
     if (authoritative > now().getTime()) return { deferred: true, reason: "retry_after", next_poll_at: authoritative };
@@ -186,6 +187,7 @@ export function createThinPoller({ home, transport, self, relay, fs, now = () =>
       if (page.messages.length && !rows.length) throw invalid();
       if (rows.length) {
         let previous = -1;
+        let capacityError;
         for (const row of rows) {
           if (row.seq <= previous) throw invalid();
           previous = row.seq;
@@ -199,12 +201,14 @@ export function createThinPoller({ home, transport, self, relay, fs, now = () =>
           let result;
           try { result = await inbound.receive(row, context); await inbound.releaseHeld(context); }
           catch (err) {
+            if (err.code === "inbox_seen_limit") { capacityError ??= err; continue; }
             if (err.status === 429 || err.status === 0 || err.status >= 500) await mutate(s => { recordRetry(s, err, now().getTime()); });
             throw err;
           }
           if (result.status === "poison" || result.status === "metadata") poison.push({ seq: row.seq, status: result.status, code: result.code });
           fetched++;
         }
+        if (capacityError) throw capacityError;
       }
       signal?.throwIfAborted();
       await mutate(s => {
@@ -244,6 +248,7 @@ export function createThinPoller({ home, transport, self, relay, fs, now = () =>
       deadline = Math.min(deadline ?? Infinity, now().getTime() + 15000);
       const timer = setCycleTimer(() => controller.abort(), Math.max(0, deadline - now().getTime())), tasks = [];
       try {
+        await inbound.reconcile({ signal: combined, deadline });
         await retryHomeLock(() => inbox.prune(now()));
         if (watchPairing) await watchPairing({ signal: combined, deadline });
         if (observeHubState) tasks.push(cancellable(() => observeHubState({ signal: combined }), combined).catch(() => {}));
@@ -269,6 +274,7 @@ export function createThinPoller({ home, transport, self, relay, fs, now = () =>
       const done = (async () => {
         try {
           while (!stopped) {
+            await inbound.reconcile({ signal: controller.signal });
             await pruneIfDue();
             if (watchPairing) background(() => watchPairing({ signal: controller.signal }));
             if (observeHubState) background(() => observeHubState({ signal: controller.signal }));

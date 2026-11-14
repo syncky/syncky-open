@@ -529,7 +529,7 @@ test("ciphertext writes and retry metadata are crash-safe under disk failure and
   const entry = { msg_id: messageId(1), to: ["m_dev_1"], kind: "control", body: "sealed", state: "pending", attempts: 0 };
   queue.put(entry);
   for (const op of ["writeSync", "fsyncSync", "renameSync"]) {
-    const failing = createCipherFiles(home, "outbox", { fs: diskFailure(op, 1, /\.0192e0a0-.*\.tmp$/) });
+    const failing = createCipherFiles(home, "outbox", { fs: diskFailure(op, 1, /\.01a1ab94-.*\.tmp$/) });
     assert.throws(() => failing.update(entry.msg_id, { attempts: 1 }), { code: "ENOSPC" });
     assert.equal(queue.list()[0].attempts, 0);
   }

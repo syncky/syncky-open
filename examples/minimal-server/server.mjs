@@ -103,7 +103,7 @@ function storeNative(dir, state, message) {
       out.invalid += 1;
       continue;
     }
-    const record = { device: message.device, ...sample };
+    const record = { ...sample, device: message.device };
     const line = JSON.stringify(record);
     const stored = state.samples.get(sampleKey(record))?.get(sample.part ?? "");
     if (stored !== undefined && (stored === line || !UPSERT_TYPES.has(sample.type))) {
@@ -191,9 +191,9 @@ export async function createServer({ dir, port = 0, bind = "127.0.0.1", auth = "
     const format = req.headers["x-syncky-format"];
     if (Object.hasOwn(EXTENSIONS, format)) entry.format = format;
     if (req.headers["x-syncky-kind"] === "results") entry.kind = "results";
+    if (!authorized(req, { auth, user, header, token })) { req.resume(); return finish(401, "unauthorized"); }
     const body = await readBody(req);
     if (body === null) return finish(413, "payload_too_large");
-    if (!authorized(req, { auth, user, header, token })) return finish(401, "unauthorized");
     if (hmac) {
       const signature = req.headers["x-syncky-signature"];
       const verdict = signature === undefined ? "unsigned" : verifySignature({ secret: hmac, timestamp: req.headers["x-syncky-timestamp"], signature, body, now: now() });

@@ -35,6 +35,15 @@ describe("config", () => {
   });
   afterEach(() => t.cleanup());
 
+  it("accepts a non-loopback HTTP origin while retaining the initialized origin pin", () => {
+    ensureHome(t.home); saveConfig(t.home, { relay_url: "http://plain.test:8080" });
+    assert.equal(loadConfig(t.home, { initialized: true, env: {} }).relay_url, "http://plain.test:8080");
+    assert.equal(loadConfig(t.home, { initialized: true, env: {}, flags: { relay_url: "http://PLAIN.test:8080/" } }).relay_url, "http://plain.test:8080");
+    for (const relay_url of ["http://other.test:8080", "https://plain.test:8080", "http://plain.test:8081"]) {
+      assert.throws(() => loadConfig(t.home, { initialized: true, env: {}, flags: { relay_url } }), { code: "invalid_config" });
+    }
+  });
+
   describe("agentHome", () => {
     it("prefers the flag, then SYNCKY_AGENT_HOME, then ~/.syncky-agent", () => {
       assert.equal(agentHome({ flags: { home: "/a" }, env: { SYNCKY_AGENT_HOME: "/b" } }), "/a");

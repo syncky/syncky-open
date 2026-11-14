@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 export const keys = JSON.parse(fs.readFileSync(new URL("../../../protocol/test-vectors/keys.json", import.meta.url)));
 export const identity = { hub_id: `hub_${"A".repeat(22)}`, member_id: keys.agent.member_id, public_key: keys.agent.pk };
-export const messageId = (n) => `0192e0a0-0000-7000-8000-${String(n).padStart(12, "0")}`;
+export const messageId = (n) => `01a1ab94-8600-7000-8000-${String(n).padStart(12, "0")}`;
 export function fixture(t) {
   const home = fs.mkdtempSync(join(tmpdir(), "thin-home-"));
   fs.chmodSync(home, 0o700);

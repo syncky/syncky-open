@@ -65,6 +65,7 @@ export const LOCAL_STATE_ERROR_CODES = Object.freeze([
   "fingerprint_mismatch",
   "timeout",
   "tx_async",
+  "inbox_scan_limit",
 ]);
 
 
@@ -197,6 +198,15 @@ function pick(obj, key) {
   return obj != null && Object.hasOwn(obj, key) && obj[key] !== undefined ? obj[key] : undefined;
 }
 
+export function relayOrigin(value) {
+  let url;
+  try { url = new URL(value); } catch {}
+  if (typeof value !== "string" || !/^https?:\/\//i.test(value) || /[\s\\?#@]/u.test(value) || !url || url.username || url.password
+    || !["https:", "http:"].includes(url.protocol)
+    || url.pathname !== "/") throw new LocalStateError("invalid_config", "relay requires an HTTP(S) origin without credentials, path, query or fragment");
+  return url.origin;
+}
+
 export function resolveConfig({ flags = {}, env = process.env, file = {} } = {}) {
   const out = {};
   for (const key of Object.keys(CONFIG_DEFAULTS)) {
@@ -213,8 +223,15 @@ export function loadConfigFile(home, { fs = nodeFs } = {}) {
   return readJsonFile(join(home, CONFIG_FILE), { fs }) ?? {};
 }
 
-export function loadConfig(home, { flags = {}, env = process.env, fs = nodeFs } = {}) {
-  return resolveConfig({ flags, env, file: loadConfigFile(home, { fs }) });
+export function loadConfig(home, { flags = {}, env = process.env, fs = nodeFs, initialized = false } = {}) {
+  const file = loadConfigFile(home, { fs });
+  const origin = initialized ? relayOrigin(file.relay_url) : null;
+  const config = resolveConfig({ flags, env, file });
+  config.relay_url = relayOrigin(config.relay_url);
+  if (origin && config.relay_url !== origin) {
+    throw new LocalStateError("invalid_config", "relay override differs from initialized origin");
+  }
+  return config;
 }
 
 export function saveConfig(home, config, { fs = nodeFs } = {}) {

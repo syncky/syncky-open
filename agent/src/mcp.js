@@ -1,4 +1,5 @@
 import Ajv from 'ajv/dist/2020.js';
+import { errorHint } from './error-guidance.js';
 import { errorDetail } from './config.js';
 import { MEMBER_ID_RE } from './ids.js';
 
@@ -20,8 +21,14 @@ export const TOOLS = Object.freeze([
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true } },
   { name: 'syncky_skill', description: 'Read the bundled or verified installed skill, or its literal previous-version diff. Works offline; no updates fetched.', inputSchema: object({ diff: { type: 'boolean' } }), annotations: read },
 ]);
-const ajv = new Ajv({ strict: false, validateFormats: false });
-const validators = new Map(TOOLS.map(tool => [tool.name, ajv.compile(tool.inputSchema)]));
+let validators;
+function toolValidators() {
+  if (!validators) {
+    const ajv = new Ajv({ strict: false, validateFormats: false });
+    validators = new Map(TOOLS.map(tool => [tool.name, ajv.compile(tool.inputSchema)]));
+  }
+  return validators;
+}
 const reply = (id, result) => ({ jsonrpc: '2.0', id, result });
 const error = (id, code, message) => ({ jsonrpc: '2.0', id, error: { code, message } });
 const safeCode = err => typeof err?.code === 'string' && /^[a-z_]{1,64}$/.test(err.code) ? err.code : 'tool_failed';
@@ -48,7 +55,7 @@ export function createMcpServer({ handlers, version, logger }) {
       } catch { return error(id, -32002, 'resource_failed'); }
     }
     if (method !== 'tools/call') return error(id, -32601, 'unknown method');
-    const validate = validators.get(params?.name), args = params?.arguments ?? {};
+    const validate = toolValidators().get(params?.name), args = params?.arguments ?? {};
     if (!validate || !validate(args)) return error(id, -32602, 'invalid tool arguments');
     if (['since','until'].some(key => args[key] !== undefined && !Number.isFinite(Date.parse(args[key]))) || (args.since && args.until && Date.parse(args.since) > Date.parse(args.until))) return error(id, -32602, 'invalid inbox dates');
     try {
@@ -57,7 +64,7 @@ export function createMcpServer({ handlers, version, logger }) {
       return reply(id, response);
     } catch (err) {
       const code = safeCode(err); logger?.warn('mcp_tool_failed', { code });
-      return reply(id, { ...result({ code, ...errorDetail(err) }), isError: true });
+      return reply(id, { ...result({ code, ...errorDetail(err), hint: errorHint(code) }), isError: true });
     }
   }
   async function handleLine(line) {

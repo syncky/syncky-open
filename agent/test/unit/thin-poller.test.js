@@ -410,7 +410,7 @@ test("receiver lease, advertised first-sync cadence, heartbeat hook and shutdown
   await createThinPoller({ home, transport, self, relay, now }).once();
 });
 
-for (const [operation, count, pattern] of [["writeSync", 2, /\.state\.json\./], ["fsyncSync", 2, /\.state\.json\./], ["renameSync", 3, /\.state\.json\./], ["fsyncSync", 3, /\.state\.json\./]]) test(`checkpoint/ACK intent ${operation} ${count} failure is retryable`, async t => {
+for (const [operation, count, pattern] of [["writeSync", 2, /\.state\.json\./], ["fsyncSync", 2, /\.state\.json\./], ["renameSync", 3, /\.state\.json\./], ["fsyncSync", 3, /\.state\.json\./], ["writeSync", 4, /\.state\.json\./], ["fsyncSync", 4, /\.state\.json\./], ["renameSync", 4, /\.state\.json\./]]) test(`checkpoint/ACK intent ${operation} ${count} failure is retryable`, async t => {
   const { home, transport } = setup(t), message = await delivery(transport, 1); let acked = 0, at = now().getTime();
   const relay = { getMessages: async () => ({ messages: [message], next_after: 1 }), ack: async () => { acked++; } };
   await assert.rejects(createThinPoller({ home, transport, self, relay, now, fs: diskFailure(operation, count, pattern) }).once());
@@ -423,7 +423,7 @@ for (const [operation, count, pattern] of [["writeSync", 2, /\.state\.json\./], 
 test("successful remote ACK with failed local commit retries the same checkpoint after restart", async t => {
   const { home, transport } = setup(t), message = await delivery(transport, 1); const acks = [];
   const relay = { getMessages: async () => ({ messages: [message], next_after: 1 }), ack: async seq => { acks.push(seq); } };
-  await assert.rejects(createThinPoller({ home, transport, self, relay, now, fs: diskFailure("renameSync", 4, /\.state\.json\./) }).once());
+  await assert.rejects(createThinPoller({ home, transport, self, relay, now, fs: diskFailure("renameSync", 5, /\.state\.json\./) }).once());
   assert.deepEqual(acks, [1]); assert.equal(readHomeState(home).transport.pending_ack.up_to_seq, 1);
   await createThinPoller({ home, transport, self, relay, now }).once();
   assert.deepEqual(acks, [1, 1]); assert.equal(createInbox(home).read().length, 1);
@@ -453,6 +453,38 @@ test("startup pruning touches only thin inbox; poll retry and cadence survive re
   at += 1000; await create().once(); assert.equal(gets, 2);
   assert.deepEqual(fs.readFileSync(`${home}/agent.db`), bytes); assert.equal(createInbox(home).read().length, 0);
   at += 1000; await create().once(); assert.equal(gets, 2);
+});
+
+for (const mode of ['once', 'start']) test(`idle history stays intact until receive ${mode} prunes before polling`, async t => {
+  const { home, transport } = setup(t), inbox = createInbox(home);
+  let at = now().getTime();
+  for (const [seq, received_at] of [[1, '2026-10-06T12:00:00Z'], [2, '2026-10-07T12:00:00Z'], [3, now().toISOString()]]) {
+    inbox.append({ seq, from: 'm_dev_1', kind: 'control', type: 'future', received_at, inner: { type: 'future' } });
+  }
+  const path = `${home}/inbox/2026-10-06.jsonl`, original = fs.readFileSync(path);
+  const boundaryPath = `${home}/inbox/2026-10-07.jsonl`, boundary = fs.readFileSync(boundaryPath);
+  at += 86400000;
+  assert.deepEqual(createInbox(home).read().map(r => r.seq), [1, 2, 3]);
+  const observed = []; let reached;
+  const sleeping = new Promise(resolve => { reached = resolve; });
+  const poller = createThinPoller({ home, transport, self, now: () => new Date(at),
+    relay: { getMessages: async () => {
+      observed.push({ expiredFileExists: fs.existsSync(path), seqs: createInbox(home).read().map(r => r.seq),
+        boundaryUnchanged: fs.readFileSync(boundaryPath).equals(boundary) });
+      return { messages: [] };
+    } },
+    sleep: () => { reached(); return new Promise(() => {}); },
+  });
+  assert.ok(fs.readFileSync(path).equals(original));
+  if (mode === 'once') assert.equal((await poller.once()).pages, 1);
+  else {
+    const loop = poller.start();
+    try { await Promise.race([sleeping, loop.done]); }
+    finally { await loop.stop(); }
+  }
+  assert.deepEqual(observed, [{ expiredFileExists: false, seqs: [2, 3], boundaryUnchanged: true }]);
+  assert.equal(fs.existsSync(path), false);
+  assert.deepEqual(inbox.read().map(r => r.seq), [2, 3]);
 });
 
 test("continuous receive prunes daily during long polling backoff and preserves boundary lines", async t => {

@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { main } from '../../src/cli.js';
 import { saveConfig } from '../../src/config.js';
 import { createHomeState, createCipherFiles } from '../../src/home-state.js';
-import { createInbox, inboxLines } from '../../src/inbox.js';
+import { createInbox, inboxLines, INBOX_PAGE_BUDGET } from '../../src/inbox.js';
 import { acquireHomeLock, atomicPrivateWrite } from '../../src/protected-files.js';
 import { localStatus, readInbox } from '../../src/runtime.js';
 import { saveSecrets } from '../../src/secrets.js';
@@ -107,6 +107,35 @@ test('inbox snapshot tolerates pruning after directory enumeration without takin
   finally { transaction.release(); }
 });
 
+for (const indexed of [false, true]) for (const surface of ['CLI', 'MCP']) {
+  test(`${surface} inbox skips a vanished ${indexed ? 'indexed' : 'cold'} stream at lazy open`, async t => {
+    const home = setup(t), directory = join(home, 'inbox'), path = join(directory, '2026-11-08.jsonl');
+    const next = { ...record, seq: 2, received_at: '2026-11-09T00:00:00.000Z' };
+    createInbox(home).append(next);
+    if (!indexed) fs.rmSync(join(home, '.inbox-index'), { recursive: true });
+    const transaction = acquireHomeLock(home, 'state'), openSync = fs.openSync;
+    let vanished = false, stdout = '', stderr = '';
+    t.mock.method(fs, 'openSync', (name, ...args) => {
+      if (name === path && !vanished) { vanished = true; fs.unlinkSync(path); }
+      return openSync(name, ...args);
+    });
+    try {
+      const request = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'syncky_inbox', arguments: {} } };
+      const code = await main(['--home', home, ...(surface === 'CLI' ? ['inbox', '--json'] : ['mcp'])], {
+        env: {}, fetch: () => assert.fail('read attempted network work'), stdin: Readable.from([JSON.stringify(request) + '\n']),
+        stdout: { write: line => { stdout += line; } }, stderr: { write: line => { stderr += line; } },
+      });
+      assert.equal(vanished, true);
+      assert.equal(code, 0, stderr);
+      const reply = JSON.parse(stdout);
+      if (surface === 'MCP') assert.equal(reply.result.isError, false);
+      const page = surface === 'CLI' ? reply : reply.result.structuredContent;
+      assert.deepEqual(page.records, [{ ...next, cursor: 2 }]);
+      assert.equal(page.next_after_seq, 2); assert.equal(page.has_more, false);
+    } finally { transaction.release(); }
+  });
+}
+
 test('inbox snapshot reads complete records beside an unfinished append', t => {
   const home = setup(t), transaction = acquireHomeLock(home, 'state');
   try {
@@ -130,28 +159,34 @@ for (const command of ['status', 'inbox']) test(`${command} snapshot retries an 
   } finally { transaction.release(); }
 });
 
-test('split inbox reads cannot splice a repaired partial tail into a fabricated record', t => {
+for (const reader of ['lines', 'bounded lines', 'page']) test(`${reader} snapshot cannot splice a repaired legacy tail after two appends`, t => {
   const home = fixture(t), inbox = createInbox(home);
   inbox.append(record);
+  if (reader === 'page') fs.unlinkSync(join(home, '.inbox-cursor.json'));
   const path = join(home, 'inbox', '2026-11-08.jsonl'), inode = fs.statSync(path).ino;
   const before = fs.readFileSync(path);
-  const old = { ...record, seq: 2, cursor: 2, inner: { type: 'future', left: 'old', right: 'old' } };
-  const next = { ...old, inner: { type: 'future', left: 'new', right: 'new' } };
-  const tail = JSON.stringify({ seq: old.seq, cursor: old.cursor, ...old }), split = before.length + tail.indexOf('"right"');
+  const old = { seq: 2, cursor: 2, from: record.from, kind: record.kind, type: record.type, received_at: record.received_at,
+    inner: { type: 'future', left: 'old', pad: 'x'.repeat(130000), right: 'old'.repeat(1000) } };
+  const next = { ...old, inner: { ...old.inner, left: 'new', right: 'new' } };
+  const later = { ...next, seq: 3, inner: { type: 'future', pad: 'y'.repeat(10000) } };
+  const tail = JSON.stringify(old), split = before.length + tail.indexOf('"right"');
   fs.appendFileSync(path, tail.slice(0, -3));
-  const readFileSync = fs.readFileSync;
+  const readSync = fs.readSync;
   let interleaved = false;
-  t.mock.method(fs, 'readFileSync', (fd, ...args) => {
-    if (typeof fd !== 'number' || interleaved || fs.fstatSync(fd).ino !== inode) return readFileSync(fd, ...args);
-    interleaved = true;
-    const prefix = Buffer.alloc(split);
-    assert.equal(fs.readSync(fd, prefix, 0, split, null), split);
-    inbox.append(next);
-    return Buffer.concat([prefix, readFileSync(fd, ...args)]);
+  t.mock.method(fs, 'readSync', (fd, bytes, offset, length, position) => {
+    if (interleaved || fs.fstatSync(fd).ino !== inode) return readSync(fd, bytes, offset, length, position);
+    const n = readSync(fd, bytes, offset, Math.min(length, split - position), position);
+    if (position + n === split) {
+      interleaved = true; inbox.append(next); inbox.append(later);
+      assert.ok(fs.statSync(path).size > before.length + Buffer.byteLength(tail));
+    }
+    return n;
   });
-  assert.deepEqual(inboxLines(home, { snapshot: true }).map(l => l.record), [{ ...record, cursor: 1 }]);
+  const rows = reader === 'page' ? readInbox(home).records
+    : inboxLines(home, { snapshot: true, budget: reader === 'bounded lines' ? { ...INBOX_PAGE_BUDGET } : undefined }).map(l => l.record);
+  assert.deepEqual(rows, reader === 'lines' ? [{ ...record, cursor: 1 }, next, { ...later, cursor: 3 }] : [{ ...record, cursor: 1 }]);
   assert.equal(interleaved, true);
-  assert.deepEqual(inbox.read().map(r => r.inner), [record.inner, next.inner]);
+  assert.ok(JSON.stringify(inbox.read().map(r => r.inner)) === JSON.stringify([record.inner, next.inner, later.inner]));
   assert.notEqual(fs.statSync(path).ino, inode);
 });
 
@@ -159,22 +194,19 @@ test('split inbox reads preserve a complete failed append across replay and anot
   const home = fixture(t), inbox = createInbox(home);
   inbox.append(record);
   const path = join(home, 'inbox', '2026-11-08.jsonl'), inode = fs.statSync(path).ino;
-  const before = fs.readFileSync(path);
   const old = { ...record, seq: 2, cursor: 2, inner: { type: 'future', left: 'old', right: 'old' } };
   const next = { ...old, seq: 3, cursor: 3, inner: { type: 'future', left: 'new', right: 'new' } };
-  const split = before.length + JSON.stringify({ seq: old.seq, cursor: old.cursor, ...old }).indexOf('"right"'), readFileSync = fs.readFileSync;
+  const readSync = fs.readSync;
   let interleaved = false;
-  t.mock.method(fs, 'readFileSync', (fd, ...args) => {
-    if (typeof fd !== 'number' || interleaved || fs.fstatSync(fd).ino !== inode) return readFileSync(fd, ...args);
+  t.mock.method(fs, 'readSync', (fd, ...args) => {
+    const count = readSync(fd, ...args);
+    if (interleaved || fs.fstatSync(fd).ino !== inode) return count;
     interleaved = true;
-    const prefix = Buffer.alloc(split);
     let failed = false;
     const io = new Proxy(fs, { get(target, key) {
       if (key === 'fsyncSync') return appendFd => {
         if (!failed && fs.fstatSync(appendFd).ino === inode) {
-          failed = true;
-          assert.equal(fs.readSync(fd, prefix, 0, split, null), split);
-          throw Object.assign(new Error('fixture disk failure'), { code: 'ENOSPC' });
+          failed = true; throw Object.assign(new Error('fixture disk failure'), { code: 'ENOSPC' });
         }
         return target.fsyncSync(appendFd);
       };
@@ -185,11 +217,12 @@ test('split inbox reads preserve a complete failed append across replay and anot
     assert.deepEqual(inbox.append(old), { inserted: false, seq: 2 });
     assert.throws(() => inbox.append({ ...next, seq: 2 }), { code: 'invalid_state' });
     inbox.append(next);
-    return Buffer.concat([prefix, readFileSync(fd, ...args)]);
+    return count;
   });
-  assert.deepEqual(inboxLines(home, { snapshot: true }).map(l => l.record), [{ ...record, cursor: 1 }, old, next]);
+  assert.deepEqual(inboxLines(home, { snapshot: true }).map(l => l.record), [{ ...record, cursor: 1 }]);
   assert.equal(interleaved, true);
   assert.deepEqual(inbox.read().map(r => r.inner), [record.inner, old.inner, next.inner]);
+  assert.deepEqual(inboxLines(home, { snapshot: true }).map(l => l.record), [{ ...record, cursor: 1 }, old, next]);
   assert.equal(fs.statSync(path).ino, inode);
 });
 
@@ -223,11 +256,11 @@ for (const mode of ['current', 'legacy', 'missing']) test(`inbox pagination defe
   }
   if (mode !== 'current') fs.unlinkSync(join(home, '.inbox-cursor.json'));
   const path = join(home, 'inbox', '2026-11-07.jsonl'), inode = fs.statSync(path).ino;
-  const readFileSync = fs.readFileSync;
-  let interleaved = false, scans = 0;
-  t.mock.method(fs, 'readFileSync', (fd, ...args) => {
-    const bytes = readFileSync(fd, ...args);
-    if (typeof fd === 'number' && !interleaved && fs.fstatSync(fd).ino === inode && ++scans === (mode === 'current' ? 1 : 2)) {
+  const readSync = fs.readSync;
+  let interleaved = false;
+  t.mock.method(fs, 'readSync', (fd, ...args) => {
+    const bytes = readSync(fd, ...args);
+    if (typeof fd === 'number' && !interleaved && fs.fstatSync(fd).ino === inode) {
       interleaved = true;
       inbox.append({ ...record, seq: 0, received_at: '2026-11-07T01:00:00.000Z' });
       inbox.append({ ...record, seq: 3 });

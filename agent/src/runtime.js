@@ -16,6 +16,7 @@ import { retryHomeLock, retryHomeLockSync } from './thin-lock.js';
 import metadata from '../package.json' with { type: 'json' };
 import { maintainPairingAccess, pairingAccessView } from './pairing-access.js';
 import { scopeReleaseView } from './scope-release.js';
+import { deviceName } from './encoding.js';
 
 export const AGENT_VERSION = metadata.version;
 export const INBOX_MAX_BYTES = 1048576;
@@ -36,14 +37,16 @@ export async function readSkill(updater, { diff = false } = {}) {
 }
 
 export function readInbox(home, { member, type, after_seq = -1, since, until, limit = 100 } = {}) {
-  const records = createInbox(home).read({ member, type, afterSeq: after_seq, since, until, limit: limit + 1 }, { snapshot: true });
+  const scanned = createInbox(home).readPage({ member, type, afterSeq: after_seq, since, until, limit: limit + 1 }, { snapshot: true });
+  const records = scanned.records;
   const page = []; let size = 128;
   for (const record of records.slice(0, limit)) {
     const bytes = Buffer.byteLength(JSON.stringify(record)) + 1;
     if (size + bytes > INBOX_MAX_BYTES) break;
     page.push(record); size += bytes;
   }
-  return { records: page, next_after_seq: page.at(-1)?.cursor ?? page.at(-1)?.seq ?? after_seq, has_more: records.length > page.length };
+  return { records: page, next_after_seq: records.length > page.length ? page.at(-1)?.cursor ?? page.at(-1)?.seq ?? after_seq : scanned.next_after_seq,
+    has_more: records.length > page.length || scanned.has_more };
 }
 
 export function localStatus(home, updater, at = Date.now()) {
@@ -52,11 +55,11 @@ export function localStatus(home, updater, at = Date.now()) {
   maintainResponseWaits(state, at);
   const sendLanes = { ...transport.send_lanes };
   if (Number(transport.commands_retry_at) > 0) sendLanes.data = Math.max(sendLanes.data ?? 0, Number(transport.commands_retry_at));
-  const members = Object.values(state.members).map(m => ({ member_id: m.member_id, role: m.role, name: m.name ?? null,
+  const members = Object.values(state.members).map(m => ({ member_id: m.member_id, role: m.role, name: deviceName(m.name ?? m.device_name),
     state: m.state, fingerprint: m.fingerprint ?? null, confirmation_method: m.confirmation_method ?? null,
     code_check: Boolean(m.pair_proof) || m.proof_invalidated === true, pairing_id: m.pairing_id ?? null, scope: m.scope ?? null, unpair_reason: m.unpair_reason ?? null,
     ...(m.scope_release && { scope_release: scopeReleaseView(m, entries) }),
-    ...(state.pairings[m.pairing_id]?.requested_scope && { pairing_access: pairingAccessView(state.pairings[m.pairing_id]) }) }));
+    ...(Object.hasOwn(state.pairings, m.pairing_id) && state.pairings[m.pairing_id]?.requested_scope && { pairing_access: pairingAccessView(state.pairings[m.pairing_id]) }) }));
   const responseWaits = transport.response_waits === undefined ? {} : { response_waits: Object.values(transport.response_waits).map(w =>
     Object.fromEntries(['kind','member_id','state','opened_at','expires_at','completed_at'].filter(k => w[k] !== undefined).map(k => [k, w[k]]))) };
   return { ...state.identity, members, transport: { ...Object.fromEntries(['cursor','acked_seq','pending_ack','last_poll_at','last_ack_at','next_poll_at','poll_interval_s','poll_retry_at','ack_retry_at','heartbeat_day','hub_revoked','hub_deleted','hub_state','hub_state_error','fast_poll','poll_retry_after_until'].filter(k => transport[k] !== undefined).map(k => [k, transport[k]])), ...responseWaits, send_lanes: sendLanes },
@@ -73,7 +76,7 @@ export function localStatus(home, updater, at = Date.now()) {
 export function createRuntime({ home, flags = {}, env = process.env, fetch, sleep, random, now = () => new Date(), logger, onRecord, outboxMaxAttempts, createPoller = createThinPoller, timers = globalThis } = {}) {
   const state = retryHomeLockSync(() => readHomeState(home)), secrets = loadSecrets(home);
   if (state.identity.public_key !== secrets.public_key) throw new LocalStateError('key_mismatch', 'home identity and secrets disagree');
-  const config = loadConfig(home, { env, flags: { relay_url: flags.relay, url_scheme: flags['url-scheme'], poll_interval_s: flags['poll-interval'] } });
+  const config = loadConfig(home, { initialized: true, env, flags: { relay_url: flags.relay, url_scheme: flags['url-scheme'], poll_interval_s: flags['poll-interval'] } });
   const updater = createSkillUpdater({ home, fetch, now: () => now().getTime() });
   let active, activeMessages;
   const latest = () => {

@@ -6,7 +6,7 @@ import { basename, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { build } from "esbuild";
-import { discoverTests } from "./source-suite.js";
+import { discoverTests, UNIT_SYNC_PRELOAD, unitTestEnv } from "./source-suite.js";
 export { discoverTests } from "./source-suite.js";
 
 const AGENT = fileURLToPath(new URL("../../", import.meta.url));
@@ -46,11 +46,11 @@ export async function runBundleSuite() {
     const repeat = await buildAgent({ outdir: join(root, "repeat") });
     const fixture = join(root, "fixture.json");
     writeFileSync(fixture, JSON.stringify({ release, repeat, exports: await sourceModuleExports() }));
-    const args = ["--import", fileURLToPath(new URL("./register-bundle.js", import.meta.url)), "--test", ...files];
+    const args = ["--import", UNIT_SYNC_PRELOAD, "--import", fileURLToPath(new URL("./register-bundle.js", import.meta.url)), "--test", ...files];
     return await new Promise((resolve, reject) => {
       const child = spawn(process.execPath, args, {
         cwd: AGENT,
-        env: { ...process.env, SYNCKY_AGENT_BIN: release.bundlePath, SYNCKY_AGENT_BUNDLE_FIXTURE: fixture },
+        env: { ...unitTestEnv(), SYNCKY_AGENT_BIN: release.bundlePath, SYNCKY_AGENT_BUNDLE_FIXTURE: fixture },
         stdio: "inherit",
       });
       child.on("error", reject);

@@ -4,9 +4,9 @@ import { LocalStateError } from "./config.js";
 import { b64uDecode, isB64u } from "./encoding.js";
 import { EnvelopeError } from "./thin-transport.js";
 import { cipherEntries, createCipherFiles, readHomeState, STATE_FILE, updateHomeState, validateHomeState } from "./home-state.js";
-import { createInbox } from "./inbox.js";
-import { isMemberId, isUuidV7, uuidv7 } from "./ids.js";
-import { createThinPairing } from "./thin-pairing.js";
+import { appendInboxLocked, findInboxSequence, iterateInbox, inboxMetadata, INBOX_SEEN_RETENTION_MS, INBOX_SEEN_CLOCK_SKEW_MS, INBOX_SEEN_MAX_IDS, INBOX_SEEN_PROTECTED_MS, INBOX_SEEN_MAX_RECENT_IDS } from "./inbox.js";
+import { isMemberId, isUuidV7, uuidv7, uuidv7Timestamp } from "./ids.js";
+import { createThinPairing, validateMemberPairing } from "./thin-pairing.js";
 import { retryHomeLock } from "./thin-lock.js";
 import { recordPairingReply } from './pairing-access.js';
 import { settleScopeRelease } from './scope-release.js';
@@ -16,7 +16,7 @@ import metadata from "../package.json" with { type: "json" };
 export const THIN_HELD_LIMITS = Object.freeze({ rows: 2000, bytes: 64 * 1024 * 1024 });
 
 export function createThinInbound({ home, transport, self, relay, fs, now = () => new Date(), heldLimits = THIN_HELD_LIMITS, onRecord, version = metadata.version }) {
-  const options = { fs }, inbox = createInbox(home, options), held = createCipherFiles(home, "held", options), outbox = createCipherFiles(home, "outbox", options), pairing = createThinPairing(home, { fs, now });
+  const options = { fs }, held = createCipherFiles(home, "held", options), outbox = createCipherFiles(home, "outbox", options), pairing = createThinPairing(home, { fs, now });
   const poison = code => ({ status: "poison", code });
   function check({ signal, deadline = Infinity } = {}) {
     signal?.throwIfAborted();
@@ -58,9 +58,128 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
       return { dropped, entries: entries.filter(entry => !removed.has(entry.msg_id)) };
     }, options), context);
   }
-  async function appendRecord(record, innerText, context) {
-    const result = await locked(() => inbox.append(record, { innerText }), context);
-    if (result.inserted) onRecord?.(record);
+  const bindingOf = record => `${record.from}:${record.public_key}`;
+  function trusted(state, record) {
+    const member = state.members[record.from];
+    return member?.public_key === record.public_key && (member.state === "confirmed" || member.state === "joined" && !member.proof_invalidated)
+      && ![true, "1"].includes(state.transport.hub_revoked) && ![true, "1"].includes(state.transport.hub_deleted);
+  }
+  function seenIds(state, record, receivedAt) {
+    const seen = state.transport.inbox_seen ??= {}, at = Math.max(state.transport.inbox_seen_at ?? 0, receivedAt, now().getTime());
+    state.transport.inbox_seen_at = at;
+    const ageFloor = at - INBOX_SEEN_RETENTION_MS - INBOX_SEEN_CLOCK_SKEW_MS;
+    const floors = state.transport.inbox_seen_floor ?? {};
+    const stale = (binding, id) => uuidv7Timestamp(id) <= Math.max(floors[binding] ?? -1, ageFloor);
+    for (const [binding, ids] of Object.entries(seen)) {
+      for (const id of Object.keys(ids)) if (stale(binding, id)) delete ids[id];
+      if (!Object.keys(ids).length) delete seen[binding];
+    }
+    const binding = bindingOf(record), ids = seen[binding] ??= {};
+    return { ids, count: Object.keys(ids).length, stale: stale(binding, record.msg_id) };
+  }
+  function trimSeenIds(state, record) {
+    const binding = bindingOf(record), ids = state.transport.inbox_seen[binding];
+    const keys = Object.keys(ids);
+    if (keys.length <= INBOX_SEEN_MAX_IDS) return;
+    const times = keys.map(uuidv7Timestamp).sort((a, b) => a - b);
+    const floor = Math.min(times[times.length - INBOX_SEEN_MAX_IDS - 1], state.transport.inbox_seen_at - INBOX_SEEN_PROTECTED_MS - 1);
+    if (times[0] > floor) return;
+    (state.transport.inbox_seen_floor ??= {})[binding] = Math.max(state.transport.inbox_seen_floor?.[binding] ?? -1, floor);
+    for (const id of Object.keys(ids)) if (uuidv7Timestamp(id) <= floor) delete ids[id];
+  }
+  function applyRecord(state, record) {
+    const { inner, from, public_key, seq, accepted_at } = record, member = state.members[from];
+    if (member.state === "joined") {
+      if (inner.type !== "pair_proof" || inner.v !== 1 || !isB64u(inner.proof, { length: 32 })) throw new LocalStateError("invalid_state", "inbox sender is unconfirmed");
+      if (!pairing.confirmProofInState(state, from, inner.proof, new Date(accepted_at))) return false;
+    }
+    if (inner.type === "access_reply") recordPairingReply(state, from, public_key, inner);
+    completeResponseWaits(state, from, public_key, inner, accepted_at, record);
+    if (inner.type === "unpair" && inner.v === 1 && ["user", "reset", "replaced", "delete_relay_data"].includes(inner.reason)) {
+      member.unpair_reason ??= inner.reason; maintainResponseWaits(state, accepted_at);
+    }
+    if (inner.type === "sync" && inner.scope && typeof inner.scope === "object") {
+      const valid = side => side === "all" || side === "none" || (Array.isArray(side) && side.length <= 1000 && side.every(v => typeof v === "string" && /^[a-z][a-z0-9_]{0,63}$/.test(v)));
+      if (valid(inner.scope.read) && valid(inner.scope.write)) member.scope = { read: inner.scope.read, write: inner.scope.write, seq };
+    }
+    if (inner.type === "sync" && member.scope_release && !["applied", "failed"].includes(member.scope_release.state)) {
+      settleScopeRelease(member, seq, cipherEntries(home, "outbox", options));
+    }
+    if (inner.type === "sync" && inner.more === false && state.transport.fast_poll?.devices) {
+      state.transport.fast_poll.devices = state.transport.fast_poll.devices.filter(id => id !== from);
+    }
+    return true;
+  }
+  function* tail(state) {
+    if (state.transport.inbox_committed_cursor === undefined) {
+      state.transport.inbox_committed_cursor = Math.max(-1, ...inboxMetadata(home, options).map(({ index }) => index.legacy));
+    }
+    for (const line of iterateInbox(home, { ...options, afterSeq: state.transport.inbox_committed_cursor })) {
+      if (line.record.msg_id !== undefined) yield line;
+    }
+  }
+  function reconcileState(state, emitted, limit = Infinity) {
+    let count = 0;
+    for (const { record, name } of tail(state)) {
+      syncPrivateFile(join(home, "inbox", name), options);
+      if (trusted(state, record)) {
+        const { ids, stale } = seenIds(state, record, record.accepted_at);
+        if (!stale && ids[record.msg_id] === undefined) {
+          if (applyRecord(state, record)) {
+            ids[record.msg_id] = state.transport.inbox_seen_at; trimSeenIds(state, record); emitted.push(record);
+          }
+        }
+      }
+      state.transport.inbox_committed_cursor = record.cursor;
+      if (++count >= limit) break;
+    }
+    return count;
+  }
+  async function reconcile(context) {
+    for (;;) {
+      const emitted = [];
+      const count = await locked(() => {
+        const state = readHomeState(home, options), rows = tail(state);
+        try { if (rows.next().done) return 0; } finally { rows.return(); }
+        return updateHomeState(home, s => reconcileState(s, emitted, 128), options);
+      }, context);
+      for (const record of emitted) onRecord?.(record);
+      if (count < 128) return;
+    }
+  }
+  async function admit(record, innerText, context) {
+    const emitted = [];
+    const result = await mutate(state => {
+      reconcileState(state, emitted);
+      if (!trusted(state, record)) return poison("unknown_sender");
+      findInboxSequence(home, record, options);
+      record = { ...record, accepted_at: now().getTime() };
+      const { ids, count, stale } = seenIds(state, record, record.accepted_at), at = state.transport.inbox_seen_at;
+      if (stale) return poison("expired");
+      if (ids[record.msg_id] !== undefined) {
+        const existing = findInboxSequence(home, record, options);
+        if (existing) syncPrivateFile(join(home, "inbox", existing.name), options);
+        ids[record.msg_id] = Math.max(ids[record.msg_id], at);
+        return { status: "duplicate", type: record.type };
+      }
+      if (count >= INBOX_SEEN_MAX_RECENT_IDS) {
+        trimSeenIds(state, record);
+        if (Object.keys(ids).length >= INBOX_SEEN_MAX_RECENT_IDS) throw new LocalStateError("inbox_seen_limit", "sender replay protection capacity reached");
+      }
+      if (state.members[record.from].state === "joined" && (record.kind !== "control" || record.inner.type !== "pair_proof" || record.inner.v !== 1 || !isB64u(record.inner.proof, { length: 32 }))) return poison("unknown_sender");
+      // A failed proof must invalidate trust without creating an accepted inbox row.
+      if (state.members[record.from].state === "joined" && !pairing.confirmProofInState(state, record.from, record.inner.proof, new Date(record.accepted_at))) return poison("pair_proof_invalid");
+      const appended = appendInboxLocked(home, record, { ...options, innerText }), accepted = appended.record;
+      if (accepted.msg_id !== undefined && accepted.cursor > state.transport.inbox_committed_cursor) {
+        applyRecord(state, accepted); emitted.push(accepted);
+      }
+      ids[record.msg_id] = Math.max(accepted.accepted_at ?? at, at);
+      trimSeenIds(state, record);
+      state.transport.inbox_committed_cursor = Math.max(state.transport.inbox_committed_cursor, accepted.cursor ?? accepted.seq);
+      return { status: "stored", type: record.type };
+    }, context);
+    for (const accepted of emitted) onRecord?.(accepted);
+    return result;
   }
   async function queueConfirmations(context) {
     check(context);
@@ -134,6 +253,7 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
     if (!Array.isArray(listed?.members) || listed.members.some(m => !isMemberId(m?.member_id))) throw new LocalStateError("invalid_response", "invalid member reconciliation");
     const member = listed.members.find(m => m.member_id === id);
     if (message.event === "member_joined" && member?.role === "device" && member.public_key === body.public_key && isB64u(member.public_key, { length: 32 })) {
+      validateMemberPairing(body); validateMemberPairing(member);
       await locked(() => pairing.join({ ...member, pairing_id: member.pairing_id ?? body.pairing_id }, { verified: true }), context);
     }
     if (message.event === "member_revoked" && !member) {
@@ -145,6 +265,7 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
   }
   async function receive(message, { receivedAt = now().toISOString(), releasing = false, signal, deadline } = {}) {
     const context = { signal, deadline }; check(context);
+    await reconcile(context);
     if (!Number.isSafeInteger(message?.seq) || message.seq < 0) return poison("malformed");
     if (message.kind === "system") return (await locked(() => transport.hasMarker(message), context)) ? poison("malformed") : system(message, context);
     const { seq, ...envelope } = message;
@@ -158,12 +279,12 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
         catch (e) { if (!(e instanceof EnvelopeError)) throw e; }
       }
       if (parsed?.inner.type === "pair_proof" && parsed.inner.v === 1 && isB64u(parsed.inner.proof, { length: 32 })) {
-        try { await locked(() => pairing.confirmProof(envelope.from, parsed.inner.proof), context); }
-        catch (e) { if (e.code === "pair_proof_invalid") return poison(e.code); throw e; }
-        await appendRecord({ seq, from: envelope.from, kind: envelope.kind, type: parsed.inner.type, received_at: receivedAt, inner: parsed.inner }, parsed.innerText, context);
-        await releaseHeld({ ...context, beforeSeq: seq });
-        return { status: "stored", type: "pair_proof" };
+        const result = await admit({ seq, msg_id: envelope.msg_id, public_key: member.public_key, from: envelope.from,
+          kind: envelope.kind, type: parsed.inner.type, received_at: receivedAt, inner: parsed.inner }, parsed.innerText, context);
+        if (result.status === "stored") await releaseHeld({ ...context, beforeSeq: seq });
+        return result;
       }
+
       await locked(() => {
         const prior = held.list().find(e => e.msg_id === envelope.msg_id), body = transport.serialize(envelope);
         if (prior && ((prior.body !== body && transport.serialize(JSON.parse(prior.body)) !== body) || prior.seq !== seq || prior.from !== envelope.from)) throw new LocalStateError("invalid_state", "held envelope conflict");
@@ -182,30 +303,14 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
     const { inner, innerText } = parsed;
     const fresh = (await locked(() => readHomeState(home, options), context)).members[envelope.from];
     if (fresh?.state !== "confirmed" || fresh.public_key !== member.public_key) return poison("unknown_sender");
-    await appendRecord({ seq, from: envelope.from, kind: envelope.kind, type: inner.type, received_at: receivedAt, inner }, innerText, context);
-    const waits = (await locked(() => readHomeState(home, options), context)).transport.response_waits;
-    if (inner.type === 'access_reply' || Object.keys(waits ?? {}).length) await mutate(s => {
-      if (inner.type === 'access_reply') recordPairingReply(s, envelope.from, member.public_key, inner);
-      completeResponseWaits(s, envelope.from, member.public_key, inner, now().getTime());
-    }, context);
-    if (inner.type === "unpair" && inner.v === 1 && ["user", "reset", "replaced", "delete_relay_data"].includes(inner.reason)) {
-      await mutate(s => { s.members[envelope.from].unpair_reason ??= inner.reason; maintainResponseWaits(s, now().getTime()); }, context);
-    }
-    if (inner.type === "sync" && inner.scope && typeof inner.scope === "object") {
-      const valid = side => side === "all" || side === "none" || (Array.isArray(side) && side.length <= 1000 && side.every(v => typeof v === "string" && /^[a-z][a-z0-9_]{0,63}$/.test(v)));
-      if (valid(inner.scope.read) && valid(inner.scope.write)) await mutate(s => { s.members[envelope.from].scope = { read: inner.scope.read, write: inner.scope.write, seq }; }, context);
-    }
-    if (inner.type === "sync" && fresh.scope_release && !["applied", "failed"].includes(fresh.scope_release.state)) await mutate(s => {
-      settleScopeRelease(s.members[envelope.from], seq, cipherEntries(home, "outbox", options));
-    }, context);
-    if (inner.type === "sync" && inner.more === false) await mutate(s => {
-      const fast = s.transport.fast_poll;
-      if (fast?.devices) fast.devices = fast.devices.filter(id => id !== envelope.from);
-    }, context);
-    return { status: "stored", type: inner.type, releasing };
+    const result = await admit({ seq, msg_id: envelope.msg_id, public_key: member.public_key, from: envelope.from,
+      kind: envelope.kind, type: inner.type, received_at: receivedAt, inner }, innerText, context);
+    return result.status === "stored" ? { ...result, releasing } : result;
   }
+
   async function releaseHeld({ beforeSeq = Infinity, signal, deadline } = {}) {
     const context = { signal, deadline };
+    await reconcile(context);
     await queueConfirmations(context);
     await queueAgentInfo(context);
     const { entries } = await trimHeld(context);
@@ -225,5 +330,5 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
       await locked(() => held.remove(entry.msg_id), context);
     }
   }
-  return { receive, releaseHeld };
+  return { receive, releaseHeld, reconcile };
 }

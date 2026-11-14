@@ -11,6 +11,7 @@ import { createGenericSender } from '../../src/send.js';
 import { createOutbox } from '../../src/outbox.js';
 import { createThinPoller } from '../../src/thin-poller.js';
 import { createInbox } from '../../src/inbox.js';
+import { readSkill } from '../../src/runtime.js';
 import { readHomeState, updateHomeState } from '../../src/home-state.js';
 import { delivery, now, self, setup } from '../support/thin-transport.js';
 import { diskFailure, fixture } from '../support/thin-home.js';
@@ -61,6 +62,17 @@ function signedFixture(t) {
   const doc = version => ({ ...initial, skill_version: version ?? initial.skill_version + 1, skill: '# Updated\n', whats_new: 'Verified changes' });
   return { home, trust, envelope, doc, feed: version => envelope(encode(doc(version))) };
 }
+async function packageUpdater(home, upgraded) {
+  const outfile = join(home, 'upgraded-package.mjs');
+  await build({ entryPoints: [fileURLToPath(new URL('../../src/skill-update.js', import.meta.url))], outfile,
+    bundle: true, platform: 'node', format: 'esm',
+    banner: { js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" },
+    plugins: [{ name: 'package-bootstrap', setup(builder) {
+      builder.onLoad({ filter: /[/\\]embedded-skill\.js$/ }, () => ({ contents: `export const bootstrapBase64 = ${JSON.stringify(upgraded.toString('base64'))};` }));
+    } }],
+  });
+  return (await import(pathToFileURL(outfile))).createSkillUpdater;
+}
 const check = (worker, state, code) => {
   assert.equal(worker.status().state, state);
   if (code) assert.equal(worker.status().code, code);
@@ -86,15 +98,7 @@ test('a package bootstrap v3 supersedes installed signed v2 without blocking tra
   const old = createSkillUpdater({ ...f, fetch: async () => new Response(f.feed()) });
   old.observeHeartbeat(hint()); assert.equal((await old.tick()).state, 'applied');
   const doc = f.doc(initial.skill_version + 2), upgraded = f.envelope(encode(doc));
-  const outfile = join(home, 'upgraded-package.mjs');
-  await build({ entryPoints: [fileURLToPath(new URL('../../src/skill-update.js', import.meta.url))], outfile,
-    bundle: true, platform: 'node', format: 'esm',
-    banner: { js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" },
-    plugins: [{ name: 'package-bootstrap', setup(builder) {
-      builder.onLoad({ filter: /[/\\]embedded-skill\.js$/ }, () => ({ contents: `export const bootstrapBase64 = ${JSON.stringify(upgraded.toString('base64'))};` }));
-    } }],
-  });
-  const { createSkillUpdater: upgradedUpdater } = await import(pathToFileURL(outfile));
+  const upgradedUpdater = await packageUpdater(home, upgraded);
   const worker = upgradedUpdater({ home });
   assert.equal(worker.status().state, 'bootstrap'); assert.equal(worker.status().code, null);
   assert.equal(worker.status().high_water, doc.skill_version);
@@ -105,6 +109,102 @@ test('a package bootstrap v3 supersedes installed signed v2 without blocking tra
   await createGenericSender({ home, transport, self, now })({ type: 'future', innerText: '{"type":"future"}' });
   await createThinPoller({ home, transport, self, relay, now, outbox: createOutbox({ home, relay, now }) }).once();
   assert.equal(createInbox(home).read().length, 1); assert.deepEqual(acks, [1]); assert.equal(sent.length, 1);
+});
+
+for (const [name, offset] of [
+  ['a same-version package bootstrap text change preserves the installed signed feed', 0],
+  ['an equal-version package bootstrap preserves existing installed-feed precedence', 1],
+]) test(name, async t => {
+  const f = signedFixture(t), payload = Buffer.from(` \n${JSON.stringify(f.doc(), null, 2)}\n`), feed = f.envelope(payload);
+  const old = createSkillUpdater({ ...f, fetch: async () => new Response(feed) });
+  old.observeHeartbeat(hint()); assert.equal((await old.tick()).state, 'applied');
+  const path = join(f.home, 'installed-bundle.json'), before = fs.readFileSync(path);
+  assert.equal(JSON.parse(before).previous, bootstrap.toString('base64'));
+  const upgraded = f.envelope(encode({ ...f.doc(initial.skill_version + offset), skill: '# Replacement bootstrap\n' }));
+  assert.notDeepEqual(upgraded, bootstrap); assert.notDeepEqual(upgraded, feed);
+  const upgradedUpdater = await packageUpdater(f.home, upgraded);
+  let fetches = 0;
+  for (let restart = 0; restart < 2; restart++) {
+    const worker = upgradedUpdater({ home: f.home, trust: f.trust, fetch: async () => { fetches++; assert.fail('offline restore'); } });
+    assert.equal(worker.status().state, 'applied'); assert.equal(worker.status().code, null);
+    assert.equal(worker.status().skill_version, initial.skill_version + 1);
+    assert.equal(worker.status().high_water, initial.skill_version + 1);
+    assert.deepEqual(worker.read().payloadBytes, payload);
+    assert.deepEqual(worker.read().envelopeBytes, feed);
+    assert.equal(worker.read().previous, null);
+    assert.deepEqual(await readSkill(worker, { diff: true }), {
+      skill_version: initial.skill_version + 1, previous_version: null, diff: '--- previous\n+++ current\n+# Updated',
+    });
+    assert.deepEqual(fs.readFileSync(path), before);
+  }
+  assert.equal(fetches, 0);
+});
+
+for (const variant of ['wrong-key-active', 'tampered-active', 'active-high-water-mismatch', 'incompatible-active', 'equal-version-previous', 'newer-previous', 'oversized-state']) test(`${variant} rejects installed state`, t => {
+  const f = signedFixture(t), feed = f.feed();
+  const state = { schema: 1, high_water: initial.skill_version + 1, active: feed.toString('base64'), previous: bootstrap.toString('base64') };
+  if (variant === 'wrong-key-active') state.active = signedFixture(t).feed().toString('base64');
+  if (variant === 'tampered-active') {
+    const envelope = JSON.parse(feed);
+    envelope.payload = Buffer.concat([Buffer.from(envelope.payload, 'base64'), Buffer.from(' ')]).toString('base64');
+    state.active = encode(envelope).toString('base64');
+  }
+  if (variant === 'active-high-water-mismatch') state.high_water++;
+  if (variant === 'incompatible-active') {
+    const doc = f.doc(), table = JSON.parse(doc.messages); table.aad.base = 'unsupported'; doc.messages = JSON.stringify(table);
+    state.active = f.envelope(encode(doc)).toString('base64');
+  }
+  if (variant === 'equal-version-previous') state.previous = state.active;
+  if (variant === 'newer-previous') state.previous = f.feed(initial.skill_version + 2).toString('base64');
+  if (variant === 'oversized-state') state.previous = ' '.repeat(MAX_ENVELOPE_BYTES * 3);
+  const path = join(f.home, 'installed-bundle.json'), before = encode(state);
+  fs.writeFileSync(path, before, { mode: 0o600 });
+  const worker = createSkillUpdater(f);
+  check(worker, 'bootstrap', 'skill_state_invalid');
+  assert.deepEqual(worker.read().envelopeBytes, bootstrap);
+  assert.equal(worker.status().high_water, initial.skill_version);
+  assert.deepEqual(fs.readFileSync(path), before);
+});
+
+for (const previous of [undefined, null, 1, {}, []]) test(`non-string previous (${JSON.stringify(previous)}) rejects installed state`, t => {
+  const f = signedFixture(t), path = join(f.home, 'installed-bundle.json');
+  const before = encode({ schema: 1, high_water: initial.skill_version + 1, active: f.feed().toString('base64'), previous });
+  fs.writeFileSync(path, before, { mode: 0o600 });
+  const worker = createSkillUpdater(f);
+  check(worker, 'bootstrap', 'skill_state_invalid');
+  assert.deepEqual(worker.read().envelopeBytes, bootstrap);
+  assert.deepEqual(fs.readFileSync(path), before);
+});
+
+for (const variant of ['garbage-string', 'noncanonical-base64', 'invalid-envelope', 'oversized-envelope', 'wrong-key', 'incompatible']) test(`unverifiable ${variant} previous preserves the exact active feed and empty-baseline diff`, async t => {
+  const f = signedFixture(t), payload = encode(f.doc()), feed = f.envelope(payload);
+  let previous = 'not base64';
+  if (variant === 'noncanonical-base64') previous = bootstrap.toString('base64') + '\n';
+  if (variant === 'invalid-envelope') previous = Buffer.from('not JSON').toString('base64');
+  if (variant === 'oversized-envelope') previous = Buffer.alloc(MAX_ENVELOPE_BYTES + 1, 0x20).toString('base64');
+  if (variant === 'wrong-key') previous = signedFixture(t).feed(initial.skill_version).toString('base64');
+  if (variant === 'incompatible') {
+    const doc = f.doc(initial.skill_version), table = JSON.parse(doc.messages); table.aad.base = 'unsupported'; doc.messages = JSON.stringify(table);
+    previous = f.envelope(encode(doc)).toString('base64');
+  }
+  const path = join(f.home, 'installed-bundle.json');
+  const before = encode({ schema: 1, high_water: initial.skill_version + 1, active: feed.toString('base64'), previous });
+  assert.ok(before.length <= MAX_ENVELOPE_BYTES * 3);
+  fs.writeFileSync(path, before, { mode: 0o600 });
+  let fetches = 0;
+  for (let restart = 0; restart < 2; restart++) {
+    const worker = createSkillUpdater({ ...f, fetch: async () => { fetches++; assert.fail('offline restore'); } });
+    assert.equal(worker.status().state, 'idle'); assert.equal(worker.status().code, null);
+    assert.equal(worker.status().high_water, initial.skill_version + 1);
+    assert.deepEqual(worker.read().payloadBytes, payload);
+    assert.deepEqual(worker.read().envelopeBytes, feed);
+    assert.equal(worker.read().previous, null);
+    assert.deepEqual(await readSkill(worker, { diff: true }), {
+      skill_version: initial.skill_version + 1, previous_version: null, diff: '--- previous\n+++ current\n+# Updated',
+    });
+    assert.deepEqual(fs.readFileSync(path), before);
+  }
+  assert.equal(fetches, 0);
 });
 
 test('exact bundle, high-water and previous bytes activate together and survive restart', async t => {
@@ -333,6 +433,12 @@ for (const kind of ['redirect', 'redirected', 'oversize-header', 'oversize-strea
   if (kind === 'oversize-stream' || kind === 'timeout-body') assert.equal(cancelled, true);
 });
 
+test('an unsupported package bootstrap answers status and refuses to hand out its document', async t => {
+  const f = signedFixture(t), doc = { ...f.doc(), schemas: { 'inner-bad.schema.json': '{"type":"unknown"}' } };
+  const worker = (await packageUpdater(f.home, f.envelope(encode(doc))))({ home: f.home });
+  assert.equal(worker.status().skill_version, doc.skill_version);
+  for (let i = 0; i < 2; i++) assert.throws(() => worker.read(), { code: 'protocol_incompatible' });
+});
 for (const change of [doc => { const t = JSON.parse(doc.messages); t.aad.base = 'unsupported'; doc.messages = JSON.stringify(t); },
   doc => { doc.protocol.protocol_version = 2; const t = JSON.parse(doc.messages); t.protocol_version = 2; doc.messages = JSON.stringify(t); },
   doc => { doc.schemas = { 'inner-bad.schema.json': '{"type":"unknown"}' }; },

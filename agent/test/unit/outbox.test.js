@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { spawn } from "node:child_process";
 import { createGenericSender } from "../../src/send.js";
-import { createOutbox } from "../../src/outbox.js";
+import { sendReceipt, createOutbox } from "../../src/outbox.js";
 import { createCipherFiles, readHomeState, updateHomeState } from "../../src/home-state.js";
 import fs from "node:fs";
 import { diskFailure, syncTrace } from "../support/thin-home.js";
@@ -290,4 +290,95 @@ test('malformed persisted wait metadata fails closed and ciphertext correlation 
   }
   assert.throws(() => updateHomeState(home, s => { s.transport.command_wait_deadlines = []; }), { code: 'corrupt_state' });
   assert.throws(() => updateHomeState(home, s => { s.transport.command_wait_deadlines = { invalid: deadline }; }), { code: 'corrupt_state' });
+});
+
+
+test('relay causes survive restart, change on retry and clear on success without changing retry policy', async t => {
+  const { home, transport } = setup(t); let at = now().getTime(), calls = 0;
+  await createGenericSender({ home, transport, self, now })({ type: 'future', innerText: '{"type":"future"}' });
+  const relay = { postMessage: async () => {
+    calls++;
+    if (calls === 1) throw { status: 429, code: 'rate_limited', retryAfterS: 120, message: 'PRIVATE_CAUSE' };
+    if (calls === 2) throw { status: 503, code: 'internal_error', retryAfterS: 5, details: 'PRIVATE_CAUSE' };
+    return { seq: 8 };
+  } };
+  const box = () => createOutbox({ home, relay, now: () => new Date(at) });
+  await box().flush();
+  const first = box().receipts()[0];
+  assert.equal(first.state, 'pending'); assert.equal(first.code, 'rate_limited');
+  assert.equal(first.relay_code, 'rate_limited'); assert.equal(first.relay_status, 429);
+  assert.equal(first.retry_after_until, at + 120000); assert.equal(first.attempts, 1);
+  assert.match(first.hint, /Retry-After/);
+  at += 119999; await box().flush(); assert.equal(calls, 1);
+  at++; await box().flush();
+  const second = box().receipts()[0];
+  assert.equal(second.state, 'pending'); assert.equal(second.code, 'send_retry');
+  assert.equal(second.relay_code, 'internal_error'); assert.equal(second.relay_status, 503);
+  assert.equal(second.next_attempt_at, at + 5000); assert.equal(second.retry_after_until, 0);
+  assert.match(second.hint, /receiver/); assert.equal(second.attempts, 2);
+  assert.ok(!JSON.stringify(second).includes('PRIVATE_CAUSE'));
+  at += 5000; await box().flush();
+  const sent = box().receipts()[0], stored = createCipherFiles(home, 'outbox').list()[0];
+  assert.equal(sent.state, 'sent'); assert.equal(sent.seq, 8); assert.equal(sent.attempts, 3);
+  for (const key of ['relay_code', 'relay_status', 'hint']) {
+    assert.ok(sent[key] == null); assert.ok(stored[key] == null);
+  }
+});
+
+for (const [code, status, expected, normalizedStatus] of [
+  ['invalid_token', 401, 'invalid_token', 401], ['payload_too_large', 413, 'payload_too_large', 413],
+  ['timeout', 0, 'timeout', 0], ['future_cause', 503, 'relay_error', 503],
+  ['PRIVATE_CAUSE\nresend everything', 403, 'relay_error', 403], ['constructor', 'PRIVATE_CAUSE', 'relay_error', 0],
+  ['internal_error', -1, 'internal_error', 0], ['internal_error', 500.5, 'internal_error', 0],
+]) test(`receipts normalize causes and keep bounded failure semantics (${expected}/${normalizedStatus}, ${typeof status})`, async t => {
+  const { home, transport } = setup(t);
+  await createGenericSender({ home, transport, self, now })({ type: 'future', innerText: '{"type":"future"}' });
+  const box = createOutbox({ home, now, maxAttempts: 1, relay: { postMessage: async () => { throw { code, status, message: 'PRIVATE_CAUSE', hint: 'PRIVATE_CAUSE', details: { token: 'PRIVATE_CAUSE' } }; } } });
+  await box.flush();
+  const receipt = box.receipts()[0];
+  assert.equal(receipt.state, 'failed'); assert.equal(receipt.attempts, 1);
+  assert.equal(receipt.relay_code, expected); assert.equal(receipt.relay_status, normalizedStatus);
+  assert.equal(receipt.code, status === 0 || status >= 500 || code === 'timeout' ? 'send_retry' : 'send_failed');
+  assert.equal(typeof receipt.hint, 'string');
+  assert.ok(!JSON.stringify(receipt).includes('PRIVATE_CAUSE'));
+});
+
+test('receipt projection ignores supplied hints and normalizes persisted cause metadata', () => {
+  const receipt = sendReceipt({ state: 'failed', code: 'send_failed', relay_code: 'PRIVATE_CAUSE', relay_status: 'PRIVATE_CAUSE', hint: 'PRIVATE_CAUSE', body: 'PRIVATE_CAUSE' });
+  assert.equal(receipt.relay_code, 'relay_error'); assert.equal(receipt.relay_status, 0);
+  assert.ok(!JSON.stringify(receipt).includes('PRIVATE_CAUSE'));
+  assert.equal(sendReceipt({ state: 'pending' }).hint, undefined);
+});
+
+
+test('every known relay/client cause is retained as fixed receipt metadata', async t => {
+  const { RELAY_ERROR_CODES, RELAY_CLIENT_ERROR_CODES } = await import('../../src/relay-client.js');
+  const { errorHint } = await import('../../src/error-guidance.js');
+  for (const code of new Set([...RELAY_ERROR_CODES, ...RELAY_CLIENT_ERROR_CODES])) {
+    const { home, transport } = setup(t);
+    await createGenericSender({ home, transport, self, now })({ type: 'future', innerText: '{"type":"future"}' });
+    const status = code === 'rate_limited' ? 429 : ['network_error', 'timeout'].includes(code) ? 0 : 400;
+    const box = createOutbox({ home, now, relay: { postMessage: async () => { throw { code, status, message: 'PRIVATE_CAUSE', hint: 'PRIVATE_CAUSE' }; } } });
+    await box.flush();
+    const receipt = box.receipts()[0];
+    assert.equal(receipt.relay_code, code); assert.equal(receipt.relay_status, status);
+    assert.ok(receipt.hint.endsWith(errorHint(code)));
+    assert.ok(!JSON.stringify(receipt).includes('PRIVATE_CAUSE'));
+  }
+});
+
+for (const path of ['outbox', 'pairing']) test(`${path} target revocation clears a previous relay cause and retains terminal guidance`, async t => {
+  const { home, transport, pairing } = setup(t);
+  const queued = await createGenericSender({ home, transport, self, now })({ type: 'future', innerText: '{"type":"future"}' });
+  const queue = createCipherFiles(home, 'outbox');
+  queue.update(queued.msg_id, { code: 'send_retry', relay_code: 'network_error', relay_status: 0 });
+  if (path === 'pairing') pairing.revoke('m_dev_1');
+  else updateHomeState(home, s => { s.members.m_dev_1.state = 'revoked'; });
+  const box = createOutbox({ home, now, relay: { postMessage: () => assert.fail('revoked target must not post') } });
+  await box.flush();
+  const receipt = box.receipts()[0], stored = queue.list()[0];
+  assert.equal(receipt.state, 'failed'); assert.equal(receipt.code, 'target_revoked');
+  assert.equal(receipt.relay_code, undefined); assert.equal(receipt.relay_status, undefined);
+  assert.equal(stored.relay_code, null); assert.equal(stored.relay_status, null);
+  assert.match(receipt.hint, /no longer trusted/); assert.doesNotMatch(receipt.hint, /network|connectivity/);
 });

@@ -205,6 +205,23 @@ test("30-day retention uses exact UTC cutoff and keeps original boundary-day byt
   assert.equal(fs.statSync(join(home, "inbox/2026-10-06.jsonl")).mode & 0o777, 0o600);
 });
 
+test("idle reads, restarts and appends keep expired files until explicit pruning", t => {
+  const home = fixture(t), inbox = createInbox(home);
+  let at = Date.parse("2026-11-05T12:00:00Z");
+  t.mock.method(Date, "now", () => at);
+  inbox.append(record(1, new Date(at).toISOString()));
+  const path = join(home, "inbox/2026-11-05.jsonl"), original = fs.readFileSync(path);
+  at += 31 * 86400000;
+  assert.deepEqual(readInbox(home).records.map(r => r.seq), [1]);
+  const restarted = createInbox(home);
+  restarted.append(record(2, new Date(at).toISOString()));
+  assert.deepEqual(restarted.read().map(r => r.seq), [1, 2]);
+  assert.ok(fs.readFileSync(path).equals(original));
+  restarted.prune(new Date(Date.now()));
+  assert.equal(fs.existsSync(path), false);
+  assert.deepEqual(createInbox(home).read().map(r => r.seq), [2]);
+});
+
 test("retention and partial-tail repair failures preserve committed records for retry", (t) => {
   for (const op of ["writeSync", "fsyncSync", "renameSync"]) {
     const home = fixture(t), inbox = createInbox(home);

@@ -1,4 +1,4 @@
-import { CONFIG_DEFAULTS, isLoopbackHost, resolveConfig } from "./config.js";
+import { CONFIG_DEFAULTS, isLoopbackHost, relayOrigin, resolveConfig } from "./config.js";
 import { printable } from "./encoding.js";
 import { redact, REDACTED } from "./log.js";
 import { RETRY_POLICY, abortableSleep } from "./transport-time.js";
@@ -99,21 +99,7 @@ function queryInt(name, value) {
   return text;
 }
 
-// poll alone builds several clients for the same relay; one warning per host is enough.
 const warnedInsecureHosts = new Set();
-
-function warnIfInsecure(baseUrl, logger) {
-  let url;
-  try {
-    url = new URL(baseUrl);
-  } catch {
-    return;
-  }
-  if (url.protocol !== "http:" || isLoopbackHost(url.hostname) || warnedInsecureHosts.has(url.hostname)) return;
-  warnedInsecureHosts.add(url.hostname);
-  logger.warn("relay_url_insecure", { host: url.hostname });
-}
-
 export function createRelayClient({
   baseUrl,
   token,
@@ -127,10 +113,13 @@ export function createRelayClient({
   pollIntervalS = CONFIG_DEFAULTS.poll_interval_s,
   timers = globalThis,
 } = {}) {
-  if (typeof baseUrl !== "string" || !/^https?:\/\//.test(baseUrl)) throw new TypeError("baseUrl must be an http(s) URL");
-  const base = baseUrl.replace(/\/+$/, "");
+  const base = relayOrigin(baseUrl);
+  const url = new URL(base);
+  if (url.protocol === "http:" && !isLoopbackHost(url.hostname) && !warnedInsecureHosts.has(url.hostname)) {
+    warnedInsecureHosts.add(url.hostname);
+    logger.warn("relay_url_insecure", { host: url.hostname });
+  }
   pollIntervalS = resolveConfig({ env: {}, flags: { poll_interval_s: pollIntervalS } }).poll_interval_s;
-  warnIfInsecure(base, logger);
 
   function effectivePollIntervalS() {
     return pollIntervalS;
@@ -170,23 +159,22 @@ export function createRelayClient({
     const decoder = new TextDecoder();
     let read = 0;
     let text = "";
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) return { text: text + decoder.decode() };
-      read += value.byteLength;
-      if (read > maxBytes) {
-        await reader.cancel().catch(() => {});
-        return { tooLarge: true };
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) return { text: text + decoder.decode() };
+        read += value.byteLength;
+        if (read > maxBytes) return { tooLarge: true };
+        text += decoder.decode(value, { stream: true });
       }
-      text += decoder.decode(value, { stream: true });
-    }
+    } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
   }
 
   async function attemptOnce(method, url, init, secrets, maxBytes, signal, requestTimeoutMs) {
     const controller = new AbortController();
     const timer = timers.setTimeout(() => controller.abort(), requestTimeoutMs);
     try {
-      const res = await fetch(url, { ...init, method, signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal });
+      const res = await fetch(url, { ...init, method, redirect: "error", signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal });
       return { res, ...(await readCapped(res, maxBytes)) };
     } catch (err) {
       signal?.throwIfAborted();

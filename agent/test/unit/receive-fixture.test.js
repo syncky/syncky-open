@@ -21,6 +21,45 @@ function homeFixture(t) {
   return fixture;
 }
 
+test('opt-in fixture cadence polls sooner while preserving Retry-After and production floors', async t => {
+  const { home } = homeFixture(t);
+  let at = now().getTime(), gets = 0, limited = false;
+  const options = { home, agentBin, env: {}, now: () => new Date(at), pollIntervalMs: 100, fetch: async url => {
+    if (new URL(url).pathname === '/v1/messages') {
+      gets++;
+      if (limited) { limited = false; return Response.json({ error: 'rate_limited' }, { status: 429, headers: { 'retry-after': '7' } }); }
+      return Response.json({ messages: [], next_after: 0 });
+    }
+    return new Response(null, { status: 204 });
+  } };
+  const runtime = await createFixtureRuntime(options);
+  await runtime.poller.once();
+  assert.equal(readHomeState(home).transport.next_poll_at, at + 100);
+  at += 99;
+  assert.deepEqual(await runtime.poller.once(), { deferred: true, reason: 'poll_floor', next_poll_at: at + 1 });
+  assert.equal(gets, 1);
+  at++; await runtime.poller.once(); assert.equal(gets, 2);
+  at += 100; limited = true;
+  await assert.rejects(runtime.poller.once(), { status: 429 });
+  const retry = at + 7000;
+  at = retry - 1;
+  const restarted = await createFixtureRuntime(options);
+  assert.deepEqual(await restarted.poller.once(), { deferred: true, reason: 'retry_after', next_poll_at: retry });
+  assert.equal(gets, 3);
+  at++; await restarted.poller.once(); assert.equal(gets, 4);
+  const last = at;
+  at += 100;
+  const production = createRuntime({ ...options, flags: { 'poll-interval': '300' } });
+  assert.deepEqual(await production.poller.once(), { deferred: true, reason: 'poll_floor', next_poll_at: last + 300000 });
+  assert.equal(gets, 4);
+});
+
+test('fixture cadence rejects invalid intervals', async () => {
+  for (const pollIntervalMs of [0, -1, 1001, 1.5, NaN, Infinity, '100', null]) {
+    await assert.rejects(createFixtureRuntime({ pollIntervalMs }), /invalid fixture poll interval/);
+  }
+});
+
 test('verified join scheduling observes short plan transitions and post-sync traffic without bypassing Retry-After or the later floor', async t => {
   const { home, transport } = homeFixture(t);
   let at = now().getTime(), hub = 'unpaid', gets = 0, limited = false;

@@ -60,3 +60,9 @@ it("documents the runtime's scope omission and full-agent fallback", () => {
   assert.match(readme, /old-parser behavior, not scope validation/);
   assert.doesNotMatch(source, /requested_scope|request_ref/);
 });
+
+it('retains every walkthrough anchor and documents streaming response caps', () => {
+  for (const anchor of ['// E1:', '// E2 + E3:', '// E9:', '// E11 + E12:', '// E10:']) assert.ok(source.includes(anchor), anchor);
+  const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
+  for (const text of ['1 MiB', '9 MiB', 'UTF-8 bytes', 'Content-Length', 'redirects', 'HTTP 204']) assert.ok(readme.includes(text), text);
+});

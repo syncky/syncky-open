@@ -14,11 +14,11 @@ export const responseWaitKey = w => JSON.stringify([w.kind, w.member_id, w.publi
 
 export function validResponseCorrelation(w) {
   if (!object(w) || !['access', 'diagnostics', 'command'].includes(w.kind) || !isMemberId(w.member_id) || !w.member_id.startsWith('m_dev_')
-    || !isB64u(w.public_key, { length: 32 }) || !time(w.opened_at)) return false;
+    || !isB64u(w.public_key, { length: 32 }) || !time(w.opened_at) || (w.inbox_after !== undefined && (!Number.isSafeInteger(w.inbox_after) || w.inbox_after < -1))) return false;
   if (w.kind === 'command') return commandId(w.command_id) && version(w.version) && w.expires_at === null
-    && Object.keys(w).every(k => ['kind', 'member_id', 'public_key', 'opened_at', 'expires_at', 'command_id', 'version'].includes(k));
+    && Object.keys(w).every(k => ['kind', 'member_id', 'public_key', 'opened_at', 'expires_at', 'inbox_after', 'command_id', 'version'].includes(k));
   return isRequestRef(w.request_ref) && time(w.expires_at) && (w.kind !== 'access' || (names(w.read) && names(w.write)))
-    && Object.keys(w).every(k => ['kind', 'member_id', 'public_key', 'opened_at', 'expires_at', 'request_ref', ...(w.kind === 'access' ? ['read', 'write'] : [])].includes(k));
+    && Object.keys(w).every(k => ['kind', 'member_id', 'public_key', 'opened_at', 'expires_at', 'inbox_after', 'request_ref', ...(w.kind === 'access' ? ['read', 'write'] : [])].includes(k));
 }
 
 export function validResponseWaits(waits) {
@@ -112,12 +112,14 @@ function valid(type, inner) {
   return validators[type](inner);
 }
 
-export function completeResponseWaits(state, memberId, publicKey, inner, at) {
+export function completeResponseWaits(state, memberId, publicKey, inner, at, record) {
   if (state.members[memberId]?.state !== 'confirmed' || state.members[memberId].public_key !== publicKey || inner.v !== 1) return;
   const waits = Object.values(state.transport.response_waits ?? {});
   const accessReply = inner.type === 'access_reply' && valid(inner.type, inner);
   for (const w of waits) {
     if (w.kind === 'pairing' || w.member_id !== memberId || w.public_key !== publicKey || w.state !== 'sent' || w.completed_at !== undefined) continue;
+    if (record && (record.public_key !== undefined && record.public_key !== publicKey
+      || (w.inbox_after !== undefined ? (record.cursor ?? record.seq) <= w.inbox_after : (record.accepted_at ?? Date.parse(record.received_at)) < w.opened_at))) continue;
     let matched = false;
     if (w.kind === 'access' && accessReply) {
       if (inner.outcome === 'merged' && inner.request_ref === w.request_ref) {

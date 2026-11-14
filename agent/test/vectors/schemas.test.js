@@ -17,6 +17,7 @@ const FILE_DEFS = {
   "test-vectors/envelope-shape.json": ["test-vectors.schema.json", "envelope_shape_file"],
   "test-vectors/inner-messages.json": ["test-vectors.schema.json", "inner_messages_file"],
   "test-vectors/series-parts.json": ["test-vectors.schema.json", "series_parts_file"],
+  "test-vectors/scope-filter.json": ["test-vectors.schema.json", "scope_filter_file"],
   "test-vectors/fingerprints.json": ["test-vectors.schema.json", "fingerprints_file"],
   "test-vectors/pair-uris.json": ["test-vectors.schema.json", "pair_uris_file"],
   "test-vectors/pair-codes.json": ["test-vectors.schema.json", "pair_codes_file"],

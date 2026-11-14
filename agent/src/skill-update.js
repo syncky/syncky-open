@@ -45,7 +45,12 @@ function capabilities(document) {
 }
 
 const bootstrap = { payloadBytes: bootstrapPayload, document: validateSkillPayload(bootstrapPayload), envelopeBytes: bootstrapBytes };
-capabilities(bootstrap.document);
+let bootstrapChecked = false;
+function requireBootstrapCapabilities() {
+  if (bootstrapChecked) return;
+  capabilities(bootstrap.document);
+  bootstrapChecked = true;
+}
 
 export function createSkillUpdater({ home, trust = productionSkillTrust, fetch = globalThis.fetch, now = Date.now, timeoutMs = 15000, fs: io = fs, maxAttempts = 5 } = {}) {
   const options = { fs: io }, bundlePath = join(home, 'installed-bundle.json'), statusPath = join(home, 'skill-update.json');
@@ -80,8 +85,11 @@ export function createSkillUpdater({ home, trust = productionSkillTrust, fetch =
         if (bytes.toString('base64') !== source || bytes.length > MAX_ENVELOPE_BYTES) throw new Error();
         return verified(bytes);
       };
-      const active = decode(state.active), previous = decode(state.previous);
-      if (active.document.skill_version !== state.high_water || previous.document.skill_version >= state.high_water) throw new Error();
+      const active = decode(state.active);
+      if (active.document.skill_version !== state.high_water) throw new Error();
+      let previous = null;
+      try { previous = decode(state.previous); } catch {}
+      if (previous && previous.document.skill_version >= state.high_water) throw new Error();
       installedBundle = { ...active, high_water: state.high_water, previous }; installedBytes = bytes;
       return installedBundle;
     } catch (error) {
@@ -210,6 +218,7 @@ export function createSkillUpdater({ home, trust = productionSkillTrust, fetch =
   return {
     observeHeartbeat, status,
     read() {
+      requireBootstrapCapabilities();
       const current = installed();
       const copy = value => value && { document: structuredClone(value.document), payloadBytes: Buffer.from(value.payloadBytes), envelopeBytes: Buffer.from(value.envelopeBytes) };
       return { ...copy(current), previous: copy(current.previous) };

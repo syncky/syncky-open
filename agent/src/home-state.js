@@ -4,7 +4,7 @@ import { LocalStateError } from "./config.js";
 import { isHubId, isMemberId, isPairingId, isUuidV7 } from "./ids.js";
 import { isB64u } from "./encoding.js";
 import { atomicPrivateWrite, parsePrivateJson, privateDirectory, privateStat, readPrivateFile, removePrivateFile, syncDirectory, syncPrivateFile, withHomeLock } from "./protected-files.js";
-import { rewriteInbox, inboxLines } from "./inbox.js";
+import { rewriteInbox, iterateInbox, inboxMetadata, inboxCursor, validInboxReplay } from "./inbox.js";
 import { validPairingAccess } from './pairing-access.js';
 import { validScopeRelease } from './scope-release.js';
 import { validResponseCorrelation, validResponseWaits, validCommandWaitDeadlines, maintainResponseWaits } from "./response-waits.js";
@@ -27,12 +27,13 @@ export function validateHomeState(state) {
     || !isMemberId(state.identity.member_id) || !state.identity.member_id.startsWith("m_agent_")
     || !isB64u(state.identity.public_key, { length: 32 }) || !object(state.members) || !object(state.pairings) || !object(state.transport)) throw corrupt();
   if (Object.keys(state.identity).some(k => !["hub_id", "member_id", "public_key"].includes(k))) throw corrupt();
-  const self = state.members[state.identity.member_id];
+  const self = Object.hasOwn(state.members, state.identity.member_id) ? state.members[state.identity.member_id] : null;
   if (!self || self.state !== "self" || self.public_key !== state.identity.public_key || self.role !== "agent") throw corrupt();
   for (const [id, member] of Object.entries(state.members)) {
     if (!isMemberId(id) || !object(member) || member.member_id !== id || !isB64u(member.public_key, { length: 32 })
       || !["self", "joined", "confirmed", "rejected", "revoked"].includes(member.state)
       || !["device", "agent"].includes(member.role) || (member.state === "self" && id !== state.identity.member_id)
+      || (member.pairing_id != null && !isPairingId(member.pairing_id))
       || (member.pair_proof != null && !isB64u(member.pair_proof, { length: 32 }))) throw corrupt();
     if (!validScopeRelease(member.scope_release)) throw corrupt();
     if (member.confirmation != null && (!object(member.confirmation) || !isUuidV7(member.confirmation.msg_id)
@@ -54,6 +55,7 @@ export function validateHomeState(state) {
     const value = state.transport.poll_progress?.[key];
     if (value != null && (!Number.isSafeInteger(value) || value < 0)) throw corrupt();
   }
+  if (!validInboxReplay(state.transport)) throw corrupt();
   if (!validResponseWaits(state.transport.response_waits) || !validCommandWaitDeadlines(state.transport.command_wait_deadlines)) throw corrupt();
   for (const w of Object.values(state.transport.response_waits ?? {})) {
     if (w.kind === 'pairing') {
@@ -152,15 +154,25 @@ export function createCipherFiles(home, area, { fs = nodeFs } = {}) {
         validateCipher(entry, area); privateDirectory(join(home, area), options);
         const path = filename(entry.msg_id), prior = readPrivateFile(path, { fs, optional: true });
         if (prior) {
-          if (JSON.stringify(validateCipher(parsePrivateJson(prior), area)) !== JSON.stringify(entry)) throw new LocalStateError("invalid_state", "ciphertext id already exists");
+          const saved = validateCipher(parsePrivateJson(prior), area);
+          if (area === "outbox" && entry.response_waits?.length) entry = { ...entry, response_waits: entry.response_waits.map((w, i) => {
+            const cursor = saved.response_waits?.[i]?.inbox_after;
+            return { ...w, ...(cursor !== undefined && { inbox_after: w.inbox_after ?? cursor }) };
+          }) };
+          if (JSON.stringify(saved) !== JSON.stringify(entry)) throw new LocalStateError("invalid_state", "ciphertext id already exists");
           syncPrivateFile(path, options);
           return false;
+        }
+        if (area === "outbox" && entry.state !== "sent" && entry.response_waits?.length) {
+          let cursor = inboxCursor(home, options);
+          if (cursor === -1) for (const { index } of inboxMetadata(home, options)) cursor = Math.max(cursor, index.blocks.at(-1)?.last ?? -1);
+          entry = { ...entry, response_waits: entry.response_waits.map(w => ({ ...w, inbox_after: w.inbox_after ?? cursor })) };
         }
         atomicPrivateWrite(path, JSON.stringify(entry) + "\n", options); return true;
       }, options);
     },
     update(id, patch, { when = () => true } = {}) {
-      const allowed = ["attempts", "failures", "next_attempt_at", "retry_after_until", "state", "code", "seq", "sent_at", "lease_owner", "lease_until", ...(area === "held" ? ["legacy_state"] : [])];
+      const allowed = ["attempts", "failures", "next_attempt_at", "retry_after_until", "state", "code", "relay_code", "relay_status", "seq", "sent_at", "lease_owner", "lease_until", ...(area === "held" ? ["legacy_state"] : [])];
       if (!object(patch) || Object.keys(patch).some(k => !allowed.includes(k))) throw new LocalStateError("invalid_input", "sealed ciphertext is immutable");
       if (Object.hasOwn(patch, "legacy_state") && patch.legacy_state !== "held") throw new LocalStateError("invalid_input", "invalid held transition");
       return withHomeLock(home, () => {
@@ -180,9 +192,11 @@ export function forgetThinMember(home, memberId, { yes = false, fs = nodeFs } = 
     const state = readHomeState(home, { fs }), member = state.members[memberId];
     if (!member || member.role !== "device") throw new LocalStateError("unknown_member", "unknown phone member");
     if (!["revoked", "rejected"].includes(member.state)) throw new LocalStateError("invalid_transition", "phone must have left the hub or been rejected; for a confirmed phone, run revoke <member_id>");
-    const lines = inboxLines(home, { fs }), held = cipherEntries(home, "held", { fs }), outbox = cipherEntries(home, "outbox", { fs });
+    const held = cipherEntries(home, "held", { fs }), outbox = cipherEntries(home, "outbox", { fs });
     const belongs = e => e.from === memberId || e.to?.includes(memberId);
-    const counts = { inbox: lines.filter(l => l.record.from === memberId).length, held: held.filter(belongs).length, outbox: outbox.filter(belongs).length };
+    let inbox = 0;
+    for (const { record } of iterateInbox(home, { fs })) if (record.from === memberId) inbox++;
+    const counts = { inbox, held: held.filter(belongs).length, outbox: outbox.filter(belongs).length };
     if (!yes) return counts;
     member.state = "revoked"; member.pair_code = null; member.pair_proof = null;
     maintainResponseWaits(state, Date.now());

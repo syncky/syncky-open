@@ -1,9 +1,11 @@
+import { ERROR_GUIDANCE } from '../../src/error-guidance.js';
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
-import { commandNames } from '../../src/cli.js';
+import { commandNames, parseArgs } from '../../src/cli.js';
+import { resolveConfig } from '../../src/config.js';
 import { TOOLS } from '../../src/mcp.js';
 import { loadJson, loadVectors } from '../../src/protocol-files.js';
 import { createLocalValidator } from '../../src/send.js';
@@ -17,12 +19,49 @@ const reference = docs['docs/REFERENCE.md'];
 const validate = createLocalValidator(loadSchemas());
 const mentions = code => reference.includes('`' + code + '`');
 
+test('skill trust guidance explains an unverifiable previous bundle without discarding active instructions', () => {
+  assert.match(reference, /installed `previous` bundle cannot be verified, it is omitted while the verified active bundle and high-water mark stay intact/);
+  assert.match(reference, /`syncky skill --diff` then reports `previous_version: null` and shows the whole current skill as additions/);
+});
+
+test('error hint guidance names the guarded forget and reject failures in its own paragraph', () => {
+  assert.match(reference, /\n\nOptional `hint` metadata provides fixed guidance for `forget` \(`invalid_transition` on a joined or confirmed phone\) and `reject` \(a relay failure after local rejection\)\.\n\n/);
+});
+
+test('pairing setup preserves local rejection and directs relay recovery through revoke', () => {
+  const pairing = docs['SETUP.md'].split('## 6. Security rules')[0];
+  assert.match(pairing, /If the relay call fails, local rejection remains; finish relay revocation with `syncky revoke <member_id>` after the relay is reachable or the token is fixed\./);
+  assert.match(pairing, /After `invalid_token`, stop and tell the owner\./);
+});
+
+test('no-scope setup selects and authorizes Health data before first sync while scoped pairing sends scope', () => {
+  for (const name of ['README.md', 'SETUP.md', 'AGENTS.md', 'skills/syncky/SKILL.md']) {
+    const text = readFileSync(resolve(root, name), 'utf8');
+    const sequence = text.split('\n').find(line => line.startsWith('For no-scope pairing,'));
+    assert.ok(sequence, name);
+    assert.ok(/\*\*Choose Health data\*\*, select the categories or individual types to share, tap \*\*Save\*\*, complete Health authorization[^.]*then tap \*\*Sync now\*\*/.test(sequence), name);
+    assert.ok(sequence.includes('Nothing syncs or applies while the phone is locked, because iOS locks the Health data.'), name);
+    assert.ok(sequence.includes('Scoped pairing sends its initial scope without this manual step.'), name);
+    assert.ok(text.includes('The phone sends this scope promptly without sample collection or a manual initial Sync.'), name);
+    assert.doesNotMatch(sequence, /older.app|fallback/i, name);
+  }
+});
+
+test('retention guidance makes receive-time pruning and idle history explicit without relaxing forget approval', () => {
+  for (const name of ['README.md', 'SETUP.md', 'AGENTS.md', 'skills/syncky/SKILL.md']) {
+    const text = readFileSync(resolve(root, name), 'utf8');
+    assert.ok(text.includes('Receive prunes thin inbox records older than 30 days from local receipt during `receive --once`, at startup, and daily while receiving.'), name);
+    assert.ok(text.includes('An idle home retains older files until a receiving cycle.'), name);
+    assert.ok(/(?:only explicit owner approval authorizes `forget|[Oo]nly explicit owner-approved `forget|Explicit owner-approved `forget|never run forget without approval)/.test(text), name);
+  }
+});
+
 test('published access protocol prose matches normalization, TTL and invalid reply rules', () => {
   const text = readFileSync(resolve(root, '../protocol/README.md'), 'utf8').split('## Health access controls\n')[1];
   const schema = JSON.parse(readFileSync(resolve(root, '../protocol/schemas/inner-system.schema.json'), 'utf8'));
   assert.ok(text);
   assert.ok(text.includes('`0 < expires_at - created_at <= 24h`'));
-  assert.match(text, /For compatibility with phones 0\.1\.1\/0\.1\.2, send sorted, unique lists and use exactly 24 h/);
+  assert.match(text, /finite positive TTL up to 24 hours.*`0 < expires_at - created_at <= 24h`/);
   assert.match(text, /phone sorts and deduplicates each array/);
   assert.doesNotMatch(text, /exactly creation plus 24 hours|individually sorted\/unique|exact 24-hour expiry/);
   assert.match(text, /optional `detail` only for `invalid`/);
@@ -31,12 +70,12 @@ test('published access protocol prose matches normalization, TTL and invalid rep
   assert.doesNotMatch(text, /C§|docs\/(?:planning|plans|context)|(?:core|App|relay|e2e|scripts|docs-worker)\//);
 });
 
-test('agent access guidance requires the TTL accepted by phones 0.1.1 and 0.1.2', () => {
+test('agent access guidance accepts supported TTLs and preserves normalization', () => {
   for (const name of ['AGENTS.md', 'SETUP.md', 'docs/REFERENCE.md', 'skills/syncky/SKILL.md', 'cookbook/README.md']) {
     const text = readFileSync(resolve(root, name), 'utf8');
-    assert.match(text, /use exactly 24 h \(`expires_at - created_at == 24h`\) for compatibility with phones 0\.1\.1\/0\.1\.2/, name);
+    assert.match(text, /finite positive TTL up to 24 h.*`0 < expires_at - created_at <= 24h`/, name);
     assert.match(text, /lists are sorted and deduplicated before sealing/, name);
-    assert.doesNotMatch(text, /0 < expires_at - created_at <= 24h/, name);
+    assert.doesNotMatch(text, /for compatibility with phones|use exactly 24 h/, name);
   }
 });
 
@@ -49,6 +88,20 @@ test('operator limits are identical and describe per-side filtering and merged r
       /Never.*(?:evade|bypass).*wait/, /No local admission\/cooldown policy/]) assert.match(docs[name], pattern, name);
     assert.doesNotMatch(docs[name], /one admission per rolling (?:24 hours|day)/, name);
   }
+});
+
+test('all published copies share decline, pairing-grant and bounded TTL guidance', () => {
+  const decline = 'On `declined_by_user`, stop automatic writes and access requests for that type. A later `access_request` requires renewed explicit owner intent and phone availability after its seven-day decline wait and other per-type waits (`next_available_at` when supplied). Retry a write only after the next authenticated sync shows that type in the effective write scope and the owner has approved the write.';
+  const policy = 'Pairing grants create no request timestamps, admissions or amendments. Pairing declines do create the seven-day decline wait across read and write.';
+  for (const name of ['SETUP.md', 'AGENTS.md', 'docs/REFERENCE.md', 'skills/syncky/SKILL.md', 'cookbook/README.md']) {
+    const text = readFileSync(resolve(root, name), 'utf8');
+    assert.ok(text.includes(decline), name); assert.ok(text.includes(policy), name);
+    assert.ok(text.includes('0 < expires_at - created_at <= 24h'), name);
+    assert.doesNotMatch(text, /for compatibility with phones 0\.1\.[12]|An old app ignores the requested scope|Pairing grants create no[^.]+or decline wait/, name);
+  }
+  assert.ok(docs['README.md'].includes(policy));
+  const protocol = readFileSync(resolve(root, '../protocol/README.md'), 'utf8');
+  assert.match(protocol, /Pairing grants create no requested-at record, admission event or amendment count\. Pairing declines do create the seven-day decline wait across read and write\./);
 });
 
 test('rejected-write reference covers every reason/detail pair in the policy vectors', () => {
@@ -137,12 +190,12 @@ test('operator and cookbook guides reject superseded category expansion wording'
     assert.doesNotMatch(text, /preserves an existing all scope|enables writing for writes, preserves `all`/, name);
   }
 });
-test('operator guides explain partial selection removal and old-phone expiry without local replies', () => {
+test('operator guides explain partial selection removal and expiry without fabricated replies', () => {
   for (const name of ['SETUP.md','docs/REFERENCE.md']) {
     assert.match(docs[name], /Unchecking a category leaves individually allowed types selected/, name);
     assert.match(docs[name], /Remove individually allowed types.*save; iOS permissions stay unchanged/, name);
-    assert.match(docs[name], /phone running an app version older than this feature cannot show the request/, name);
-    assert.match(docs[name], /explain expiry from (?:the )?timestamps (?:rather than|instead of) inventing (?:a reply|local results)/, name);
+    assert.match(docs[name], /phone may be offline or consent pending/, name);
+    assert.match(docs[name], /[Ee]xplain expiry from (?:the )?timestamps (?:rather than|instead of) inventing (?:a reply|local results)/, name);
   }
 });
 
@@ -175,6 +228,7 @@ test('every exported, thrown or result error code in src is documented', async (
     for (const match of text.matchAll(/(?:new \w+Error\(\s*|\bcode:\s*)['"]([a-z][a-z0-9_]*)['"]/g)) codes.add(match[1]);
   }
   assert.ok(codes.size > 50); assert.deepEqual([...codes].filter(c => !mentions(c)), []);
+  assert.deepEqual([...codes].filter(c => !Object.hasOwn(ERROR_GUIDANCE, c)), []);
 });
 test('every error code the minimal agent throws is documented', () => {
   const minimal = readFileSync(resolve(root,'../examples/minimal-agent/agent.mjs'),'utf8');
@@ -249,7 +303,7 @@ test('calories recipe batches schema-valid Vienna daily totals within the stated
   assert.match(text, /same `command_id` with `version` \+ 1/);
   assert.match(text, /The CLI's `--validate` schema requires upper-case `T` and `Z`, with no fraction or exactly three fractional digits \.001–\.999, although the phone accepts offsets\./);
 });
-test('shared operator and recipe guidance keeps time, access recovery and old-app rules', () => {
+test('shared operator and recipe guidance keeps time, access recovery and consent rules', () => {
   for (const name of ['AGENTS.md', 'docs/REFERENCE.md', 'cookbook/README.md']) {
     const text = docs[name];
     for (const pattern of [
@@ -321,7 +375,7 @@ test('cookbook links the direct-server alternative without changing the agent re
   for (const name of ['weight', 'calories', 'workouts']) assert.ok(text.includes('](' + name + '.md)'));
 });
 
-test('pairing and polling guides distinguish outcomes, scope, fallback and bounded waits', () => {
+test('pairing and polling guides distinguish outcomes, scope, owner intent and bounded waits', () => {
   for (const name of ['README.md', 'SETUP.md', 'AGENTS.md', 'docs/REFERENCE.md', 'skills/syncky/SKILL.md', 'cookbook/README.md']) {
     const text = readFileSync(resolve(root, name), 'utf8');
     for (const pattern of [/--read/, /--write/, /request_ref/, /needs_health_settings/, /sync\.scope/, /no_reply/, /15.minute/, /300.second/, /poll_floor/, /retry_after/, /next_poll_at/, /send --type access_request/, /no quota; a type declined at pairing starts the same seven-day wait/]) assert.match(text, pattern, name);
@@ -329,7 +383,14 @@ test('pairing and polling guides distinguish outcomes, scope, fallback and bound
     assert.match(text, /From agent 0\.1\.4, with explicit owner approval for the exact types/, name);
     assert.ok(text.includes('Allow all submits your choices and continues pairing; iOS asks only about listed types it has not decided yet.'), name);
     assert.ok(text.includes('Choices made at pairing have no quota; a type declined at pairing starts the same seven-day wait.'), name);
-    assert.ok(text.includes("An old app ignores the requested scope and pairs as before: the owner's existing Health selection applies and no per-type reply arrives."), name);
+    assert.match(text, /renewed explicit owner intent and phone availability/, name);
+    assert.match(text, /No automatic fallback is sent/, name);
+    assert.doesNotMatch(text, /An old app ignores the requested scope|older-phone compatibility/, name);
+    assert.match(text, /Later explicit `wait` uses the link in `pairing.json`/, name);
+    assert.ok(text.includes('expired or pending-past-grace link returns `pairing_expired`'), name);
+    assert.match(text, /after link or reply expiry.*joined phone returns its fingerprint and still requires owner confirmation/, name);
+    assert.match(text, /Revoked, rejected, forgotten or unpaired bindings are excluded/, name);
+    assert.match(text, /no expired-link lookup; the detached waiter remains bounded/, name);
     assert.ok(text.includes('The link contains credentials and the requested Health type names; anyone who sees its full text can read them.'), name);
     assert.ok(text.includes('Pairing grants stay with this agent and do not change the app-wide Health selection or write allowance.'), name);
     assert.doesNotMatch(text, /opens Health authorization for exactly|pair without a grant|neither scope nor credentials enter an HTTPS query or server request/, name);
@@ -340,4 +401,81 @@ test('reference names the local not_writable refusal of an access request', () =
   const row = reference.split('\n').find(line => line.startsWith('| `schema_invalid` |'));
   for (const text of ['`detail`', '`not_writable`', '`types`', 'Nothing was sent']) assert.ok(row.includes(text), text);
   assert.match(reference, /fails locally with `schema_invalid`, `detail` `not_writable` and the offending `types`, while the same type under `read` passes/);
+});
+
+test('setup and reference pin recovery to the same relay despite a conflicting environment and preserve history and hosted limits', () => {
+  const sections = [];
+  for (const name of ['SETUP.md', 'docs/REFERENCE.md']) {
+    const text = docs[name];
+    const section = text.match(/^### Recover when `invalid_token` arrives before any phone joined\n[\s\S]*?(?=^## )/m)?.[0];
+    assert.ok(section, name); sections.push(section);
+    for (const pattern of [/does not prove why/, /explicit owner intent/, /known service identity or known PID/, /Stop its supervisor/,
+      /Retain the old private home and its history/, /fresh, unused absolute `--home`/, /\*\*same relay\*\*/,
+      /syncky --home '<fresh-absolute-home>' --relay '<same-relay-url>' init --name 'My agent'/,
+      /syncky --home '<fresh-absolute-home>' --relay '<same-relay-url>' pair --no-qr/, /Repoint the chosen receiver and MCP together/,
+      /SYNCKY_AGENT_HOME/, /SYNCKY_RELAY_URL/, /does not inherit old trust or history/, /'<old-absolute-home>' inbox/]) assert.match(section, pattern, name);
+    const commands = [...section.matchAll(/syncky --home '<fresh-absolute-home>'[^`\n]*/g)].map(([example]) => {
+      const argv = example.match(/'[^']*'|\S+/g).slice(1).map(arg => arg.startsWith("'") ? arg.slice(1, -1) : arg);
+      const { command, flags } = parseArgs(argv);
+      const relay = 'https://relay.example';
+      const config = resolveConfig({ flags: { relay_url: flags.relay?.replace('<same-relay-url>', relay) },
+        env: { SYNCKY_RELAY_URL: 'https://conflicting-relay.example' }, file: { relay_url: relay } });
+      assert.equal(flags.home, '<fresh-absolute-home>', `${name}: ${command}`);
+      assert.equal(config.relay_url, relay, `${name}: ${command}`);
+      return command;
+    });
+    assert.deepEqual(commands, ['init', 'pair', 'receive', 'mcp'], name);
+    assert.doesNotMatch(text, /init --force/, name);
+    for (const pattern of [/Hosted defaults:.*10 minutes/, /`expires_at` is authoritative/, /24 hours from registration/,
+      /creating another link does not restart that clock/, /`limits` metadata/, /pairing_link_ttl_s: 600/, /unjoined_hub_ttl_s: 86400/]) assert.match(text, pattern, name);
+  }
+  assert.equal(sections[0], sections[1]);
+});
+
+
+test('all fixed error hints have real reference causes and actions, with receipt semantics documented', () => {
+  assert.ok(Object.keys(ERROR_GUIDANCE).length >= 88);
+  for (const [code, hint] of Object.entries(ERROR_GUIDANCE)) {
+    const row = reference.split('\n').find(line => line.startsWith('| `' + code + '` |'));
+    assert.ok(row, code); assert.ok(row.length > code.length + 45, code);
+    assert.ok(hint.length > 40, code);
+    assert.doesNotMatch(hint, /C§|docs\/(?:planning|plans|context)|(?:scripts|core|App|relay|e2e|docs-worker)\//, code);
+  }
+  assert.ok(!reference.includes('Transport, protected-state or verification failure; inspect metadata and correct the cause before retrying.'));
+  for (const text of ['`relay_code`', '`relay_status`', '`hint`', 'Retry-After', 'queue admission', '`failed` is terminal', 'CLI exit 0', '`isError: false`', '`isError: true`', 'not phone application', 'success clears', 'fixed safe fallback']) assert.ok(reference.includes(text), text);
+});
+
+
+test('inbox replay documentation explains binding, mint-time eviction floor, durable admission and old-row boundaries', () => {
+  for (const name of ['README.md', 'docs/REFERENCE.md', 'AGENTS.md', 'skills/syncky/SKILL.md']) {
+    const text = readFileSync(new URL(`../../${name}`, import.meta.url), 'utf8');
+    for (const fragment of ['`msg_id`', '`public_key`', '31 days plus five minutes of clock skew', 'Relay keeps undelivered messages for at most 7 days', 'owner-approved forget', 'receiver clock regression',
+      '10,000 IDs', 'oldest mint times', 'monotonic floor', 'same state write as admission', 'at or below that floor', 'timestamp ties',
+      'unseen first delivery', 'unACKed', 'uncommitted row', '0.1.4 rows without IDs', 'beyond this age window',
+      'per sender/key binding', 'protected 24 hours plus ten minutes', '90,000', 'before append', 'Other senders in that page', 'inbox_seen_limit']) assert.ok(text.includes(fragment), name);
+    assert.doesNotMatch(text, /10,000 IDs are retained across all sender\/key bindings/, name);
+  }
+});
+
+test('relay origin and inbox budget documentation stays standalone and actionable', async () => {
+  for (const name of ['README.md', 'docs/REFERENCE.md', 'AGENTS.md']) {
+    const text = readFileSync(new URL(`../../${name}`, import.meta.url), 'utf8');
+    for (const fragment of ['HTTPS', 'loopback HTTP', 'config.json', 'canonical', '64 MiB', '10,000', 'inbox_scan_limit']) assert.ok(text.includes(fragment), name + ': ' + fragment);
+  }
+  const { errorHint } = await import('../../src/error-guidance.js');
+  assert.match(errorHint('inbox_scan_limit'), /narrower date range/);
+  const { main } = await import('../../src/cli.js');
+  let output = '';
+  await main(['help', 'init'], { stdout: { write: s => { output += s; } } });
+  assert.ok(output.includes('canonical origin')); assert.ok(output.includes('loopback HTTP'));
+  assert.ok(output.includes('non-loopback HTTP warns once per process and host'));
+  output = '';
+  await main(['help', 'inbox'], { stdout: { write: s => { output += s; } } });
+  assert.ok(output.includes('last scanned cursor')); assert.ok(output.includes('even for an empty page'));
+});
+
+test('access request skill allows a positive TTL at most 24 hours', () => {
+  const text = readFileSync(new URL('../../skills/syncky/SKILL.md', import.meta.url), 'utf8');
+  assert.match(text, /at most 24 hours apart/);
+  assert.doesNotMatch(text, /exactly 24 hours apart/);
 });

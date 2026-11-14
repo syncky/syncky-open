@@ -1,10 +1,11 @@
+import { errorHint } from '../../src/error-guidance.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { AGENT_VERSION, createRuntime } from '../../src/runtime.js';
 import { createPairingService, readPairingFile } from '../../src/pairing.js';
-import { readHomeState, updateHomeState } from '../../src/home-state.js';
+import { readHomeState, updateHomeState, createCipherFiles } from '../../src/home-state.js';
 import { createInbox } from '../../src/inbox.js';
 import { createFakePhone } from '../support/fake-phone.js';
 import { startRelayDouble } from '../support/relay-double.js';
@@ -15,6 +16,135 @@ import { RETRY_POLICY } from '../../src/relay-client.js';
 import { parsePairUri } from '../../src/pair-uri.js';
 import { loadVectors } from '../../src/protocol-files.js';
 import { b64uDecode } from '../../src/encoding.js';
+import { PAIRING_ACCESS_NOTICE } from '../../src/pairing-access.js';
+
+for (const v1 of [false, true]) for (const kind of ['joined', 'joined_scoped', 'bare', 'resolved', 'no_reply']) test(`CLI wait restores expired ${kind} v${v1 ? 1 : 2} binding after restart without a relay link lookup`, async t => {
+  const f = await fixture(t), scoped = ['joined_scoped', 'resolved', 'no_reply'].includes(kind), joined = kind.startsWith('joined');
+  const started = await f.pairing.startPairing({ v1, ...(scoped && { read: ['steps'] }) });
+  const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
+  await f.pairing.refreshPairing(started.pairing_id);
+  assert.ok(readHomeState(f.home).pairings[started.pairing_id].public_key === phone.publicKey);
+  if (!joined) f.pairing.confirmWithFingerprint(phone.memberId, phone.fingerprint());
+  if (kind === 'resolved') updateHomeState(f.home, s => {
+    Object.assign(s.pairings[started.pairing_id].access, { state: 'resolved', decided_at: f.now().toISOString(),
+      outcomes: { read: [{ type: 'steps', outcome: 'declined' }], write: [] } });
+  });
+  f.advance(3600000);
+  let lookups = 0;
+  const result = await runCli(['--home', f.home, 'wait', '--timeout', '10'], { now: f.now, fetch: (url, options) => {
+    if (new URL(url).pathname.startsWith('/v1/pairings/')) { lookups++; throw Error('expired link lookup'); }
+    return fetch(url, options);
+  } });
+  assert.equal(result.code, 0, result.stderr); assert.equal(lookups, 0);
+  const value = JSON.parse(result.stdout);
+  assert.equal(value.member.state, joined ? 'joined' : 'confirmed');
+  assert.equal(value.member.fingerprint, phone.fingerprint());
+  if (scoped && !joined) {
+    assert.equal(value.member.pairing_access.state, kind);
+    assert.equal(value.member.pairing_access.notice, kind === 'no_reply' ? PAIRING_ACCESS_NOTICE : null);
+  }
+  if (!joined) {
+    await phone.fetchCommands();
+    assert.equal(phone.controlReceived.filter(r => r.type === 'confirmed').length, 1);
+  }
+});
+
+test('wait rechecks confirmation after a scoped receive observes revocation', async t => {
+  const f = await fixture(t), started = await f.pairing.startPairing({ v1: true, read: ['steps'] });
+  const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
+  await f.pairing.refreshPairing(started.pairing_id); f.pairing.confirmWithFingerprint(phone.memberId, phone.fingerprint());
+  await phone.revokeSelf();
+  const result = await runCli(['--home', f.home, 'wait', '--timeout', '10'], { now: f.now });
+  assert.equal(result.code, 4); assert.equal(result.stdout, '');
+  assert.equal(JSON.parse(result.stderr.trim().split('\n').at(-1)).error, 'invalid_transition');
+});
+
+test('explicit wait restores legacy bare bindings without a stored key while preserving current membership checks', async t => {
+  const f = await fixture(t), started = await f.pairing.startPairing();
+  const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
+  await f.pairing.refreshPairing(started.pairing_id);
+  f.pairing.confirmWithFingerprint(phone.memberId, phone.fingerprint());
+  updateHomeState(f.home, s => { delete s.pairings[started.pairing_id].public_key; });
+  f.advance(3600000);
+  const result = await runCli(['--home', f.home, 'wait'], { now: f.now });
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).member.state, 'confirmed');
+});
+
+for (const invalid of ['stale_key', 'wrong_pairing', 'missing_member', 'revoked', 'rejected', 'forgotten', 'unpaired', 'unpaired_empty', 'hub_revoked', 'hub_deleted']) test(`wait excludes an expired completed ${invalid} binding without fetching it`, async t => {
+  const f = await fixture(t), started = await f.pairing.startPairing({ v1: true });
+  const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
+  await f.pairing.refreshPairing(started.pairing_id);
+  if (invalid === 'forgotten') {
+    await f.pairing.rejectMember(phone.memberId); f.pairing.forgetMember(phone.memberId, { yes: true });
+  } else updateHomeState(f.home, s => {
+    const member = s.members[phone.memberId], row = s.pairings[started.pairing_id];
+    if (invalid === 'stale_key') row.public_key = s.identity.public_key;
+    if (invalid === 'wrong_pairing') member.pairing_id = null;
+    if (invalid === 'missing_member') delete s.members[phone.memberId];
+    if (['revoked', 'rejected'].includes(invalid)) member.state = invalid;
+    if (invalid === 'unpaired') member.unpair_reason = 'user';
+    if (invalid === 'unpaired_empty') member.unpair_reason = '';
+    if (invalid.startsWith('hub_')) s.transport[invalid] = true;
+  });
+  f.advance(3600000);
+  let fetches = 0;
+  const result = await runCli(['--home', f.home, 'wait'], { now: f.now, fetch: () => { fetches++; throw Error('unexpected relay lookup'); } });
+  assert.equal(result.code, 4); assert.equal(JSON.parse(result.stderr).error, 'pairing_expired'); assert.equal(fetches, 0);
+});
+
+test('wait prefers a newer pending link and never substitutes an older binding after expiry', async t => {
+  const f = await fixture(t), first = await f.pairing.startPairing({ v1: true });
+  const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(first.uri);
+  await f.pairing.refreshPairing(first.pairing_id);
+  f.advance(1000);
+  const second = await f.pairing.startPairing({ v1: true });
+  const other = createFakePhone({ relayUrl: f.relay.url }); await other.pair(second.uri);
+  await f.pairing.refreshPairing(second.pairing_id);
+  updateHomeState(f.home, s => { s.pairings[second.pairing_id].expires_at = new Date(Date.parse(first.expires_at) + 1000).toISOString(); });
+  const pending = await f.pairing.startPairing({ v1: true });
+  assert.equal(f.pairing.currentPairing({ includeCompleted: true }).pairing_id, pending.pairing_id);
+  const waiting = await runCli(['--home', f.home, 'wait', '--timeout', '1'], { now: f.now, sleep: async ms => f.advance(ms) });
+  assert.equal(waiting.code, 4); assert.equal(JSON.parse(waiting.stderr).error, 'timeout');
+  f.advance(3600000);
+  assert.equal(f.pairing.currentPairing({ includeCompleted: true }), null);
+  for (const status of ['pending', 'expired']) {
+    updateHomeState(f.home, s => { s.pairings[pending.pairing_id].status = status; });
+    let fetches = 0;
+    const result = await runCli(['--home', f.home, 'wait'], { now: f.now, fetch: () => { fetches++; throw Error('unexpected expired pairing lookup'); } });
+    assert.equal(result.code, 4); assert.equal(result.stdout, '');
+    assert.equal(JSON.parse(result.stderr).error, 'pairing_expired'); assert.equal(fetches, 0);
+    assert.equal(f.pairing.currentPairing({ includeCompleted: true, graceMs: 60000 }), null);
+  }
+  fs.unlinkSync(join(f.home, 'pairing.json'));
+  assert.equal(f.pairing.currentPairing({ includeCompleted: true }).pairing_id, second.pairing_id);
+  updateHomeState(f.home, s => { s.members[other.memberId].state = 'revoked'; });
+  assert.equal(f.pairing.currentPairing({ includeCompleted: true }).pairing_id, first.pairing_id);
+});
+
+for (const response of ['404', 'expired']) for (const newer of [false, true]) for (const confirmed of [false, true]) test(`late ${response} preserves concurrent ${confirmed ? 'confirmed' : 'joined'} binding and ${newer ? 'resolved reply with newer credentials' : 'awaiting reply'}`, async t => {
+  const f = await fixture(t), started = await f.pairing.startPairing({ read: ['steps'] });
+  const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
+  let next;
+  const service = createPairingService({ home: f.home, now: f.now, relay: { getPairing: async () => {
+    await f.pairing.refreshPairing(started.pairing_id);
+    if (confirmed || newer) f.pairing.confirmWithFingerprint(phone.memberId, phone.fingerprint());
+    if (newer) {
+      updateHomeState(f.home, s => { Object.assign(s.pairings[started.pairing_id].access, { state: 'resolved', decided_at: f.now().toISOString(),
+        outcomes: { read: [{ type: 'steps', outcome: 'allowed' }], write: [] } }); });
+      next = await f.pairing.startPairing();
+    }
+    if (response === '404') throw Object.assign(Error('late missing link'), { status: 404 });
+    return { status: 'expired' };
+  } } });
+  const result = await service.refreshPairing(started.pairing_id);
+  assert.equal(result.status, 'completed'); assert.equal(result.member.state, confirmed || newer ? 'confirmed' : 'joined');
+  const state = readHomeState(f.home);
+  assert.equal(state.pairings[started.pairing_id].status, 'completed');
+  assert.equal(state.pairings[started.pairing_id].access.state, newer ? 'resolved' : 'awaiting');
+  assert.equal(readPairingFile(f.home)?.pairing_id ?? null, next?.pairing_id ?? null);
+  assert.equal(service.currentPairing({ includeCompleted: true }).pairing_id, next?.pairing_id ?? started.pairing_id);
+});
 
 async function fixture(t) {
   const tmp = tempHome(), relay = await startRelayDouble({ invite: 'pair-fixture' });
@@ -177,14 +307,15 @@ test('invalid scoped pair inputs fail before any relay pairing is created and do
   const over = loadVectors('pair-uris').cases.find(c => c.name === 'scope_v1_envelope_3_reply_4097');
   assert.ok(over);
   const tooLarge = new URLSearchParams(new URL(over.uri).search.slice(1) || new URL(over.uri).hash.slice(1));
-  for (const args of [{ read: [] }, { read: [''] }, { read: ['PRIVATE_CANARY'] }, { write: ['date_of_birth'] }, { read: JSON.parse(tooLarge.get('read')), write: JSON.parse(tooLarge.get('write')) }]) {
+  for (const [args, detail] of [[{ read: [] }, 'empty'], [{ read: [''] }, 'unknown_type'], [{ read: ['PRIVATE_CANARY'] }, 'unknown_type'], [{ write: ['date_of_birth'] }, 'not_writable'], [{ read: JSON.parse(tooLarge.get('read')), write: JSON.parse(tooLarge.get('write')) }, 'too_large']]) {
     const before = count();
-    await assert.rejects(f.pairing.startPairing(args), e => e.code === 'invalid_input' && !e.message.includes('PRIVATE_CANARY'));
+    await assert.rejects(f.pairing.startPairing(args), e => e.code === 'invalid_input' && e.detail === detail && !e.message.includes('PRIVATE_CANARY'));
     assert.equal(count(), before); assert.equal(readPairingFile(f.home), null);
   }
   for (const value of ['', 'steps,', ',steps', 'steps,,body_mass', 'PRIVATE_CANARY']) {
     const before = count(), result = await runCli(['--home', f.home, 'pair', '--read', value, '--no-qr']);
     assert.notEqual(result.code, 0); assert.equal(count(), before);
+    if (value === 'PRIVATE_CANARY') assert.equal(JSON.parse(result.stderr).detail, 'unknown_type');
     assert.doesNotMatch(result.stdout + result.stderr, /PRIVATE_CANARY/);
   }
 });
@@ -234,6 +365,129 @@ async function confirmedPhone(f) {
   f.pairing.confirmWithFingerprint(phone.memberId, phone.fingerprint());
   return phone;
 }
+
+for (const state of ['joined', 'confirmed']) test(`CLI forget refuses a ${state} phone with fixed relay-first guidance`, async t => {
+  const f = await fixture(t), started = await f.pairing.startPairing({ v1: true });
+  const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
+  await f.pairing.refreshPairing(started.pairing_id);
+  if (state === 'confirmed') f.pairing.confirmWithFingerprint(phone.memberId, phone.fingerprint());
+  await phone.sendControl({ type: 'future_echo' }); await f.runtime.poller.once();
+  const before = readHomeState(f.home), history = createInbox(f.home).read();
+  const held = createCipherFiles(f.home, 'held').list(), requests = f.relay.state.requests.length;
+  for (const flags of [[], ['--yes'], ['--json'], ['--yes', '--json']]) {
+    const result = await runCli(['--home', f.home, 'forget', phone.memberId, ...flags], {
+      fetch: () => { assert.fail('forget must not contact the relay'); },
+    });
+    assert.equal(result.code, 4); assert.equal(result.stdout, '');
+    assert.deepEqual(JSON.parse(result.stderr), {
+      error: 'invalid_transition', hint: 'Run syncky revoke <member_id> to remove the phone on the relay first, then retry forget.',
+    });
+    assert.deepEqual(readHomeState(f.home), before);
+    assert.deepEqual(createInbox(f.home).read(), history);
+    assert.deepEqual(createCipherFiles(f.home, 'held').list(), held);
+  }
+  for (const flags of [[], ['--yes'], ['--json'], ['--yes', '--json']]) {
+    const result = await runCli(['--home', f.home, 'forget', 'm_dev_999999', ...flags]);
+    assert.equal(result.code, 4); assert.equal(result.stdout, '');
+    assert.deepEqual(JSON.parse(result.stderr), { error: 'unknown_member', hint: errorHint('unknown_member') });
+  }
+  for (const args of [[], ['not-a-member'], [phone.memberId, 'extra']]) {
+    const result = await runCli(['--home', f.home, 'forget', ...args]);
+    assert.equal(result.code, 1); assert.equal(result.stdout, '');
+    assert.equal(JSON.parse(result.stderr).error, 'invalid_arguments');
+    assert.equal(JSON.parse(result.stderr).hint, errorHint(JSON.parse(result.stderr).error));
+    assert.doesNotMatch(JSON.parse(result.stderr).hint, /syncky revoke/);
+  }
+  assert.equal(f.relay.state.requests.length, requests);
+});
+
+for (const [status, code, exit] of [[500, 'internal_error', 2], [401, 'invalid_token', 3]]) {
+  test(`CLI reject retains local rejection after relay ${status} and gives fixed recovery guidance`, async t => {
+    const f = await fixture(t), started = await f.pairing.startPairing({ v1: true });
+    const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
+    await f.pairing.refreshPairing(started.pairing_id);
+    await phone.sendControl({ type: 'future_echo' }); await f.runtime.poller.once();
+    assert.equal(f.runtime.status().held, 1);
+    const outbox = createCipherFiles(f.home, 'outbox'), msgId = '0192e0a0-0000-7000-8000-000000000210';
+    outbox.put({ msg_id: msgId, to: [phone.memberId], kind: 'control', body: 'sealed fixture', state: 'pending' });
+    const history = createInbox(f.home).read(), requests = f.relay.state.requests.length;
+    for (let i = 0; i < (status === 401 ? 1 : RETRY_POLICY.maxAttempts); i++) f.relay.failNext('revokeMember', status);
+    const result = await runCli(['--home', f.home, 'reject', phone.memberId, '--json']);
+    assert.equal(result.code, exit); assert.equal(result.stdout, '');
+    assert.deepEqual(JSON.parse(result.stderr.trim().split('\n').at(-1)), { error: code,
+      hint: 'The phone is already rejected locally. Run syncky revoke <member_id> after the relay is reachable or the token is fixed to finish relay revocation. After invalid_token, stop and tell the owner.',
+    });
+    assert.equal(readHomeState(f.home).members[phone.memberId].state, 'rejected');
+    assert.equal(f.runtime.status().held, 0);
+    assert.equal(outbox.list().find(e => e.msg_id === msgId).state, 'failed');
+    assert.equal(outbox.list().find(e => e.msg_id === msgId).code, 'target_revoked');
+    assert.deepEqual(createInbox(f.home).read(), history);
+    assert.equal(f.relay.state.member(phone.memberId).revokedAt, null);
+    assert.deepEqual(f.relay.state.requests.slice(requests).map(r => r.route), Array(status === 401 ? 1 : RETRY_POLICY.maxAttempts).fill('revokeMember'));
+    const finished = await runCli(['--home', f.home, 'revoke', phone.memberId]);
+    assert.equal(finished.code, 0); assert.equal(JSON.parse(finished.stdout).revoked_on_relay, true);
+    assert.equal(readHomeState(f.home).members[phone.memberId].state, 'rejected');
+  });
+}
+
+test('CLI reject uses general hints for invalid input and failed local mutation and redacts unrelated errors', async t => {
+  const f = await fixture(t), phone = await confirmedPhone(f), before = readHomeState(f.home);
+  const requests = f.relay.state.requests.length;
+  for (const args of [[], ['not-a-member'], [phone.memberId, 'extra'], ['m_dev_999999'], [phone.memberId]]) {
+    const result = await runCli(['--home', f.home, 'reject', ...args]);
+    assert.ok([1, 4].includes(result.code)); assert.equal(result.stdout, '');
+    assert.equal(JSON.parse(result.stderr).hint, errorHint(JSON.parse(result.stderr).error));
+    assert.doesNotMatch(JSON.parse(result.stderr).hint, /syncky revoke/);
+  }
+  assert.equal(f.relay.state.requests.length, requests); assert.deepEqual(readHomeState(f.home), before);
+  const result = await runCli(['--home', f.home, 'revoke', phone.memberId], {
+    fetch: async () => { throw Error('PRIVATE_ERROR_CANARY'); },
+  });
+  assert.equal(result.code, 2); assert.equal(result.stdout, '');
+  assert.deepEqual(JSON.parse(result.stderr.trim().split('\n').at(-1)), { error: 'network_error', hint: errorHint('network_error') });
+  assert.ok(!result.stderr.includes('PRIVATE_ERROR_CANARY'));
+  assert.deepEqual(readHomeState(f.home), before);
+});
+
+test('CLI reject omits its relay hint when a local write fails', async t => {
+  const f = await fixture(t), started = await f.pairing.startPairing({ v1: true });
+  const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
+  await f.pairing.refreshPairing(started.pairing_id);
+  const before = readHomeState(f.home), requests = f.relay.state.requests.length, rename = fs.renameSync;
+  const mock = t.mock.method(fs, 'renameSync', (...args) => {
+    if (args[1] === join(f.home, 'state.json')) throw Object.assign(Error('PRIVATE_LOCAL_CANARY'), { code: 'disk_error' });
+    return rename(...args);
+  });
+  let result;
+  try { result = await runCli(['--home', f.home, 'reject', phone.memberId]); }
+  finally { mock.mock.restore(); }
+  assert.equal(result.code, 4); assert.equal(result.stdout, '');
+  assert.deepEqual(JSON.parse(result.stderr), { error: 'disk_error', hint: errorHint('disk_error') });
+  assert.ok(!result.stderr.includes('PRIVATE_LOCAL_CANARY'));
+  assert.equal(f.relay.state.requests.length, requests); assert.deepEqual(readHomeState(f.home), before);
+});
+
+test('CLI reject preserves the relay error if the hint state check fails', async t => {
+  const f = await fixture(t), started = await f.pairing.startPairing({ v1: true });
+  const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
+  await f.pairing.refreshPairing(started.pairing_id);
+  f.relay.failNext('revokeMember', 401);
+  let denyRead = false;
+  const open = fs.openSync, mock = t.mock.method(fs, 'openSync', (...args) => {
+    if (denyRead && args[0] === join(f.home, 'state.json')) throw Error('PRIVATE_READ_CANARY');
+    return open(...args);
+  });
+  let result;
+  try {
+    result = await runCli(['--home', f.home, 'reject', phone.memberId], { fetch: async (...args) => {
+      const response = await fetch(...args); denyRead = true; return response;
+    } });
+  } finally { mock.mock.restore(); }
+  assert.equal(result.code, 3); assert.equal(result.stdout, '');
+  assert.deepEqual(JSON.parse(result.stderr.trim().split('\n').at(-1)), { error: 'invalid_token', hint: errorHint('invalid_token') });
+  assert.ok(!result.stderr.includes('PRIVATE_READ_CANARY'));
+  assert.equal(readHomeState(f.home).members[phone.memberId].state, 'rejected');
+});
 
 test('CLI revoke revokes a confirmed phone on the relay first, retains history, repeats and permits forget', async t => {
   const f = await fixture(t), phone = await confirmedPhone(f);
@@ -333,7 +587,7 @@ test('CLI revoke refuses unknown phones, agents and invalid arguments before con
   const f = await fixture(t), before = readHomeState(f.home), requests = f.relay.state.requests.length;
   for (const id of ['m_dev_999999', before.identity.member_id]) {
     const result = await runCli(['--home', f.home, 'revoke', id]);
-    assert.equal(result.code, 4); assert.deepEqual(JSON.parse(result.stderr), { error: 'unknown_member' });
+    assert.equal(result.code, 4); assert.deepEqual(JSON.parse(result.stderr), { error: 'unknown_member', hint: errorHint('unknown_member') });
   }
   for (const args of [[], ['not-a-member'], ['m_dev_999999', 'extra']]) {
     const result = await runCli(['--home', f.home, 'revoke', ...args]);
@@ -447,7 +701,7 @@ test('wait bounds Retry-After by its remaining timeout', async t => {
     now: f.now, sleep: async ms => { sleeps.push(ms); f.advance(ms); },
   });
   assert.equal(result.code, 4);
-  assert.deepEqual(JSON.parse(result.stderr.split('\n').filter(Boolean).at(-1)), { error: 'timeout' });
+  assert.deepEqual(JSON.parse(result.stderr.split('\n').filter(Boolean).at(-1)), { error: 'timeout', hint: errorHint('timeout') });
   assert.deepEqual(sleeps, [10000]);
   assert.equal(readHomeState(f.home).members[phone.memberId].state, 'joined');
 });

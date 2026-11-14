@@ -2,8 +2,8 @@ import { maintainResponseWaits } from "./response-waits.js";
 import nodeFs from "node:fs";
 import { join } from "node:path";
 import { LocalStateError } from "./config.js";
-import { isB64u, isTimestamp } from "./encoding.js";
-import { isMemberId, uuidv7 } from "./ids.js";
+import { deviceName, isB64u, isTimestamp } from "./encoding.js";
+import { isMemberId, isPairingId, uuidv7 } from "./ids.js";
 import { fingerprint, normalizeFingerprint } from "./fingerprint.js";
 import { pairCode, pairProof, pairProofMatches } from "./pair-code.js";
 import { readHomeState, updateHomeState, createCipherFiles } from "./home-state.js";
@@ -11,6 +11,13 @@ import { parsePrivateJson, privateStat, readPrivateFile, removePrivateFile, sync
 import { joinGraceUntil } from "./transport-time.js";
 import { isStoredRequestedScope } from './access-scope.js';
 import { cancelPairingAccess, maintainPairingAccess, PAIRING_REPLY_MS } from './pairing-access.js';
+
+export function validateMemberPairing(fields) {
+  if (fields?.pairing_id != null && !isPairingId(fields.pairing_id)) throw new LocalStateError("invalid_response", "invalid member pairing");
+  return fields;
+}
+
+const ownPairing = (state, id) => isPairingId(id) && Object.hasOwn(state.pairings, id) ? state.pairings[id] : undefined;
 
 export function startThinFastPoll(state, memberId, graceUntil, at) {
   const fast = state.transport.fast_poll, active = fast?.until > at && fast.devices?.length;
@@ -21,7 +28,7 @@ export function startThinFastPoll(state, memberId, graceUntil, at) {
 }
 
 export function recoverPairProof(home, state, member, { fs = nodeFs } = {}) {
-  if (member.state !== "joined" || member.proof_invalidated || member.pair_proof || !member.pairing_id || !state.pairings[member.pairing_id]) return;
+  if (member.state !== "joined" || member.proof_invalidated || member.pair_proof || !member.pairing_id || !ownPairing(state, member.pairing_id)) return;
   const bytes = readPrivateFile(join(home, "pairing.json"), { fs, optional: true });
   if (!bytes) return;
   const doc = parsePrivateJson(bytes);
@@ -37,13 +44,13 @@ function bindRequest(home, state, member, at, options) {
   const doc = bytes ? parsePrivateJson(bytes) : null;
   if (doc?.pairing_id === member.pairing_id && doc.requested_scope !== undefined) {
     if (!isStoredRequestedScope(doc.requested_scope) || !isTimestamp(doc.expires_at)) throw new LocalStateError('corrupt_state', 'invalid pending pairing request');
-    let row = state.pairings[member.pairing_id];
+    let row = ownPairing(state, member.pairing_id);
     if (!row) row = state.pairings[member.pairing_id] = { pairing_id: member.pairing_id, status: 'pending', expires_at: doc.expires_at, version: doc.pair_secret ? 2 : 1 };
     if (row.requested_scope && JSON.stringify(row.requested_scope) !== JSON.stringify(doc.requested_scope)) throw new LocalStateError('corrupt_state', 'pairing request conflict');
     row.requested_scope ??= doc.requested_scope;
     row.access ??= { state: 'awaiting', deadline_at: doc.expires_at };
   }
-  const row = state.pairings[member.pairing_id];
+  const row = ownPairing(state, member.pairing_id);
   if (!row?.requested_scope || row.access.state !== 'awaiting' || (row.member_id && (row.member_id !== member.member_id || row.public_key !== member.public_key))) return;
   row.member_id = member.member_id; row.public_key = member.public_key; row.status = 'completed';
   if (!row.access.joined_at) {
@@ -55,17 +62,16 @@ function bindRequest(home, state, member, at, options) {
 export function createThinPairing(home, { fs = nodeFs, now = () => new Date() } = {}) {
   const options = { fs };
   function requireMember(state, id) {
-    const member = state.members[id];
+    const member = Object.hasOwn(state.members, id) ? state.members[id] : null;
     if (!member || member.role !== "device") throw new LocalStateError("unknown_member", "unknown phone member");
     return member;
   }
-  function confirmed(state, member, method) {
-    maintainPairingAccess(state, now().getTime());
+  function confirmed(state, member, method, at = now()) {
+    maintainPairingAccess(state, at.getTime());
     if (member.state === "confirmed") return { member_id: member.member_id, state: member.state };
-    const at = now();
     member.confirmation_method = method; member.state = "confirmed"; member.confirmed_at = at.toISOString(); member.pair_code = null; member.pair_proof = null;
     member.confirmation = { msg_id: uuidv7({ now: () => at.getTime() }), created_at: at.toISOString() };
-    const row = state.pairings[member.pairing_id];
+    const row = ownPairing(state, member.pairing_id);
     if (row?.access?.state === 'awaiting' && row.member_id === member.member_id && row.public_key === member.public_key) {
       row.access.confirmed_at = member.confirmed_at;
       row.access.deadline_at = new Date(at.getTime() + PAIRING_REPLY_MS).toISOString();
@@ -83,11 +89,25 @@ export function createThinPairing(home, { fs = nodeFs, now = () => new Date() } 
       return confirmed(state, member, method);
     }, options);
   }
+  function confirmProofInState(state, id, proof, at = now()) {
+    const member = requireMember(state, id);
+    if (member.state !== "joined") throw new LocalStateError("invalid_transition", "only a joined phone can supply proof");
+    bindRequest(home, state, member, at.getTime(), options);
+    recoverPairProof(home, state, member, options);
+    if (!member.pair_proof || !pairProofMatches(member.pair_proof, proof)) {
+      member.pair_proof = null; member.proof_invalidated = true;
+      cancelPairingAccess(ownPairing(state, member.pairing_id));
+      maintainResponseWaits(state, at.getTime());
+      return false;
+    }
+    return confirmed(state, member, "proof", at);
+  }
   return {
     join(fields, { verified = false } = {}) {
       if (!verified || !isMemberId(fields?.member_id) || fields.role !== "device" || !isB64u(fields.public_key, { length: 32 })) throw new LocalStateError("invalid_state", "join requires verified relay membership");
+      validateMemberPairing(fields);
       const result = updateHomeState(home, state => {
-        const existing = state.members[fields.member_id];
+        const existing = Object.hasOwn(state.members, fields.member_id) ? state.members[fields.member_id] : null;
         if (existing) {
           if (existing.public_key !== fields.public_key) throw new LocalStateError("key_conflict", "phone key changed");
           bindRequest(home, state, existing, now().getTime(), options);
@@ -97,13 +117,13 @@ export function createThinPairing(home, { fs = nodeFs, now = () => new Date() } 
           maintainResponseWaits(state, now().getTime());
           return { member_id: existing.member_id, state: existing.state };
         }
-        const member = { member_id: fields.member_id, role: "device", name: fields.name ?? fields.device_name ?? null, public_key: fields.public_key, pairing_id: fields.pairing_id ?? null, state: "joined", joined_at: now().toISOString(), join_grace_until: joinGraceUntil(fields.joined_at, now().getTime()), fingerprint: fingerprint(state.identity.public_key, fields.public_key).text };
+        const member = { member_id: fields.member_id, role: "device", name: deviceName(fields.name ?? fields.device_name), public_key: fields.public_key, pairing_id: fields.pairing_id ?? null, state: "joined", joined_at: now().toISOString(), join_grace_until: joinGraceUntil(fields.joined_at, now().getTime()), fingerprint: fingerprint(state.identity.public_key, fields.public_key).text };
         bindRequest(home, state, member, now().getTime(), options);
         recoverPairProof(home, state, member, options);
         state.members[member.member_id] = member;
         startThinFastPoll(state, member.member_id, member.join_grace_until, now().getTime());
-        const row = state.pairings[member.pairing_id];
-        if (row && (!row.member_id || row.member_id === member.member_id) && row.access?.state !== 'cancelled') Object.assign(row, { status: "completed", member_id: member.member_id });
+        const row = ownPairing(state, member.pairing_id);
+        if (row && (!row.member_id || row.member_id === member.member_id) && row.access?.state !== 'cancelled') Object.assign(row, { status: "completed", member_id: member.member_id, public_key: member.public_key });
         maintainResponseWaits(state, now().getTime());
         return { member_id: member.member_id, state: member.state };
       }, options);
@@ -114,23 +134,12 @@ export function createThinPairing(home, { fs = nodeFs, now = () => new Date() } 
       return result;
     },
     trustedKey(id) {
-      const state = readHomeState(home, options), member = state.members[id];
+      const state = readHomeState(home, options), member = Object.hasOwn(state.members, id) ? state.members[id] : null;
       return ![true, "1"].includes(state.transport.hub_revoked) && ![true, "1"].includes(state.transport.hub_deleted) && member?.state === "confirmed" ? member.public_key : null;
     },
+    confirmProofInState,
     confirmProof(id, proof) {
-      const result = updateHomeState(home, state => {
-        const member = requireMember(state, id);
-        if (member.state !== "joined") throw new LocalStateError("invalid_transition", "only a joined phone can supply proof");
-        bindRequest(home, state, member, now().getTime(), options);
-        recoverPairProof(home, state, member, options);
-        if (!member.pair_proof || !pairProofMatches(member.pair_proof, proof)) {
-          member.pair_proof = null; member.proof_invalidated = true;
-          cancelPairingAccess(state.pairings[member.pairing_id]);
-          maintainResponseWaits(state, now().getTime());
-          return false;
-        }
-        return confirmed(state, member, "proof");
-      }, options);
+      const result = updateHomeState(home, state => confirmProofInState(state, id, proof), options);
       if (!result) throw new LocalStateError("pair_proof_invalid", "phone proof did not match; compare fingerprints");
       return result;
     },
@@ -146,14 +155,14 @@ export function createThinPairing(home, { fs = nodeFs, now = () => new Date() } 
         if (rejected && member.state !== "joined" && member.state !== "rejected") throw new LocalStateError("invalid_transition", "only a joined phone can be rejected");
         member.state = rejected ? "rejected" : "revoked"; member.revoked_at ??= now().toISOString(); member.pair_code = null; member.pair_proof = null;
         delete member.confirmation;
-        cancelPairingAccess(state.pairings[member.pairing_id]);
+        cancelPairingAccess(ownPairing(state, member.pairing_id));
         if (state.transport.fast_poll?.devices) state.transport.fast_poll.devices = state.transport.fast_poll.devices.filter(device => device !== id);
         maintainResponseWaits(state, now().getTime());
       }, options);
       const held = createCipherFiles(home, "held", options);
       for (const entry of held.list().filter(e => e.from === id || e.held_member === id)) held.remove(entry.msg_id);
       const outbox = createCipherFiles(home, "outbox", options);
-      for (const entry of outbox.list().filter(e => e.to?.includes(id) && e.state === "pending")) outbox.update(entry.msg_id, { state: "failed", code: "target_revoked" });
+      for (const entry of outbox.list().filter(e => e.to?.includes(id) && e.state === "pending")) outbox.update(entry.msg_id, { state: "failed", code: "target_revoked", relay_code: null, relay_status: null });
       for (const area of ["held", "outbox"]) if (privateStat(join(home, area), { ...options, directory: true, optional: true })) syncDirectory(join(home, area), options);
       return result;
     },

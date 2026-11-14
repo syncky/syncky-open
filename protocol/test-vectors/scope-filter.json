@@ -1,0 +1,3902 @@
+{
+  "format": 1,
+  "generated_by": "syncky-core GenerateProtocolArtifacts",
+  "cases": [
+    {
+      "name": "all_unchanged",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "active_energy_burned",
+                "unit": "kcal",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "heart_rate",
+                "unit": "count/min",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": "all",
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "active_energy_burned",
+                "unit": "kcal",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "heart_rate",
+                "unit": "count/min",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "none_drops_workout",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "active_energy_burned",
+                "unit": "kcal",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "heart_rate",
+                "unit": "count/min",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": "none",
+        "write": "none"
+      },
+      "output": {
+        "samples": [],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 1
+    },
+    {
+      "name": "workout_only_removes_quantities",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "active_energy_burned",
+                "unit": "kcal",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "heart_rate",
+                "unit": "count/min",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": []
+              }
+            ],
+            "statistics": []
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "heart_rate_all_statistic_values",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "active_energy_burned",
+                "unit": "kcal",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "heart_rate",
+                "unit": "count/min",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "heart_rate",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "heart_rate",
+                "unit": "count/min",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "single_distance_unrelated_types_excluded",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "active_energy_burned",
+                "unit": "kcal",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "heart_rate",
+                "unit": "count/min",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_walking_running",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "collected_distance_source_released",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "active_energy_burned",
+                "unit": "kcal",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "heart_rate",
+                "unit": "count/min",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_cycling",
+          "heart_rate",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "heart_rate",
+                "unit": "count/min",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "two_distance_sources_one_excluded",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "distance_cycling",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_walking_running",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "two_distance_sources_allowed",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "distance_cycling",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_cycling",
+          "distance_walking_running",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              },
+              {
+                "type": "distance_cycling",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "distance_provenance_missing",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_walking_running",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "distance_provenance_empty",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": []
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_walking_running",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": []
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "distance_sum_null",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": null,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_walking_running",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": null,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "distance_sum_string",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": "5000",
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_walking_running",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": "5000",
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "activity_distance_is_not_top_level_provenance",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "heart_rate",
+                "unit": "count/min",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_walking_running",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": []
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "source_distance_walking_running",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_walking_running",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_walking_running",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "source_distance_cycling",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_cycling",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_cycling",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": []
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_cycling",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "source_distance_swimming",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_swimming",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_swimming",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": []
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_swimming",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "source_distance_wheelchair",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_wheelchair",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_wheelchair",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": []
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_wheelchair",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "source_distance_downhill_snow_sports",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_downhill_snow_sports",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_downhill_snow_sports",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": []
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_downhill_snow_sports",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "source_distance_cross_country_skiing",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_cross_country_skiing",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_cross_country_skiing",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": []
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_cross_country_skiing",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "source_distance_paddle_sports",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_paddle_sports",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_paddle_sports",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": []
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_paddle_sports",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "source_distance_rowing",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_rowing",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_rowing",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": []
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_rowing",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    },
+    {
+      "name": "source_distance_skating_sports",
+      "input": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "energy_kcal": 320.5,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": [
+                  {
+                    "type": "active_energy_burned",
+                    "unit": "kcal",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "distance_walking_running",
+                    "unit": "m",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  },
+                  {
+                    "type": "heart_rate",
+                    "unit": "count/min",
+                    "sum": 5000,
+                    "min": 1.25,
+                    "max": 5.5,
+                    "avg": 3.75,
+                    "most_recent": 4.5
+                  }
+                ]
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_skating_sports",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "scope": {
+        "read": [
+          "distance_skating_sports",
+          "workout"
+        ],
+        "write": "none"
+      },
+      "output": {
+        "samples": [
+          {
+            "uuid": "W-1",
+            "type": "workout",
+            "activity": "running",
+            "start": "2026-10-11T08:00:00Z",
+            "end": "2026-10-11T08:30:00Z",
+            "duration_s": 1800,
+            "distance_m": 5000,
+            "source": {
+              "app": "com.apple.Health",
+              "device": "iPhone"
+            },
+            "location": "outdoor",
+            "metadata": {
+              "average_mets": 9.5,
+              "elevation_ascended_m": 42,
+              "weather_humidity": 0.65,
+              "brand_name": "Club",
+              "time_zone": "Europe/Riga",
+              "user_entered": false
+            },
+            "events": [
+              {
+                "type": "lap",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:00:00Z",
+                "metadata": {
+                  "lap_length_m": 400
+                }
+              },
+              {
+                "type": "pause",
+                "start": "2026-10-11T08:00:00Z",
+                "end": "2026-10-11T08:30:00Z"
+              }
+            ],
+            "activities": [
+              {
+                "uuid": "WA-1",
+                "activity": "running",
+                "start": "2026-10-11T08:00:00Z",
+                "end": null,
+                "duration_s": 600,
+                "location": "outdoor",
+                "statistics": []
+              }
+            ],
+            "statistics": [
+              {
+                "type": "distance_skating_sports",
+                "unit": "m",
+                "sum": 5000,
+                "min": 1.25,
+                "max": 5.5,
+                "avg": 3.75,
+                "most_recent": 4.5
+              }
+            ]
+          }
+        ],
+        "deleted": [],
+        "summaries": []
+      },
+      "filtered": 0
+    }
+  ]
+}

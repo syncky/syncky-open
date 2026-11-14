@@ -5,14 +5,14 @@ import qrcodeTerminal from 'qrcode-terminal';
 import QRErrorCorrectLevel from 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js';
 import { LocalStateError, validateUrlScheme } from './config.js';
 import { randomBytes } from './crypto.js';
-import { b64uEncode, isB64u, isTimestamp } from './encoding.js';
+import { b64uEncode, deviceName, isB64u, isTimestamp } from './encoding.js';
 import { isHubId, isPairingId, isPairingToken } from './ids.js';
 import { pairCode } from './pair-code.js';
 import { buildPairUri, isPairUriName, PAIR_SECRET_BYTES } from './pair-uri.js';
 import { registerSecret } from './log.js';
 import { RelayError } from './relay-client.js';
 import { readHomeState, updateHomeState, forgetThinMember, STATE_FILE, validateHomeState } from './home-state.js';
-import { createThinPairing } from './thin-pairing.js';
+import { createThinPairing, validateMemberPairing } from './thin-pairing.js';
 import { atomicPrivateWrite, parsePrivateJson, readPrivateFile, removePrivateFile, withHomeLock } from './protected-files.js';
 import { retryHomeLock } from './thin-lock.js';
 import { isStoredRequestedScope, validateAccessScope } from './access-scope.js';
@@ -45,13 +45,24 @@ export function createPairingService({ home, relay, publicKey, agentName, urlSch
   const options = { fs }, pairing = createThinPairing(home, { fs, now });
   const view = doc => ({ pairing_id: doc.pairing_id, uri: doc.uri, expires_at: doc.expires_at,
     ...(doc.pair_secret === undefined ? { version: 1 } : { version: 2, code: pairCode(doc.pair_secret) }) });
-  const memberView = id => {
-    const m = readHomeState(home, options).members[id];
-    return m && { member_id: id, role: m.role, name: m.name, state: m.state, fingerprint: m.fingerprint, pairing_id: m.pairing_id };
+  const publicMember = m => m && ({ member_id: m.member_id, role: m.role, name: deviceName(m.name ?? m.device_name), state: m.state, fingerprint: m.fingerprint, pairing_id: m.pairing_id });
+  const memberView = id => publicMember(readHomeState(home, options).members[id]);
+  function completedMember(state, id) {
+    const row = Object.hasOwn(state.pairings, id) ? state.pairings[id] : null, member = Object.hasOwn(state.members, row?.member_id) ? state.members[row.member_id] : null;
+    if (row?.status !== 'completed' || member?.role !== 'device' || member.pairing_id !== id
+      || !['joined', 'confirmed'].includes(member.state) || member.unpair_reason != null
+      || (row.public_key !== undefined && row.public_key !== member.public_key)
+      || [true, '1'].includes(state.transport.hub_revoked) || [true, '1'].includes(state.transport.hub_deleted)) return null;
+    return member;
+  }
+  const completedResult = id => {
+    const member = completedMember(readHomeState(home, options), id);
+    return member ? { status: 'completed', member: publicMember(member) } : null;
   };
   function expire(id) {
     withHomeLock(home, () => {
       const state = readHomeState(home, options);
+      if (state.pairings[id]?.status === 'completed') return;
       if (state.pairings[id]) { state.pairings[id].status = 'expired'; cancelPairingAccess(state.pairings[id]); }
       maintainResponseWaits(state, now().getTime());
       atomicPrivateWrite(join(home, STATE_FILE), JSON.stringify(validateHomeState(state)) + '\n', options);
@@ -66,7 +77,7 @@ export function createPairingService({ home, relay, publicKey, agentName, urlSch
       if (read !== undefined || write !== undefined) {
         const scope = { request_ref: Buffer.from(randomBytes(16)).toString('hex'), read: read ?? [], write: write ?? [] };
         const result = validateAccessScope(scope, { normalize: true });
-        if (!result.ok) throw new LocalStateError('invalid_input', `invalid requested scope: ${result.detail}`);
+        if (!result.ok) throw new LocalStateError('invalid_input', `invalid requested scope: ${result.detail}`, { detail: result.detail, ...(result.detail === 'not_writable' && { types: result.types }) });
         requestedScope = result.value;
       }
       const result = await relay.createPairing(), state = await retryHomeLock(() => readHomeState(home, options));
@@ -93,40 +104,44 @@ export function createPairingService({ home, relay, publicKey, agentName, urlSch
       const original = readHomeState(home, options);
       if (maintainPairingAccess(original, now().getTime())) updateHomeState(home, s => { maintainPairingAccess(s, now().getTime()); }, options);
       let doc = readPairingFile(home, options);
-      const completed = original.pairings[doc?.pairing_id], bound = original.members[completed?.member_id];
-      if (completed?.requested_scope && completed.status === 'completed' && bound?.public_key === completed.public_key && bound.pairing_id === doc.pairing_id) {
+      const bound = doc && completedMember(original, doc.pairing_id);
+      if (bound) {
         pairing.join(bound, { verified: true });
         doc = null;
       }
       if (doc && original.pairings[doc.pairing_id]?.status === 'expired') {
-        expire(doc.pairing_id);
+        // Keep the current-link guard when removal would expose another phone.
+        if (!Object.values(original.pairings).some(row => completedMember(original, row.pairing_id))) expire(doc.pairing_id);
         return null;
       }
-      if (!doc && includeCompleted) {
+      if (doc && original.pairings[doc.pairing_id]?.status === 'pending'
+        && (includeExpired || Date.parse(doc.expires_at) + graceMs > now().getTime())) return view(doc);
+      if (doc) return null;
+      if (includeCompleted) {
         const state = readHomeState(home, options);
-        const completed = Object.values(state.pairings).filter(p => p.status === 'completed' && (Date.parse(p.expires_at) + graceMs > now().getTime() || (p.access?.state === 'awaiting' && Date.parse(p.access.deadline_at) > now().getTime())))
+        const completed = Object.values(state.pairings).filter(p => completedMember(state, p.pairing_id))
           .sort((a, b) => Date.parse(b.expires_at) - Date.parse(a.expires_at))[0];
         if (completed) return { pairing_id: completed.pairing_id, expires_at: completed.expires_at, version: completed.version ?? 2 };
       }
-      if (!doc || (!includeExpired && Date.parse(doc.expires_at) + graceMs <= now().getTime()) || !(["pending", ...(includeCompleted ? ["completed"] : [])].includes(readHomeState(home, options).pairings[doc.pairing_id]?.status))) return null;
-      return view(doc);
+      return null;
     },
     async refreshPairing(id, { signal, deadline } = {}) {
       signal?.throwIfAborted();
+      if (!isPairingId(id)) throw new LocalStateError("invalid_input", "invalid pairing id");
       const saved = await retryHomeLock(() => readHomeState(home, options));
-      const row = saved.pairings[id], bound = saved.members[row?.member_id];
-      if (row?.requested_scope && row.status === 'completed' && bound?.pairing_id === id && bound.public_key === row.public_key
-        && ['joined', 'confirmed'].includes(bound.state)) return { status: 'completed', member: await retryHomeLock(() => memberView(bound.member_id)) };
+      if (completedMember(saved, id)) return await retryHomeLock(() => completedResult(id)) ?? { status: 'expired' };
       let result;
       try { result = await relay.getPairing(id, { signal, deadline }); }
-      catch (e) { if (e.status !== 404) throw e; await retryHomeLock(() => expire(id)); return { status: 'expired' }; }
-      if (result.status === 'expired') { await retryHomeLock(() => expire(id)); return result; }
+      catch (e) { if (e.status !== 404) throw e; await retryHomeLock(() => expire(id)); return await retryHomeLock(() => completedResult(id)) ?? { status: 'expired' }; }
+      if (result.status === 'expired') { await retryHomeLock(() => expire(id)); return await retryHomeLock(() => completedResult(id)) ?? result; }
       if (result.status !== 'completed') return { status: 'pending' };
       const listed = await relay.listMembers({ signal, deadline });
       const member = listed?.members?.find(m => m.member_id === result.member_id && m.role === 'device' && m.public_key === result.public_key);
       if (!member) throw new LocalStateError('invalid_response', 'pairing requires current relay membership');
+      validateMemberPairing(member);
       await retryHomeLock(() => pairing.join({ ...member, pairing_id: id, joined_at: result.completed_at ?? member.joined_at }, { verified: true }));
-      return { status: 'completed', completed_at: result.completed_at, member: await retryHomeLock(() => memberView(member.member_id)) };
+      const completed = await retryHomeLock(() => completedResult(id));
+      return completed ? { ...completed, completed_at: result.completed_at } : { status: 'expired' };
     },
     confirmWithFingerprint(id, fingerprint) { pairing.confirmFingerprint(id, fingerprint); return { member: memberView(id), state: memberView(id).state }; },
     async rejectMember(id) {

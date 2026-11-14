@@ -62,7 +62,7 @@ describe("stores nothing and calls only the relay", () => {
     const html = read("index.html");
     assert.ok(html.includes("Your browser keeps nothing: close or reload the tab and everything is gone."));
     assert.ok(html.includes("What Relay keeps: the demo hub with its sealed messages"));
-    assert.ok(html.includes("Remove everything it wrote to Health"));
+    assert.ok(html.includes('remove them with "Remove this agent\'s Health records" on the agent\'s screen (app 0.1.4: "Remove everything it wrote to Health")'));
     assert.match(html, /End demo/);
     assert.match(html, /about 1 hour from the start/);
     assert.match(html, /Safari 17/);

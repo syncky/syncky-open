@@ -1,3 +1,4 @@
+import { errorHint } from '../../src/error-guidance.js';
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Readable } from "node:stream";
@@ -106,19 +107,20 @@ test("authenticated type/kind/marker mismatches fail before dispatch; target siz
 
 const accessRequest = () => ({ v: 1, type: "access_request", request_ref: "a".repeat(32),
   created_at: "2026-11-05T12:00:00Z", expires_at: "2026-11-06T12:00:00Z", read: ["workout", "dietary_water", "workout"], write: ["dietary_water"] });
-test("access validation normalizes lists and requires exactly 24 hours for older phones", () => {
+test("access validation normalizes lists and accepts bounded positive TTLs", () => {
   const validate = createLocalValidator(loadSchemas());
   const request = accessRequest(); validate(request);
   assert.deepEqual(request.read, ["dietary_water", "workout"]);
   for (const mutate of [r => r.expires_at = r.created_at, r => r.expires_at = "2026-11-06T13:00:00Z",
-    r => r.expires_at = "2026-11-06T00:00:00Z", r => r.expires_at = "2026-11-06T11:59:59.999Z",
+    r => r.expires_at = "invalid", r => delete r.expires_at,
     r => r.expires_at = "2026-11-05T11:00:00Z", r => r.read = ["unknown_type"], r => r.write = ["biological_sex"],
     r => { r.read = []; r.write = []; }, r => r.reason = "x".repeat(201), r => delete r.read]) {
     const r = accessRequest(); mutate(r);
     assert.throws(() => validate(r), { code: "schema_invalid" });
   }
+  for (const expires_at of ["2026-11-06T00:00:00Z", "2026-11-06T11:59:59.999Z"]) assert.doesNotThrow(() => validate({ ...accessRequest(), expires_at }));
 });
-test("generic access send seals sorted unique lists for older phones even without validation", async t => {
+test("generic access send seals sorted unique lists even without validation", async t => {
   const { home, transport } = setup(t);
   await createGenericSender({ home, transport, self, now, schemas: loadSchemas() })({ type: "access_request", innerText: JSON.stringify(accessRequest()) });
   const entry = createCipherFiles(home, "outbox").list()[0];
@@ -126,13 +128,15 @@ test("generic access send seals sorted unique lists for older phones even withou
     self: { memberId: keys.dev1.member_id, privateKey: b64uDecode(keys.dev1.sk) }, senderKeyOf: () => b64uDecode(keys.agent.pk) });
   assert.deepEqual(opened.inner.read, ["dietary_water", "workout"]);
 });
-test("agent validation requires exactly 24 hours even for phone-accepted short TTL vectors", () => {
+test("agent validation accepts phone-supported short TTL vectors and rejects out-of-bounds TTLs", () => {
   const vector = loadVectors("inner-messages").cases.find(c => c.name === "system_access_short_ttl");
   assert.equal(vector.expect, "ok");
   const request = JSON.parse(vector.json), validate = createLocalValidator(loadSchemas());
   const created = Date.parse(request.created_at);
   const expires = ttl => new Date(created + ttl).toISOString().replace(".000Z", "Z");
-  for (const ttl of [1, 1800000, 86400000 - 1, 86400000 + 1]) {
+  assert.doesNotThrow(() => validate(request));
+  for (const ttl of [1, 1800000, 86400000 - 1, 86400000]) assert.doesNotThrow(() => validate({ ...request, expires_at: expires(ttl) }));
+  for (const ttl of [0, -1, 86400000 + 1]) {
     assert.throws(() => validate({ ...request, expires_at: expires(ttl) }),
       { code: "schema_invalid", message: "invalid access request: ttl" });
   }
@@ -159,7 +163,7 @@ test("CLI and MCP expose invalid access replies and MCP validates access request
   createInbox(home).append({ seq: 1, from: keys.dev1.member_id, kind: "control", type: "access_reply", received_at: now().toISOString(), inner });
   const options = { now, fetch: () => { assert.fail("local inbox and validation must stay offline"); } };
   const rejected = await runCli(["--home", home, "send", "--type", "access_request", "--json", "-", "--validate"], {
-    ...options, stdin: Readable.from([JSON.stringify({ ...accessRequest(), expires_at: "2026-11-06T00:00:00Z" })]) });
+    ...options, stdin: Readable.from([JSON.stringify({ ...accessRequest(), expires_at: "2026-11-06T12:00:00.001Z" })]) });
   assert.equal(rejected.code, 4);
   assert.equal(JSON.parse(rejected.stderr.trim().split("\n").at(-1)).error, "schema_invalid");
   const cli = await runCli(["--home", home, "inbox", "--type", "access_reply"], options);
@@ -168,7 +172,7 @@ test("CLI and MCP expose invalid access replies and MCP validates access request
   const rpc = (name, args, id) => JSON.stringify({ jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args } });
   const input = [rpc("syncky_inbox", { type: "access_reply" }, 1),
     rpc("syncky_send", { type: "access_request", inner: { ...accessRequest(), write: ["biological_sex"] }, validate: false }, 2),
-    rpc("syncky_send", { type: "access_request", inner: { ...accessRequest(), expires_at: "2026-11-06T00:00:00Z" }, validate: false }, 3)].join("\n") + "\n";
+    rpc("syncky_send", { type: "access_request", inner: { ...accessRequest(), expires_at: "2026-11-06T12:00:00.001Z" }, validate: false }, 3)].join("\n") + "\n";
   const mcp = await runCli(["--home", home, "mcp"], { ...options, stdin: Readable.from([input]) });
   assert.equal(mcp.code, 0);
   const replies = mcp.stdout.trim().split("\n").map(line => JSON.parse(line));
@@ -190,9 +194,9 @@ test("CLI and MCP refuse a write request for types computed by Apple before send
   const send = inner => runCli(["--home", home, "send", "--type", "access_request", "--json", "-", "--validate"], { ...options, stdin: Readable.from([JSON.stringify(inner)]) });
   const refused = await send({ ...accessRequest(), read: [], write: computed });
   assert.equal(refused.code, 4);
-  assert.deepEqual(JSON.parse(refused.stderr.trim().split("\n").at(-1)), { error: "schema_invalid", detail: "not_writable", types: sorted });
+  assert.deepEqual(JSON.parse(refused.stderr.trim().split("\n").at(-1)), { error: "schema_invalid", detail: "not_writable", types: sorted, hint: errorHint("schema_invalid") });
   const mixed = await send({ ...accessRequest(), write: ["dietary_water", "walking_speed"] });
-  assert.deepEqual(JSON.parse(mixed.stderr.trim().split("\n").at(-1)), { error: "schema_invalid", detail: "not_writable", types: ["walking_speed"] });
+  assert.deepEqual(JSON.parse(mixed.stderr.trim().split("\n").at(-1)), { error: "schema_invalid", detail: "not_writable", types: ["walking_speed"], hint: errorHint("schema_invalid") });
   const rpc = (inner, id) => JSON.stringify({ jsonrpc: "2.0", id, method: "tools/call", params: { name: "syncky_send", arguments: { type: "access_request", inner } } });
   const input = [rpc({ ...accessRequest(), read: [], write: computed }, 1),
     rpc({ ...accessRequest(), request_ref: "b".repeat(32), read: computed, write: [] }, 2)].join("\n") + "\n";
@@ -200,7 +204,7 @@ test("CLI and MCP refuse a write request for types computed by Apple before send
   assert.equal(mcp.code, 0);
   const replies = mcp.stdout.trim().split("\n").map(line => JSON.parse(line));
   assert.equal(replies[0].result.isError, true);
-  assert.deepEqual(replies[0].result.structuredContent, { code: "schema_invalid", detail: "not_writable", types: sorted });
+  assert.deepEqual(replies[0].result.structuredContent, { code: "schema_invalid", detail: "not_writable", types: sorted, hint: errorHint("schema_invalid") });
   assert.equal(replies[1].result.isError, false);
   assert.equal(replies[1].result.structuredContent.state, "pending");
   assert.deepEqual(createCipherFiles(home, "outbox").list().map(entry => entry.type), ["access_request"]);

@@ -1,12 +1,14 @@
 import fs from 'node:fs';
 import { spawn as nodeSpawn } from 'node:child_process';
 import { join, resolve } from 'node:path';
+import { errorHint } from './error-guidance.js';
 import { LocalStateError, agentHome, errorDetail, resolveConfig } from './config.js';
 import { LEVELS, createLogger } from './log.js';
 import { createRuntime, readSkill, AGENT_VERSION, INBOX_MAX_LIMIT } from './runtime.js';
 import { createSkillUpdater } from './skill-update.js';
 import { registerAgent } from './register.js';
-import { createPairingService, readPairingFile, renderTerminalQr } from './pairing.js';
+import { createPairingService, readPairingFile } from './pairing.js';
+import { pairOutput } from './pair-output.js';
 import { readHomeState } from './home-state.js';
 import { loadSecrets } from './secrets.js';
 import { runMcp } from './mcp.js';
@@ -76,7 +78,10 @@ async function waitPair(runtime, pairing, started, { timeout = 900, signal, slee
   let outcome, completedResult, failures = 0;
   const until = () => deadlineOf?.() ?? deadline;
   function confirmation() {
-    const member = readHomeState(runtime.home).members[outcome.member.member_id];
+    const state = readHomeState(runtime.home), member = state.members[outcome.member.member_id], row = state.pairings[started.pairing_id];
+    if (member?.role !== 'device' || member.pairing_id !== started.pairing_id || row?.status !== 'completed' || row.member_id !== member.member_id
+      || (row.public_key !== undefined && row.public_key !== member.public_key) || member.unpair_reason != null
+      || [true, '1'].includes(state.transport.hub_revoked) || [true, '1'].includes(state.transport.hub_deleted)) throw new LocalStateError('invalid_transition','phone binding is no longer current');
     if (member?.state === 'confirmed') return { ...outcome, member: { ...outcome.member, state: 'confirmed' } };
     if (member?.proof_invalidated) throw new LocalStateError('pair_proof_invalid','compare the fingerprint with the phone before confirming');
     if (member?.state !== 'joined') throw new LocalStateError('invalid_transition','phone is no longer joined');
@@ -94,13 +99,14 @@ async function waitPair(runtime, pairing, started, { timeout = 900, signal, slee
       if (outcome) {
         if (isCurrent && !await isCurrent()) return;
         let row = readHomeState(runtime.home).pairings[started.pairing_id];
-        if (started.version === 1 && (!row?.requested_scope || readHomeState(runtime.home).members[outcome.member.member_id]?.state !== 'confirmed')) return outcome;
         const confirmed = confirmation();
+        if (!confirmed && (started.version === 1 || (!retryRelayErrors && Date.parse(started.expires_at) <= now().getTime()))) return outcome;
         if (!confirmed || row?.access?.state === 'awaiting') await runtime.poller.once({ signal, deadline: until(), operator: false });
-        const completed = confirmed ?? confirmation();
-        if (completed) {
+        if (confirmation()) {
           await runtime.inbound.releaseHeld({ signal, deadline: until() });
           await runtime.outbox.flush({ signal });
+          const completed = confirmation();
+          if (!completed) throw new LocalStateError('invalid_transition', 'phone is no longer confirmed');
           row = readHomeState(runtime.home).pairings[started.pairing_id];
           const result = row?.requested_scope ? { ...completed, member: { ...completed.member, pairing_access: pairingAccessView(row) } } : completed;
           completedResult = result;
@@ -125,7 +131,7 @@ async function waitPair(runtime, pairing, started, { timeout = 900, signal, slee
     }
     await abortableSleep(Math.min(delayMs, Math.max(0, until() - now().getTime())), sleep, signal);
   }
-  if (!retryRelayErrors && completedResult) return completedResult;
+  if (!retryRelayErrors && completedResult && confirmation()) return completedResult;
   throw new LocalStateError('timeout','pairing wait timed out; receive can continue automatic code-proof confirmation');
 }
 function spawnPairWaiter(home, id, { spawn, env, logger, flags }) {
@@ -142,9 +148,20 @@ function spawnPairWaiter(home, id, { spawn, env, logger, flags }) {
   } catch { logger.warn('pair_waiter_spawn_failed'); }
   finally { if (fd !== undefined) { try { fs.closeSync(fd); } catch { logger.warn('pair_waiter_spawn_failed'); } } }
 }
+function pairingErrorHint(error, { command, home, id }) {
+  const forget = command === 'forget' && error instanceof LocalStateError && error.code === 'invalid_transition';
+  const reject = command === 'reject' && error instanceof RelayError;
+  if (!forget && !reject) return;
+  try {
+    const member = readHomeState(home).members[id];
+    if (member?.role !== 'device') return;
+    if (forget && ['joined', 'confirmed'].includes(member.state)) return 'Run syncky revoke <member_id> to remove the phone on the relay first, then retry forget.';
+    if (reject && member.state === 'rejected') return 'The phone is already rejected locally. Run syncky revoke <member_id> after the relay is reachable or the token is fixed to finish relay revocation. After invalid_token, stop and tell the owner.';
+  } catch {}
+}
 export async function main(argv, { env = process.env, stdout = process.stdout, stderr = process.stderr, stdin = process.stdin, fetch = globalThis.fetch, now = () => new Date(), sleep, random, signal, spawn = nodeSpawn, createPoller, timers = globalThis } = {}) {
   const print = text => stdout.write(text), json = value => print(JSON.stringify(value) + '\n');
-  let parsed;
+  let parsed, hint;
   try {
     parsed = parseArgs(argv);
     const { command, flags, positionals } = parsed;
@@ -236,29 +253,26 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
       const [id, ...fingerprint] = positionals;
       if (!isMemberId(id)) throw new UsageError('phone member id required');
       if (command === 'confirm') { if (!fingerprint.length) throw new UsageError('fingerprint required'); const result = await retryHomeLock(() => pairing.confirmWithFingerprint(id, fingerprint.join(' '))); await runtime.inbound.releaseHeld(); await runtime.outbox.flush(); json(result); }
-      if (command === 'reject') json(await pairing.rejectMember(id));
-      if (command === 'revoke') json(await pairing.revokeMember(id));
-      if (command === 'forget') json(await retryHomeLock(() => pairing.forgetMember(id, { yes: flags.yes === true })));
+      try {
+        if (command === 'reject') json(await pairing.rejectMember(id));
+        if (command === 'revoke') json(await pairing.revokeMember(id));
+        if (command === 'forget') json(await retryHomeLock(() => pairing.forgetMember(id, { yes: flags.yes === true })));
+      } catch (error) { hint = pairingErrorHint(error, { command, home, id }); throw error; }
       return 0;
     }
     const started = command === 'pair' ? await pairing.startPairing({ v1: flags.v1,
       ...(flags.read !== undefined && { read: flags.read.split(',') }), ...(flags.write !== undefined && { write: flags.write.split(',') }) }) : pairing.currentPairing({ includeCompleted: true });
     if (!started) throw new LocalStateError('pairing_expired','no pending pairing');
+    if (command === 'pair') print(pairOutput(started, { json: flags.json, noQr: flags['no-qr'] }));
     if (command === 'pair' && !flags.wait) {
-      if (flags.json) json(started);
-      else { print(started.uri + '\n'); if (!flags['no-qr']) print(renderTerminalQr(started.uri)); if (started.code) print('Pairing code: ' + started.code + '\n'); }
       if (started.version === 2) spawnPairWaiter(home, started.pairing_id, { spawn, env, logger, flags });
       return 0;
-    }
-    if (command === 'pair') {
-      if (flags.json) json(started);
-      else { print(started.uri + '\n'); if (!flags['no-qr']) print(renderTerminalQr(started.uri)); if (started.code) print('Pairing code: ' + started.code + '\n'); }
     }
     json(await waitPair(runtime, pairing, started, { timeout: flags.timeout === undefined ? 900 : integer(flags.timeout, 1, 86400), now, sleep, signal })); return 0;
   } catch (error) {
     const usage = error instanceof UsageError, relay = error instanceof RelayError;
     const code = usage ? 'invalid_arguments' : typeof error.code === 'string' && /^[a-z_]{1,64}$/.test(error.code) ? error.code : 'local_error';
-    stderr.write(JSON.stringify({ error: code, ...errorDetail(error), ...(usage && parsed?.command && commands[parsed.command] ? { usage: commandHelp(parsed.command).trim() } : {}) }) + '\n');
+    stderr.write(JSON.stringify({ error: code, ...errorDetail(error), hint: hint ?? errorHint(code), ...(usage && parsed?.command && commands[parsed.command] ? { usage: commandHelp(parsed.command).trim() } : {}) }) + '\n');
     return usage ? 1 : relay ? error.code === 'invalid_token' ? 3 : 2 : 4;
   }
 }

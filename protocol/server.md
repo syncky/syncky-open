@@ -8,6 +8,8 @@ The quickest start is the example server in [`examples/minimal-server`](../examp
 
 For native storage and OAuth-protected remote MCP on Worker or Docker, follow the [own-server recipe](../examples/own-server/README.md).
 
+For automation setup, see the [Zapier guide](https://syncky.app/guides/zapier), [Make guide](https://syncky.app/guides/make) and [Google Sheets guide](https://syncky.app/guides/google-sheets).
+
 ## 1. What you are building
 
 The app calls your server a **server** (in the data, a destination with an id like `wh_…`). Your server:
@@ -97,7 +99,7 @@ A chosen-period resend is a one-off upload using the saved format and normal pac
 
 Only native bodies identify this operation with `delivery.resend: true`, included in byte limits before packing and in the signed body. Normal deliveries and Check connection omit it. HAE, CSV and Influx bodies and headers are unchanged, so receivers of those formats cannot identify a resend from a special marker. Export files have no `delivery` metadata.
 
-Delivery is **at least once**. You will see repeats, so store samples by key:
+Delivery is **at least once**. You will see repeats; for native JSON, store samples by key:
 
 - a sample: `(device, uuid)`;
 - a part of a workout route or heartbeat series: `(device, uuid, part)`;
@@ -432,7 +434,7 @@ To print a QR code in a terminal, pipe the link into a QR tool, for example with
 
 Your server can add records to Apple Health. The app reads a reply only when:
 
-- **Accept writes to Health** is on for the server, and the iPhone has the **Sync** plan;
+- **Accept writes to Health** is on for the server and server writing is unlocked, including free access during launch;
 - the reply answers a **data** request with `2xx`. Replies to Check connection and to the results request are not read;
 - the reply is at most 65,536 bytes, has `Content-Type: application/json` and is exactly a commands message.
 
@@ -576,7 +578,7 @@ The app sends:
 - when the app opens, at most once a minute;
 - when the user taps **Sync now**.
 
-Everything except **Sync now** needs the Sync plan. iOS decides when a locked iPhone wakes up, so expect bursts, not a fixed schedule. The first delivery to a new server sends the history window, the last 30 days by default.
+Everything except **Sync now** needs **Sync** access, including free access during launch. iOS decides when a locked iPhone wakes up, so expect bursts, not a fixed schedule. The first delivery to a new server sends the history window, the last 30 days by default.
 
 ## 13. Local network and remote access
 
@@ -699,7 +701,7 @@ Not verified by Syncky: this format against a live Health Auto Export receiver, 
 - [ ] Accept `POST`, read `X-Syncky-Format` and parse the body by it.
 - [ ] Check the token in constant time. Check the HMAC over the raw body in constant time, within 300 s.
 - [ ] Answer the Check connection request with `2xx` and store nothing.
-- [ ] Store samples by `(device, uuid)` and parts by `(device, uuid, part)`. Replace characteristics and activity summaries. Apply deletions.
+- [ ] For native JSON, store samples by `(device, uuid)` and parts by `(device, uuid, part)`. Replace characteristics and activity summaries. Apply deletions.
 - [ ] Answer `2xx` within a few seconds. Never redirect. Answer `413` only when the body is really too large.
 - [ ] Optional: reply with commands (JSON, signed over plain HTTP), accept the results request, and keep each command until its result arrives.
 - [ ] Optional: print a webhook setup link or a QR code with your URL, token and `hmac` secret; default to `syncky`, or select `syncky-dev` / `syncky-staging` (section 9).

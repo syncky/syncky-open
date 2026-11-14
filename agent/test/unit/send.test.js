@@ -7,6 +7,19 @@ import { loadJson, loadSchemas, loadVectors } from "../../src/protocol-files.js"
 import { validateAccessScope, accessEnvelopeSizes } from '../../src/access-scope.js';
 import { setup, self, now, identity, keys } from "../support/thin-transport.js";
 
+test('access TTL accepts positive bounded durations and rejects malformed timestamps even without schemas', () => {
+  for (const validate of [createLocalValidator(), createLocalValidator(loadSchemas())]) {
+    const base = { v: 1, type: 'access_request', request_ref: 'a'.repeat(32), created_at: '2026-11-13T12:00:00Z', read: ['steps'], write: [] };
+    for (const ttl of [1, 3600000, 86400000]) assert.doesNotThrow(() => validate({ ...base, expires_at: new Date(Date.parse(base.created_at) + ttl).toISOString().replace('.000Z', 'Z') }));
+    for (const patch of [
+      ...[0, -1, 86400001].map(ttl => ({ expires_at: new Date(Date.parse(base.created_at) + ttl).toISOString().replace('.000Z', 'Z') })),
+      {}, { expires_at: 'invalid' }, { expires_at: 'Infinity' }, { expires_at: null },
+      { expires_at: '2026-11-14' }, { created_at: '2026-02-30T12:00:00Z', expires_at: '2026-03-03T12:00:00Z' },
+      { created_at: undefined, expires_at: '2026-11-14T12:00:00Z' },
+    ]) assert.throws(() => validate({ ...base, ...patch }), { code: 'schema_invalid', detail: 'ttl' });
+  }
+});
+
 test('shared access validation normalizes lists, enforces catalog/writability/size and stays opt-in for send', async t => {
   const { home, transport } = setup(t), validate = createLocalValidator(loadSchemas());
   const base = { v: 1, type: 'access_request', request_ref: 'a'.repeat(32), created_at: now().toISOString().replace('.000Z', 'Z'),
@@ -69,4 +82,13 @@ test("local schemas discover type consts in defs; missing schemas pass; refs nev
 test("unconfirmed and ambiguous recipients cannot be sent to", async t => {
   const { home, transport } = setup(t, { confirmed: false });
   await assert.rejects(createGenericSender({ home, transport, self, now })({ type: "future", innerText: '{"type":"future"}', to: "m_dev_1" }), { code: "target_not_confirmed" });
+});
+
+
+test('scope release validation returns safe details before queue admission even without validate', async t => {
+  const { home, transport } = setup(t), send = createGenericSender({ home, transport, self, now });
+  for (const [patch, detail] of [[{ read: null }, 'malformed'], [{}, 'empty'], [{ read: ['PRIVATE_CANARY'] }, 'unknown_type'], [{ write: ['vo2_max'] }, 'not_writable']]) {
+    await assert.rejects(send({ type: 'scope_release', innerText: JSON.stringify({ v: 1, type: 'scope_release', read: [], write: [], ...patch }) }), e => e.code === 'schema_invalid' && e.detail === detail && !e.message.includes('PRIVATE_CANARY'));
+  }
+  assert.equal(createCipherFiles(home, 'outbox').list().length, 0);
 });

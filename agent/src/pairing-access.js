@@ -3,7 +3,7 @@ import { isMemberId } from './ids.js';
 import { isStoredRequestedScope, pairingReplyOutcomes } from './access-scope.js';
 
 export const PAIRING_REPLY_MS = 900000;
-export const PAIRING_ACCESS_NOTICE = 'Pairing confirmed; access reply not received. If using an older app, send --type access_request with a fresh request_ref and exactly 24-hour TTL. The phone may be offline or consent pending; missing replies do not identify an old app.';
+export const PAIRING_ACCESS_NOTICE = 'Pairing confirmed; access reply not received. Check the phone, connectivity and pending consent. Only with renewed explicit owner approval and phone availability, send --type access_request for the intended types with a fresh request_ref and finite positive TTL <= 24 hours. Never send an automatic fallback; wait for authenticated sync.scope before retrying writes.';
 const object = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 export function validPairingAccess(row) {

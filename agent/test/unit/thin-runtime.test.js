@@ -1,3 +1,4 @@
+import { errorHint } from '../../src/error-guidance.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { join } from 'node:path';
@@ -14,6 +15,44 @@ import { createRuntime } from '../../src/runtime.js';
 import { activateResponseWaits, responseCorrelations } from '../../src/response-waits.js';
 import { setup, keys, identity, now, delivery, messageId } from '../support/thin-transport.js';
 import { scopedRequest, pairingId, requestedScope, resolvedReply } from '../support/pairing-scope.js';
+import { PAIRING_ACCESS_NOTICE } from '../../src/pairing-access.js';
+import { runCli } from '../support/helpers.js';
+
+for (const version of [1, 2]) for (const scoped of [false, true]) test(`wait rejects an expired ${scoped ? 'scoped' : 'bare'} v${version} binding after restart releases a held unpair`, async t => {
+  const { home, pairing } = homeFixture(t, { confirmed: false }); scopedRequest(home);
+  updateHomeState(home, s => {
+    const row = s.pairings[pairingId]; row.version = version;
+    if (!scoped) { delete row.requested_scope; delete row.access; }
+  });
+  let fetches = 0;
+  const fetch = () => { fetches++; throw Error('unexpected network'); };
+  const runtime = createRuntime({ home, now, env: {}, fetch });
+  const held = await runtime.inbound.receive(await delivery(runtime.transport, 1, { v: 1, type: 'unpair', reason: 'user' }));
+  assert.equal(held.status, 'held'); assert.equal(runtime.status().held, 1);
+  pairing.confirmFingerprint(keys.dev1.member_id, readHomeState(home).members[keys.dev1.member_id].fingerprint);
+  const later = () => new Date(now().getTime() + 3600000);
+  const result = await runCli(['--home', home, 'wait', '--timeout', '10'], { now: later, fetch });
+  assert.equal(result.code, 4); assert.ok(result.stdout === '');
+  assert.equal(JSON.parse(result.stderr.trim().split('\n').at(-1)).error, 'invalid_transition');
+  assert.equal(fetches, 0); assert.equal(runtime.status().held, 0);
+  assert.equal(readHomeState(home).members[keys.dev1.member_id].unpair_reason, 'user');
+});
+
+test('wait rechecks trust before returning cached confirmation at its timeout', async t => {
+  const { home } = homeFixture(t); scopedRequest(home);
+  const fetch = () => { throw Error('unexpected network'); };
+  const runtime = createRuntime({ home, now, env: {}, fetch });
+  const unpair = await delivery(runtime.transport, 1, { v: 1, type: 'unpair', reason: 'user' });
+  let at = now().getTime(); const sleeps = [];
+  const result = await runCli(['--home', home, 'wait', '--timeout', '1'], {
+    now: () => new Date(at), fetch, createPoller: () => ({ once: async () => {} }),
+    sleep: async ms => { sleeps.push(ms); at += ms; await runtime.inbound.receive(unpair); },
+  });
+  assert.deepEqual(sleeps, [1000]);
+  assert.equal(at, now().getTime() + 1000);
+  assert.equal(result.code, 4); assert.ok(result.stdout === '');
+  assert.equal(JSON.parse(result.stderr.trim().split('\n').at(-1)).error, 'invalid_transition');
+});
 
 for (const code of ['home_locked', 'unsafe_home']) test(`runtime initialization synchronously propagates ${code} within its retry budget`, t => {
   const { home } = homeFixture(t), openSync = fs.openSync, waits = [];
@@ -43,7 +82,12 @@ test('CLI and MCP project awaiting, missing and late resolved pairing access ind
       assert.deepEqual(member.pairing_access.requested_scope, { read: ['steps'], write: ['body_mass'] });
       assert.ok(!(output.stdout + output.stderr).includes(requestedScope.request_ref));
       assert.equal(Boolean(member.pairing_access.notice), missing);
-      if (missing) assert.match(member.pairing_access.notice, /older app.*send --type access_request/);
+      if (missing) {
+        assert.equal(member.pairing_access.notice, PAIRING_ACCESS_NOTICE);
+        assert.match(member.pairing_access.notice, /renewed explicit owner approval and phone availability/);
+        assert.match(member.pairing_access.notice, /finite positive TTL <= 24 hours/);
+        assert.doesNotMatch(member.pairing_access.notice, /older app|exactly 24/);
+      }
       assert.doesNotMatch(output.stdout + output.stderr, /pair_secret|pairing_token|pair_proof|private_key|ciphertext|uri/);
     }
   }
@@ -52,7 +96,7 @@ test('CLI and MCP project awaiting, missing and late resolved pairing access ind
   try {
     const status = createRuntime({ home, now: later, env: {} }).status();
     const expired = status.members.find(m => m.member_id === 'm_dev_1').pairing_access;
-    assert.equal(expired.state, 'no_reply'); assert.match(expired.notice, /access reply not received/);
+    assert.equal(expired.state, 'no_reply'); assert.equal(expired.notice, PAIRING_ACCESS_NOTICE);
     assert.equal(status.pairings.find(p => p.pairing_id === pairingId).state, 'no_reply');
     assert.deepEqual(fs.readFileSync(join(home, 'state.json')), before);
     assert.equal(readHomeState(home).pairings[pairingId].access.state, 'awaiting');
@@ -100,13 +144,35 @@ test('status and MCP omit pairing, access and diagnostics refs and wait keys whi
   assert.equal(runtime.status().members.find(m => m.member_id === 'm_dev_1').pairing_access.state, 'resolved');
 });
 
-function homeFixture(t) {
-  const fixture = setup(t);
+function homeFixture(t, options) {
+  const fixture = setup(t, options);
   saveSecrets(fixture.home, { private_key: keys.agent.sk, public_key: keys.agent.pk,
     token: `sk_${identity.hub_id}_${'T'.repeat(40)}`, webhook_secret: `whsec_${'W'.repeat(43)}` });
   saveConfig(fixture.home, { relay_url: 'http://127.0.0.1:8787', name: 'Test' });
   return fixture;
 }
+
+for (const surface of ['cli', 'mcp']) test(`${surface} validates access TTL boundaries and malformed dates before any send`, async t => {
+  const { home } = homeFixture(t), created_at = now().toISOString().replace('.000Z', 'Z');
+  const base = { v: 1, type: 'access_request', request_ref: 'b'.repeat(32), created_at, read: ['steps'], write: [] };
+  for (const [patch, valid] of [
+    ...[1, 3600000, 86400000, 0, -1, 86400001].map(ttl => [{ expires_at: new Date(now().getTime() + ttl).toISOString().replace('.000Z', 'Z') }, ttl > 0 && ttl <= 86400000]),
+    [{}, false], [{ expires_at: 'invalid' }, false], [{ expires_at: 'Infinity' }, false],
+    [{ created_at: undefined, expires_at: created_at }, false], [{ expires_at: '2026-02-30T12:00:00Z' }, false],
+  ]) {
+    let sends = 0;
+    const fetch = async () => { sends++; return Response.json({ seq: sends }, { status: 201 }); };
+    const inner = { ...base, ...patch };
+    const request = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'syncky_send', arguments: { type: 'access_request', inner } } };
+    const result = surface === 'cli' ? await cli(home, ['send', '--type', 'access_request', '--validate', '--json', '-'], JSON.stringify(inner), fetch)
+      : await cli(home, ['mcp'], JSON.stringify(request) + '\n', fetch);
+    assert.equal(result.code, surface === 'cli' && !valid ? 4 : 0);
+    const value = surface === 'cli' ? valid ? result.json : JSON.parse(result.stderr) : result.json.result.structuredContent;
+    if (valid) { assert.equal(value.state, 'sent'); assert.equal(sends, 1); }
+    else { assert.equal(value.code ?? value.error, 'schema_invalid'); assert.equal(value.detail, 'ttl'); assert.equal(sends, 0); }
+    if (surface === 'mcp') assert.equal(result.json.result.isError, !valid);
+  }
+});
 async function cli(home, args, input = '', fetch = () => { throw Error('unexpected network'); }) {
   let stdout = '', stderr = '';
   const code = await main(['--home', home, ...args], { env: {}, now, fetch, stdin: Readable.from([input]),
@@ -122,7 +188,8 @@ test('thin command surface and send input-path flag are unambiguous', () => {
 for (const emit of [false, true]) test(`CLI receive --once ${emit ? '--emit-records emits JSONL' : 'keeps stdout quiet'} while retaining records`, async t => {
   const { home, transport } = homeFixture(t), inner = { type: 'future', extra: 'PRIVATE_RECORD_CANARY' };
   const message = await delivery(transport, 1, inner), requests = [];
-  const record = { seq: 1, from: keys.dev1.member_id, kind: message.kind, type: inner.type, received_at: now().toISOString(), inner };
+  const record = { seq: 1, msg_id: message.msg_id, public_key: keys.dev1.pk, from: keys.dev1.member_id,
+    kind: message.kind, type: inner.type, received_at: now().toISOString(), inner, accepted_at: now().getTime() };
   const stored = { ...record, cursor: 1 };
   const result = await cli(home, ['receive', '--once', ...(emit ? ['--emit-records'] : [])], '', async (url, options) => {
     const path = new URL(url).pathname; requests.push([path, options.method]);
@@ -137,7 +204,7 @@ for (const emit of [false, true]) test(`CLI receive --once ${emit ? '--emit-reco
     assert.fail('unexpected relay request');
   });
   assert.equal(result.code, 0, result.stderr);
-  assert.equal(result.stdout, emit ? JSON.stringify(record) + '\n' : '');
+  assert.equal(result.stdout, emit ? JSON.stringify(stored) + '\n' : '');
   assert.doesNotMatch(result.stderr, /PRIVATE_RECORD_CANARY/);
   const cycle = result.stderr.trim().split('\n').map(line => JSON.parse(line)).find(line => line.event === 'receive_cycle');
   assert.equal(cycle.fetched, 1); assert.equal(cycle.acked_up_to, 1);
@@ -210,7 +277,7 @@ for (const legacyLater of [false, true]) test(`CLI and MCP expose pending send d
     s.transport.commands_retry_at = String(legacyAt);
   });
   const queue = createCipherFiles(home, 'outbox');
-  queue.put({ msg_id: messageId(1), kind: 'data', type: 'commands', state: 'pending', code: 'rate_limited',
+  queue.put({ msg_id: messageId(1), kind: 'data', type: 'commands', state: 'pending', code: 'rate_limited', relay_code: 'rate_limited', relay_status: 429,
     next_attempt_at: retryAt, retry_after_until: retryAt, body: 'PRIVATE_CIPHERTEXT_CANARY' });
   const before = fs.readFileSync(join(home, 'state.json'));
   const status = await cli(home, ['status','--json']);
@@ -219,8 +286,8 @@ for (const legacyLater of [false, true]) test(`CLI and MCP expose pending send d
   for (const [output, result] of [[status, status.json], [mcp, mcp.json.result.structuredContent]]) {
     assert.equal(output.code, 0, output.stderr);
     assert.deepEqual(result.transport.send_lanes, { data: Math.max(retryAt, legacyAt), control: retryAt + 2000 });
-    assert.deepEqual(result.sends, [{ msg_id: messageId(1), kind: 'data', type: 'commands', state: 'pending', code: 'rate_limited',
-      next_attempt_at: retryAt, retry_after_until: retryAt }]);
+    assert.deepEqual(result.sends, [{ msg_id: messageId(1), kind: 'data', type: 'commands', state: 'pending', code: 'rate_limited', relay_code: 'rate_limited', relay_status: 429,
+      hint: 'Queued; the receiver retries after the receipt deadline. ' + errorHint('rate_limited'), next_attempt_at: retryAt, retry_after_until: retryAt }]);
     assert.doesNotMatch(output.stdout + output.stderr, /PRIVATE_CIPHERTEXT_CANARY/);
   }
   assert.deepEqual(fs.readFileSync(join(home, 'state.json')), before);
@@ -356,4 +423,49 @@ test('receive once exposes the authoritative floor reason and deadline to the op
   assert.equal(result.code, 0);
   const cycle = result.stderr.trim().split('\n').map(s => JSON.parse(s)).find(s => s.event === 'receive_cycle');
   assert.equal(cycle.deferred, true); assert.equal(cycle.reason, 'poll_floor'); assert.equal(cycle.next_poll_at, at + 300000);
+});
+
+
+for (const surface of ['cli', 'mcp']) for (const [status, cause, state, queueCode] of [
+  [201, null, 'sent', null], [429, 'rate_limited', 'pending', 'rate_limited'], [503, 'internal_error', 'pending', 'send_retry'],
+  [401, 'invalid_token', 'failed', 'send_failed'], [413, 'payload_too_large', 'failed', 'send_failed'], [403, 'PRIVATE_CAUSE', 'failed', 'send_failed'],
+]) test(`${surface} real send returns ${state} metadata for HTTP ${status} without changing exit/isError`, async t => {
+  const { home } = homeFixture(t); let posts = 0;
+  const fetch = async () => {
+    posts++;
+    return Response.json(status === 201 ? { seq: 8 } : { error: cause, message: 'PRIVATE_CAUSE', hint: 'PRIVATE_CAUSE', details: 'PRIVATE_CAUSE' }, { status, headers: status === 429 ? { 'Retry-After': '120' } : {} });
+  };
+  const inner = { type: 'future', private: 'PRIVATE_INNER' };
+  const request = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'syncky_send', arguments: { type: 'future', inner } } };
+  const output = surface === 'cli' ? await cli(home, ['send', '--type', 'future', '--json', '-'], JSON.stringify(inner), fetch)
+    : await cli(home, ['mcp'], JSON.stringify(request) + '\n', fetch);
+  assert.equal(output.code, 0); assert.equal(posts, 1);
+  if (surface === 'mcp') assert.equal(output.json.result.isError, false);
+  const receipt = surface === 'cli' ? output.json : output.json.result.structuredContent;
+  assert.equal(receipt.state, state); assert.equal(receipt.code, queueCode); assert.equal(receipt.attempts, 1);
+  assert.equal(receipt.relay_code, cause ? cause === 'PRIVATE_CAUSE' ? 'relay_error' : cause : undefined);
+  assert.equal(receipt.relay_status, cause ? status : undefined);
+  if (cause) assert.equal(typeof receipt.hint, 'string'); else assert.equal(receipt.hint, undefined);
+  if (status === 429) assert.equal(receipt.retry_after_until, now().getTime() + 120000);
+  if (state === 'failed') assert.match(receipt.hint, /will not retry/);
+  assert.ok(!output.stdout.includes('PRIVATE_CAUSE')); assert.ok(!(output.stdout + output.stderr).includes('PRIVATE_INNER'));
+  const offline = await cli(home, ['status']);
+  assert.deepEqual(offline.json.sends, [receipt]);
+  assert.equal((await cli(home, ['inbox'])).json.records.length, 0);
+});
+
+for (const surface of ['cli', 'mcp']) test(`${surface} real scope-release validation keeps safe detail and thrown local failure behavior`, async t => {
+  const { home } = homeFixture(t);
+  for (const [read, detail] of [[[], 'empty'], [['PRIVATE_CANARY'], 'unknown_type'], [null, 'malformed']]) {
+    const inner = { v: 1, type: 'scope_release', read, write: [] };
+    const request = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'syncky_send', arguments: { type: 'scope_release', inner } } };
+    const output = surface === 'cli' ? await cli(home, ['send', '--type', 'scope_release', '--json', '-'], JSON.stringify(inner)) : await cli(home, ['mcp'], JSON.stringify(request) + '\n');
+    assert.equal(output.code, surface === 'cli' ? 4 : 0);
+    if (surface === 'mcp') assert.equal(output.json.result.isError, true);
+    const error = surface === 'cli' ? JSON.parse(output.stderr) : output.json.result.structuredContent;
+    assert.equal(error.error ?? error.code, 'schema_invalid'); assert.equal(error.detail, detail);
+    assert.equal(error.hint, errorHint('schema_invalid'));
+    assert.ok(!(output.stdout + output.stderr).includes('PRIVATE_CANARY'));
+  }
+  assert.equal(createCipherFiles(home, 'outbox').list().length, 0);
 });

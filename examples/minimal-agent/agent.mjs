@@ -84,19 +84,16 @@ export function uuidv7(now = Date.now()) {
   const h = Buffer.from(b).toString("hex");
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
-
 // Pairing code and proof, both derived from the link's secret c (16 bytes, base64url).
 export function pairCode(c) {
   const d = createHash("sha256").update(`syncky-code-v2|${c}`).digest();
   return [0, 2, 4].map((i) => String(d.readUInt16BE(i) % 1000).padStart(3, "0")).join(" ");
 }
 export const pairProof = (c, agentPk, devicePk) => b64u(createHmac("sha256", unb64u(c, 16)).update(`syncky-pair-v2|${agentPk}|${devicePk}`).digest());
-
 // Envelopes: one random CEK encrypts the inner JSON; each recipient gets the CEK through HPKE Auth mode.
 const CEK_INFO = utf8("syncky-cek-v1");
 export const envelopeAad = (hubId, msgId, from, kind = "data", diagnostics, access) => `syncky-v1|${hubId}|${msgId}|${from}${kind === "control" ? "|control" : ""}${diagnostics === undefined ? "" : `|diagnostics=${diagnostics}`}${access === undefined ? "" : `|access=${access}`}`;
 const validMarker = e => (!Object.hasOwn(e, "access") || !Object.hasOwn(e, "diagnostics") && e.kind === "control" && ["request", "reply"].includes(e.access)) && (!Object.hasOwn(e, "diagnostics") || (e.diagnostics === "archive" ? e.kind === "data" : ["request", "reply"].includes(e.diagnostics) && e.kind === "control"));
-
 export async function sealEnvelope({ hubId, from, sk, recipients, plaintext, msgId = uuidv7(), kind = "data", diagnostics, access }) {
   if (!validMarker({ kind, ...(diagnostics === undefined ? {} : { diagnostics }), ...(access === undefined ? {} : { access }) })) throw fail("invalid_input", "invalid marker");
   const aad = utf8(envelopeAad(hubId, msgId, from, kind, diagnostics, access));
@@ -112,7 +109,6 @@ export async function sealEnvelope({ hubId, from, sk, recipients, plaintext, msg
   cek.fill(0);
   return { v: 1, msg_id: msgId, kind, ...(access === undefined ? {} : { access }), ...(diagnostics === undefined ? {} : { diagnostics }), from, created_at: nowText(), recipients: sealed, nonce: b64u(nonce), ciphertext: b64u(ciphertext) };
 }
-
 // The sender key comes only from `registry` (confirmed keys, or the joined key for its pair_proof), never from the envelope or the relay.
 export async function openEnvelope(e, { hubId, memberId, sk, registry, kind = "data" }) {
   if (e?.v !== 1 || !["data", "control"].includes(kind) || !validMarker(e) || e.kind !== kind || typeof e.msg_id !== "string" || typeof e.from !== "string") throw fail("malformed", "not an envelope");
@@ -140,7 +136,6 @@ export async function openEnvelope(e, { hubId, memberId, sk, registry, kind = "d
     throw fail("aead_failed", "cannot decrypt the payload");
   } finally { cek.fill(0); }
 }
-
 const PAIR_SCHEMES = ["syncky", "syncky-dev", "syncky-staging"];
 const PAIR_KEYS = new Set("vrhtkncs");
 const isB64u = (v, length) => { try { return !!unb64u(v, length); } catch { return false; } };
@@ -153,7 +148,6 @@ const PAIR_CHECKS = {
   n: (v) => v.length >= 1 && v.length <= 64,
 };
 const pctEncode = (v) => encodeURIComponent(v).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
-
 export function parsePairUri(uri, allowInsecure = false) {
   const bad = (param) => ({ ok: false, error: "invalid_uri", param });
   let payload;
@@ -192,7 +186,6 @@ export function parsePairUri(uri, allowInsecure = false) {
   const relay_base = `${p.s ? "http" : "https"}://${p.r}`;
   return { ok: true, relay_base, hub_id: p.h, pairing_token: p.t, agent_public_key: p.k, agent_name: p.n, ...(p.v === "2" && { pair_secret: p.c }) };
 }
-
 export function buildPairUri({ relay_base, hub_id, pairing_token, agent_public_key, agent_name, pair_secret, url_scheme = null }) {
   if (url_scheme !== null && !PAIR_SCHEMES.includes(url_scheme)) throw new TypeError("url scheme must be syncky, syncky-dev or syncky-staging");
   const query = { r: relay_base.replace(/^https?:\/\//, ""), h: hub_id, t: pairing_token, k: agent_public_key, n: agent_name, ...(pair_secret && { c: pair_secret }) };
@@ -203,16 +196,25 @@ export function buildPairUri({ relay_base, hub_id, pairing_token, agent_public_k
 }
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 export async function relayCall(state, method, path, { body, headers = {} } = {}) {
-  const init = { method, body, headers: { Accept: "application/json", ...headers } };
+  const init = { method, body, redirect: "error", headers: { Accept: "application/json", ...headers } };
   if (state.token) init.headers.Authorization = `Bearer ${state.token}`;
   if (body !== undefined) init.headers["Content-Type"] = "application/json; charset=utf-8";
   for (let attempt = 1; ; attempt++) {
     const res = await fetch(`${state.relay}${path}`, { ...init, signal: AbortSignal.timeout(15_000) }).catch((err) => {
       throw fail("network_error", `relay unreachable: ${err.cause?.code ?? err.name}`);
     });
-    const json = res.status === 204 ? null : await res.json().catch(() => undefined);
-    if (res.ok && json !== undefined) return json;
-    if (res.ok) throw fail("invalid_response", `relay ${res.status}: the body is not JSON`);
+    const reader = res.body?.getReader(), decoder = new TextDecoder(), cap = (method === "GET" && /^\/v1\/messages(?:\?|$)/.test(path) ? 9 : 1) * 1024 * 1024;
+    let text = "", size = 0, json;
+    try {
+      for (; reader;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if ((size += value.byteLength) > cap) throw fail("invalid_response", "relay response exceeds byte limit");
+        text += decoder.decode(value, { stream: true });
+      }
+      try { json = res.status === 204 ? null : JSON.parse(text + decoder.decode()); } catch {}
+    } catch (err) { throw err.code === "invalid_response" ? err : fail("network_error", "relay body could not be read"); } finally { if (reader) { await reader.cancel().catch(() => {}); reader.releaseLock(); } }
+    if (res.ok) { if (json !== undefined) return json; throw fail("invalid_response", `relay ${res.status}: the body is not JSON`); }
     const header = res.headers.get("retry-after") ?? "";
     const wait = /^[0-9]{1,5}$/.test(header) ? Number(header) : 1;
     if (attempt === 1 && (res.status === 429 || res.status >= 500) && wait <= 60) { await sleep(wait * 1000); continue; }
@@ -221,7 +223,6 @@ export async function relayCall(state, method, path, { body, headers = {} } = {}
     throw fail(code, `relay ${res.status} ${code}: ${clean(json?.message ?? "no message")}${hint}`);
   }
 }
-
 // E1: register (with the invite only if this relay requires one); the relay creates a hub and returns this agent's bearer token.
 async function init(home, { relay, invite = process.env.SYNCKY_INVITE, name }) {
   const keys = await generateKeys();
@@ -233,7 +234,6 @@ async function init(home, { relay, invite = process.env.SYNCKY_INVITE, name }) {
   saveState(home, { relay, name, hub_id, member_id, token, sk: keys.sk, pk: keys.pk, webhook_url: null, last_seq: 0, acked_seq: 0, members: {}, commands: {} });
   console.log(`Registered ${member_id} in ${hub_id}. Next: pair`);
 }
-
 // E2 + E3: show the pairing URI with a fresh secret c as a QR code, print its code and wait for the phone to join.
 async function waitForPhone(state, deadline) {
   const p = await relayCall(state, "POST", "/v1/pairings", { body: "{}" });

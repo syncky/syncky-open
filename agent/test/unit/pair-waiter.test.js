@@ -17,6 +17,7 @@ import { createFakePhone } from '../support/fake-phone.js';
 import { startRelayDouble } from '../support/relay-double.js';
 import { runCli, tempHome, waitFor } from '../support/helpers.js';
 import { b64uDecode } from '../../src/encoding.js';
+import { PAIRING_ACCESS_NOTICE } from '../../src/pairing-access.js';
 
 test('waiter startup retries state renames before its first current pairing snapshot', async t => {
   const f = await fixture(t), started = await f.pairing.startPairing();
@@ -97,7 +98,9 @@ for (const command of ['pair', 'wait']) test(`scoped foreground ${command} retur
   const completed = JSON.parse(result.stdout.trim().split('\n').at(-1));
   assert.equal(completed.status, 'completed'); assert.equal(completed.member.state, 'confirmed');
   assert.equal(completed.member.pairing_access.state, 'awaiting');
-  assert.match(completed.member.pairing_access.notice, /Pairing confirmed.*send --type access_request/);
+  assert.equal(completed.member.pairing_access.notice, PAIRING_ACCESS_NOTICE);
+  assert.match(completed.member.pairing_access.notice, /renewed explicit owner approval and phone availability/);
+  assert.match(completed.member.pairing_access.notice, /finite positive TTL <= 24 hours/);
   assert.ok(Date.parse(completed.member.pairing_access.deadline_at) > f.now().getTime());
   assert.equal(f.now().getTime(), at + 10000);
   assert.doesNotMatch(JSON.stringify(completed) + result.stderr, /"request_ref":|syncky:\/\/|https:\/\//);
@@ -145,7 +148,7 @@ test('scoped waiter reconciles a timely join first observed after link expiry an
   assert.equal(readPairingFile(f.home), null);
 });
 
-test('old phone leaves a durable no-reply notice at the post-confirmation deadline across waiter restarts', async t => {
+test('missing access reply leaves a durable notice at the post-confirmation deadline across waiter restarts', async t => {
   const f = await fixture(t), started = await f.pairing.startPairing({ read: ['steps'] });
   const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri); await phone.sendPairProof();
   await f.pairing.refreshPairing(started.pairing_id); await f.runtime.poller.once(); await f.runtime.outbox.flush();
@@ -155,7 +158,8 @@ test('old phone leaves a durable no-reply notice at the post-confirmation deadli
   assert.equal(result.code, 0); assert.equal(f.now().getTime(), Date.parse(access.deadline_at));
   const member = f.runtime.status().members.find(m => m.member_id === phone.memberId);
   assert.equal(member.pairing_access.state, 'no_reply'); assert.equal(member.scope, null);
-  assert.match(member.pairing_access.notice, /older app.*send --type access_request/);
+  assert.equal(member.pairing_access.notice, PAIRING_ACCESS_NOTICE);
+  assert.doesNotMatch(member.pairing_access.notice, /older app|exactly 24/);
   await phone.fetchCommands(); assert.deepEqual(phone.controlReceived.map(r => r.type), ['confirmed', 'agent_info']);
 });
 
@@ -203,7 +207,12 @@ for (const json of [false, true]) test(`v2 pair spawns one detached waiter after
   assert.throws(() => fs.fstatSync(options.stdio[2]), { code: 'EBADF' });
   assert.equal(fs.statSync(join(f.home, 'pair-waiter.log')).mode & 0o777, 0o600);
   assert.ok(result.stdout.includes(doc.uri));
-  if (json) assert.deepEqual(Object.keys(JSON.parse(result.stdout)).sort(), ['code', 'expires_at', 'pairing_id', 'uri', 'version']);
+  if (json) {
+    const output = JSON.parse(result.stdout);
+    assert.deepEqual(Object.keys(output).sort(), ['code', 'expires_at', 'limits', 'pairing_id', 'uri', 'version']);
+    assert.deepEqual(output.limits, { hosted_defaults: { pairing_link_ttl_s: 600, unjoined_hub_ttl_s: 86400 },
+      pairing_link_deadline: 'expires_at', unjoined_hub_clock: 'registration' });
+  }
   else assert.ok(result.stdout.startsWith(doc.uri + '\n') && result.stdout.includes('Pairing code: '));
 });
 

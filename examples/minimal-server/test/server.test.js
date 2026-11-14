@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { chmodSync } from "node:fs";
+import { request } from "node:http";
 import { join } from "node:path";
 
 import { MAX_REPLY_BYTES } from "../server.mjs";
@@ -36,6 +37,23 @@ function verifiedCommands(reply) {
 }
 
 describe("auth and signatures", () => {
+  it("rejects an unauthorized streaming body before its end", async (t) => {
+    const { dir, server } = await signedServer(t);
+    const status = await new Promise((resolve, reject) => {
+      const req = request({ host: "127.0.0.1", port: server.port, method: "POST", headers: { "Transfer-Encoding": "chunked" } }, (res) => {
+        res.resume();
+        resolve(res.statusCode);
+        req.destroy();
+      });
+      req.on("error", reject);
+      req.setTimeout(1000, () => req.destroy(new Error("auth waited for body")));
+      req.flushHeaders();
+      req.write("incomplete");
+    });
+    assert.equal(status, 401);
+    assert.equal(lines(join(dir, "samples.jsonl")).length, 0);
+  });
+
   it("401 for a missing or wrong token, a missing, bad or stale signature", async (t) => {
     const { dir, server } = await signedServer(t);
     const good = nativeRequest({ token: TOKEN, hmac: HMAC, t: NOW, samples: [STEP] });
@@ -72,7 +90,7 @@ describe("auth and signatures", () => {
 describe("request handling", () => {
   it("413 above 1,000,000 bytes, GET /health, 404 for other GETs and 405 for other methods", async (t) => {
     const { server } = await signedServer(t);
-    assert.equal((await send(server.port, { headers: { "X-Syncky-Format": "influx" }, body: "x".repeat(1_000_001) })).status, 413);
+    assert.equal((await send(server.port, { headers: { Authorization: `Bearer ${TOKEN}`, "X-Syncky-Format": "influx" }, body: "x".repeat(1_000_001) })).status, 413);
     const health = await send(server.port, { method: "GET", path: "/health" });
     assert.equal(health.status, 200);
     assert.deepEqual(JSON.parse(health.body), { ok: true });
@@ -88,6 +106,16 @@ describe("request handling", () => {
     const bad = "[1,2]";
     assert.equal((await send(server.port, { headers: signed(plain.headers, bad, HMAC, NOW), body: bad })).status, 400);
     assert.equal((await send(server.port, { headers: signed({ ...plain.headers, "X-Syncky-Kind": "results" }, bad, HMAC, NOW), body: bad })).status, 400);
+  });
+
+  it("stores sample ownership from the authenticated envelope", async (t) => {
+    const { dir, server } = await signedServer(t);
+    assert.equal((await data(server.port, { samples: [{ ...STEP, device: "forged-device" }] })).status, 200);
+    const records = lines(join(dir, "samples.jsonl"));
+    assert.equal(records.length, 1);
+    assert.equal(JSON.parse(records[0]).device, JSON.parse(nativeRequest({}).body).device);
+    assert.equal((await data(server.port, { samples: [STEP] })).status, 200);
+    assert.equal(lines(join(dir, "samples.jsonl")).length, 1);
   });
 
   it("stores duplicates once and applies deletions", async (t) => {

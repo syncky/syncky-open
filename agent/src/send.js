@@ -1,6 +1,6 @@
 import Ajv from "ajv/dist/2020.js";
 import { LocalStateError } from "./config.js";
-import { b64uDecode } from "./encoding.js";
+import { b64uDecode, parseTimestamp } from "./encoding.js";
 import { cipherEntries, readHomeState, createCipherFiles, updateHomeState } from "./home-state.js";
 import { parseRawInner } from "./thin-transport.js";
 import { retryHomeLock } from "./thin-lock.js";
@@ -13,16 +13,17 @@ export { normalizeAccessRequest } from './access-scope.js';
 
 function validateAccessRequest(inner) {
   if (inner.type !== "access_request") return;
-  const ttl = Date.parse(inner.expires_at) - Date.parse(inner.created_at);
+  const created = parseTimestamp(inner.created_at), expires = parseTimestamp(inner.expires_at);
+  const ttl = created === null || expires === null ? NaN : expires - created;
   const scope = validateAccessScope(inner, { request: inner });
-  const detail = ttl !== 86400000 ? "ttl" : scope.ok ? null : scope.detail;
+  const detail = !Number.isFinite(ttl) || ttl <= 0 || ttl > 86400000 ? "ttl" : scope.ok ? null : scope.detail;
   if (detail) throw new LocalStateError("schema_invalid", `invalid access request: ${detail}`, { detail, ...(detail === "not_writable" && { types: scope.types }) });
 }
 
 function validateScopeRelease(inner) {
   if (inner.type !== "scope_release") return;
   const detail = scopeReleaseProblem(inner);
-  if (detail) throw new LocalStateError("schema_invalid", `invalid scope release: ${detail}`);
+  if (detail) throw new LocalStateError("schema_invalid", `invalid scope release: ${detail}`, { detail });
 }
 
 export function createLocalValidator(schemas = []) {

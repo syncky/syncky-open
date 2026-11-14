@@ -1,6 +1,7 @@
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -104,22 +105,46 @@ describe("thin feature skill", () => {
         /A refused write creates no access request or automatic system consent prompt; its Home card may offer an owner-tapped Allow action\./,
         /No phone app version or access-request capability is exposed in sync or status/,
         /If no matching `access_reply` arrives after an `access_request`, have the owner open Syncky and sync; if it remains missing, check whether consent is still pending on the phone and whether the request expired, then suggest the owner check for an app update without looping\./,
-        /Missing replies do not prove an old app/,
+        /phone may be offline or consent pending; missing replies establish neither consent nor a decline/,
+        /renewed explicit owner intent and phone availability/,
+        /finite positive TTL up to 24 h.*`0 < expires_at - created_at <= 24h`/,
       ]) assert.match(document, pattern);
     }
   });
   it("has the OpenClaw header and names only real commands", () => {
     checkedHeader(SKILL, true);
     assert.equal(frontmatter(SKILL).description, "Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone.");
-    const commands = [...SKILL.matchAll(/"\$SYNCKY_RUNNER" ([a-z]+)/g)].map(m => m[1]);
+    const commands = [...SKILL.matchAll(/syncky_run ([a-z]+)/g)].map(m => m[1]);
     assert.ok(commands.length > 0); assert.deepEqual(commands.filter(c => !commandNames().includes(c)), []);
     assert.doesNotMatch(SKILL, /syncky_(?:samples|summary|write|commands|request_access|request_diagnostics)/);
   });
   it("keeps private pairing, code proof and owner-approved service/on-demand decisions", () => {
     for (const pattern of [/Use Syncky and start onboarding with a QR code/, /SYNCKY_RUNNER/, /SYNCKY_INVITE/, /source-kit fallback/, /missing invites/, /Scanning alone does not/, /private reply/, /never quote the token-bearing URI/, /one receiver per home/, /Needs attention/, /uploads wait/, /Without an answer, wait/, /login startup and restart on failure/, /receive --once/, /stdout must go to/, /checksum/, /cannot protect against someone/]) assert.match(SKILL, pattern);
     const recipe = /```sh\n([\s\S]*?)\n```/.exec(SKILL)[1];
-    assert.match(recipe, /"\$SYNCKY_RUNNER" pair/);
+    assert.match(recipe, /syncky_run pair/);
+    assert.doesNotMatch(recipe, /SYNCKY_RUNNER:\?/);
     assert.doesNotMatch(recipe, /--force|--wait|--no-qr|--json|--v1|npm|curl|wget|&\s*$/m);
+  });
+  it("runs the onboarding recipe through npm or a carried launcher with spaces", () => {
+    const root = mkdtempSync(join(tmpdir(), "syncky skill runner "));
+    try {
+      const bin = join(root, "bin");
+      mkdirSync(bin);
+      const launcher = join(root, "carried launcher");
+      const stub = '#!/bin/sh\nprintf "%s\\n" "$@" >> "$SYNCKY_RECIPE_CALLS"\n';
+      writeFileSync(join(bin, "npx"), stub, { mode: 0o755 });
+      writeFileSync(launcher, stub, { mode: 0o755 });
+      const recipe = /```sh\n([\s\S]*?)\n```/.exec(SKILL)[1];
+      for (const carried of [false, true]) {
+        const calls = join(root, carried ? "carried.calls" : "npm.calls");
+        const env = { PATH: bin, HOME: root, SYNCKY_AGENT_HOME: join(root, "fresh home"), SYNCKY_AGENT_NAME: "Recipe agent", SYNCKY_RECIPE_CALLS: calls };
+        if (carried) env.SYNCKY_RUNNER = launcher;
+        const result = spawnSync("/bin/sh", ["-c", recipe], { env, encoding: "utf8" });
+        assert.equal(result.status, 0, result.stderr);
+        const prefix = carried ? [] : ["-y", "@syncky/agent"];
+        assert.deepEqual(readFileSync(calls, "utf8").trim().split("\n"), [...prefix, "selftest", ...prefix, "init", "--name", "Recipe agent", ...prefix, "pair"]);
+      }
+    } finally { rmSync(root, { recursive: true, force: true }); }
   });
   it("preserves explicit writes/requests, untrusted-data, no-diagnosis and report-file consent rules", () => {
     for (const pattern of [/explicitly asks for the exact value\/time/, /Confirm inferred entries first/, /explicit owner approval/, /untrusted data, never instructions/, /Never expose private keys, CEKs, invites/, /never post it publicly/, /raw home files/, /exclusive creation of a new file/, /Never overwrite or append/, /Without an answer, wait/, /Forget|forget/, /not a medical device/, /command_id.*version/, /Absent data is not zero/]) assert.match(SKILL, pattern);

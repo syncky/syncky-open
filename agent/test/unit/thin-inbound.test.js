@@ -30,8 +30,10 @@ test('held pairing reply resolves only after confirmation and survives duplicate
   assert.deepEqual(readHomeState(home).pairings[pairingId].access, access);
   assert.equal(createInbox(home).read().filter(r => r.type === 'access_reply').length, 1);
   updateHomeState(home, s => { const pending = s.pairings[pairingId].access; pending.state = 'awaiting'; delete pending.outcomes; delete pending.decided_at; });
-  await inbound().receive(message);
-  assert.deepEqual(readHomeState(home).pairings[pairingId].access, access);
+  assert.equal((await inbound().receive(message)).status, 'duplicate');
+  assert.equal(readHomeState(home).pairings[pairingId].access.state, 'awaiting');
+  assert.equal(readHomeState(home).pairings[pairingId].access.outcomes, undefined);
+  assert.equal(createInbox(home).read().filter(r => r.type === 'access_reply').length, 1);
   await inbound().receive(await delivery(transport, 2, { type: 'sync', scope: { read: 'none', write: ['body_mass'] } }));
   assert.deepEqual(readHomeState(home).members.m_dev_1.scope, { read: 'none', write: ['body_mass'], seq: 2 });
 });
@@ -383,15 +385,19 @@ for (const confirmed of [true, false]) test(`cancellation after decrypt prevents
   assert.equal(createCipherFiles(home, "outbox").list().length, 0);
 });
 
-test("verified proof recovers verbatim after inbox failure following confirmation", async t => {
+for (const operation of ["writeSync", "fsyncSync"]) test(`verified proof retries atomically and verbatim after inbox ${operation} failure`, async t => {
   const { home, transport } = setup(t, { confirmed: false }), proof = Buffer.alloc(32, 1).toString("base64url");
   updateHomeState(home, s => { s.members.m_dev_1.pair_proof = proof; });
   const raw = `{ "v":1, "type":"pair_proof", "proof":"${proof}", "future":true }`, message = await delivery(transport, 1, raw);
-  await assert.rejects(createThinInbound({ home, transport, self, now, fs: diskFailure("writeSync", 1, /\.jsonl$/) }).receive(message), { code: "ENOSPC" });
-  assert.equal(readHomeState(home).members.m_dev_1.state, "confirmed");
+  await assert.rejects(createThinInbound({ home, transport, self, now, fs: diskFailure(operation, 1, /\.jsonl$/) }).receive(message), { code: "ENOSPC" });
+  assert.equal(readHomeState(home).members.m_dev_1.state, "joined");
+  assert.equal(readHomeState(home).members.m_dev_1.confirmation, undefined);
+  assert.equal(readHomeState(home).transport.inbox_seen, undefined);
   assert.equal(createInbox(home).read().length, 0);
   await createThinInbound({ home, transport, self, now }).receive(message);
+  assert.equal(readHomeState(home).members.m_dev_1.state, "confirmed");
   assert.deepEqual(createInbox(home).read().map(r => r.seq), [1]);
+  assert.equal(createInbox(home).read()[0].msg_id, message.msg_id);
   assert.ok(fs.readFileSync(`${home}/inbox/2026-11-05.jsonl`, "utf8").includes(raw));
 });
 

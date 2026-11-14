@@ -1,6 +1,6 @@
 # Security
 
-Please report a vulnerability privately: open this repository's **Security** tab and choose **Report a vulnerability** (GitHub private vulnerability reporting). Do not open a public issue for it.
+Please report a vulnerability privately by email to [privacy@syncky.app](mailto:privacy@syncky.app). Do not open a public issue for it.
 
 In scope: the protocol (schemas, vectors, the rules in `protocol/README.md`), the reference agent, the minimal agent, the minimal server and the own-server template (Worker and Docker) in this repository, and the Syncky relay and app behaviour they describe.
 
