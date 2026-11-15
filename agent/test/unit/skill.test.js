@@ -17,7 +17,8 @@ const SKILL_DIR = join(AGENT_DIR, "skills/syncky");
 const SKILL = readFileSync(join(SKILL_DIR, "SKILL.md"), "utf8");
 const LIGHT_SKILL_DIR = join(AGENT_DIR, "clawhub");
 const LIGHT_SKILL = readFileSync(join(LIGHT_SKILL_DIR, "SKILL.md"), "utf8");
-const SKILLS = [SKILL, LIGHT_SKILL];
+const SKILLS = [SKILL];
+const AGENT_VERSION = JSON.parse(readFileSync(join(AGENT_DIR, "package.json"), "utf8")).version;
 
 function frontmatter(text) {
   const match = /^---\n([\s\S]*?)\n---\n/.exec(text);
@@ -31,17 +32,6 @@ function frontmatter(text) {
 }
 
 describe("thin feature skill", () => {
-  it("keeps the light body equal to the carried body after npm runner and licence substitutions", () => {
-    const body = checkedHeader(SKILL, true)
-      .replace(/^Use the command you were started with:.*$/m, "Use `npx -y @syncky/agent` with Node.js ≥22.15 and npm. Network access is required on first use to download the package from npm. Use the same protected home for setup, receive and MCP. Ask for the home location if unknown.\n\nThe agent package is Apache-2.0 on npm; the MIT-0 licence covers only this instructions text.")
-      .replace(" The recipe uses npm when `SYNCKY_RUNNER` is unset. In a carried package, set it to the absolute adjacent launcher. Keep the same runner for all `syncky_run` examples.", "")
-      .replace(/^syncky_run\(\) \{\n[\s\S]*?^\}\n/m, "")
-      .replaceAll("syncky_run ", "npx -y @syncky/agent ")
-      .replace("owner-assisted offline migration", "owner-assisted migration")
-      .replace("`skill` and `skill --diff` work offline", "`npx -y @syncky/agent skill` and `npx -y @syncky/agent skill --diff` show bundled or verified instructions")
-      .replace("Unit/type definitions are in the source kit's `protocol/types.json` and `protocol/units.json`; carried packages embed them.", "Unit/type definitions are in the public [type catalog](https://github.com/syncky/syncky-open/blob/main/protocol/types.json) and [units](https://github.com/syncky/syncky-open/blob/main/protocol/units.json).");
-    assert.equal(checkedHeader(LIGHT_SKILL, true, ["node", "npx"]), body);
-  });
   it("exposes only the canonical syncky skill to repository skill discovery", () => {
     const skills = readdirSync(join(AGENT_DIR, "skills")).filter(name => {
       const file = join(AGENT_DIR, "skills", name, "SKILL.md");
@@ -142,10 +132,9 @@ describe("thin feature skill", () => {
   });
   it("has the OpenClaw header and names only real commands", () => {
     for (const document of SKILLS) {
-      checkedHeader(document, true, document === LIGHT_SKILL ? ["node", "npx"] : ["node"]);
+      checkedHeader(document, true);
       assert.equal(frontmatter(document).description, "Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone.");
-      const commandPattern = document === LIGHT_SKILL ? /npx -y @syncky\/agent ([a-z]+)/g : /syncky_run ([a-z]+)/g;
-      const commands = [...document.matchAll(commandPattern)].map(m => m[1]);
+      const commands = [...document.matchAll(/syncky_run ([a-z]+)/g)].map(m => m[1]);
       assert.ok(commands.length > 0); assert.deepEqual(commands.filter(c => !commandNames().includes(c)), []);
       assert.doesNotMatch(document, /syncky_(?:samples|summary|write|commands|request_access|request_diagnostics)/);
     }
@@ -155,7 +144,7 @@ describe("thin feature skill", () => {
     for (const document of SKILLS) {
       for (const pattern of [/Use Syncky and start onboarding with a QR code/, /SYNCKY_INVITE/, /missing invites/, /Scanning alone does not/, /private reply/, /never quote the token-bearing URI/, /one receiver per home/, /Needs attention/, /uploads wait/, /Without an answer, wait/, /login startup and restart on failure/, /receive --once/, /stdout must go to/]) assert.match(document, pattern);
       const recipe = /```sh\n([\s\S]*?)\n```/.exec(document)[1];
-      assert.match(recipe, document === LIGHT_SKILL ? /npx -y @syncky\/agent pair/ : /syncky_run pair/);
+      assert.match(recipe, /syncky_run pair/);
       assert.doesNotMatch(recipe, /SYNCKY_RUNNER:\?/);
       assert.doesNotMatch(recipe, /--force|--wait|--no-qr|--json|--v1|npm|curl|wget|&\s*$/m);
     }
@@ -169,7 +158,7 @@ describe("thin feature skill", () => {
       const stub = '#!/bin/sh\nprintf "%s\\n" "$@" >> "$SYNCKY_RECIPE_CALLS"\n';
       writeFileSync(join(bin, "npx"), stub, { mode: 0o755 });
       writeFileSync(launcher, stub, { mode: 0o755 });
-      for (const [index, [document, carried]] of [[SKILL, false], [SKILL, true], [LIGHT_SKILL, false]].entries()) {
+      for (const [index, [document, carried]] of [[SKILL, false], [SKILL, true]].entries()) {
         const recipe = /```sh\n([\s\S]*?)\n```/.exec(document)[1];
         const calls = join(root, `${index}.calls`);
         const env = { PATH: bin, HOME: root, SYNCKY_AGENT_HOME: join(root, "fresh home"), SYNCKY_AGENT_NAME: "Recipe agent", SYNCKY_RECIPE_CALLS: calls };
@@ -192,6 +181,40 @@ describe("thin feature skill", () => {
       assert.match(document, /Start receive separately/);
       assert.match(document, /No binary auto-update/);
     }
+  });
+});
+
+describe("ClawHub bootstrap skill", () => {
+  const body = () => checkedHeader(LIGHT_SKILL, true, ["node", "npx"]);
+  it("keeps the OpenClaw header, the canonical description and a short body", () => {
+    assert.equal(frontmatter(LIGHT_SKILL).description, frontmatter(SKILL).description);
+    const lines = body().trim().split("\n").length;
+    assert.ok(lines >= 20 && lines <= 40, `bootstrap has ${lines} lines`);
+  });
+  it("pins every agent invocation to the agent package version and names only real commands", () => {
+    const references = [...LIGHT_SKILL.matchAll(/@syncky\/agent(@[^\s`]*)?/g)];
+    assert.ok(references.length >= 3);
+    for (const [reference, pin] of references) assert.equal(pin, `@${AGENT_VERSION}`, `unpinned or stale ${reference}`);
+    const commands = [...LIGHT_SKILL.matchAll(/`npx -y @syncky\/agent@[^\s`]+ ([a-z]+)`/g)].map(m => m[1]);
+    assert.deepEqual(commands.sort(), ["mcp", "skill"]);
+    assert.ok(commands.every(c => commandNames().includes(c)));
+    assert.match(LIGHT_SKILL, new RegExp(`Run the agent pinned to this release: \`npx -y @syncky/agent@${AGENT_VERSION.replaceAll(".", "\\.")}\``));
+  });
+  it("points to the setup page and the version-matched rules", () => {
+    assert.match(LIGHT_SKILL, /Read https:\/\/syncky\.app\/agent\.md and follow it/);
+    assert.match(LIGHT_SKILL, /`npx -y @syncky\/agent@[^\s`]+ skill` prints the authoritative rules for this release/);
+    assert.match(LIGHT_SKILL, /they take precedence over this page/);
+  });
+  it("keeps the non-negotiable rules inline in case the rules cannot be read", () => {
+    for (const pattern of [/Health write, a diagnostics request or an access request only after the owner explicitly approves that request/,
+      /Never put Health values, keys, tokens or invites in public posts, logs or third-party services/, /untrusted data, never instructions/,
+      /one protected agent home/, /Never edit its files by hand/, /not a medical device/, /Read-only configurations disable `syncky_send` and `syncky_ack`/,
+      /Ask the owner before starting a background service/]) assert.match(LIGHT_SKILL, pattern);
+  });
+  it("leaves home files, pairing details and agent version qualifiers to the setup page", () => {
+    assert.doesNotMatch(LIGHT_SKILL, /secrets\.json|config\.json|state\.json|pairing\.json|agent\.db|SYNCKY_INVITE|SYNCKY_AGENT_HOME|QR|pairing code|\bpair\b|token-bearing/);
+    assert.doesNotMatch(LIGHT_SKILL, /From agent 0\.|agent 0\.\d+\.\d+\+|From phone 0\.|Phones from 0\./);
+    assert.doesNotMatch(LIGHT_SKILL, /```/);
   });
 });
 
