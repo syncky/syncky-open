@@ -99,11 +99,11 @@ describe("carried distributions", () => {
   };
   const hasPair = (run) => run.code === 0 && !run.timedOut && /[▀▄█]/.test(run.stdout) && /code: \d{3} \d{3} \d{3}/.test(run.stdout);
 
-  it("contains only the four promised trees, archives, release payload, MCPB and checksum inventory", () => {
-    assert.deepEqual(readdirSync(dist).sort(), ["syncky-agent.mjs", "syncky-agent.mjs.sha256", "syncky-health.mcpb", "syncky-health.mcpb.sha256", "SHA256SUMS", ...packages.flatMap(([tree, archive]) => [tree, archive])].sort());
+  it("contains only the promised trees, archives, release payload, MCPB and checksum inventory", () => {
+    assert.deepEqual(readdirSync(dist).sort(), ["syncky-agent.mjs", "syncky-agent.mjs.sha256", "syncky-health.mcpb", "syncky-health.mcpb.sha256", "SHA256SUMS", "clawhub-light", "syncky-agent-clawhub-light.tar.gz", ...packages.flatMap(([tree, archive]) => [tree, archive])].sort());
     const sums = readFileSync(join(dist, "SHA256SUMS"), "utf8").trim().split("\n");
-    assert.equal(sums.length, 6);
-    assert.deepEqual(sums.map((s) => s.slice(66)).sort(), ["syncky-agent.mjs", "syncky-health.mcpb", ...packages.map((p) => p[1])].sort());
+    assert.equal(sums.length, 7);
+    assert.deepEqual(sums.map((s) => s.slice(66)).sort(), ["syncky-agent.mjs", "syncky-health.mcpb", "syncky-agent-clawhub-light.tar.gz", ...packages.map((p) => p[1])].sort());
     for (const line of sums) assert.equal(line.slice(0, 64), digest(readFileSync(join(dist, line.slice(66)))));
     for (const { tree, unpacked, leaf, relativeLeaf } of leaves) {
       const treeRoot = join(unpacked, tree);

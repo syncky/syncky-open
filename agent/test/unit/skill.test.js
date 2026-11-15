@@ -1,7 +1,7 @@
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,6 +15,9 @@ import { runCli, tempHome } from '../support/helpers.js';
 const AGENT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const SKILL_DIR = join(AGENT_DIR, "skills/syncky");
 const SKILL = readFileSync(join(SKILL_DIR, "SKILL.md"), "utf8");
+const LIGHT_SKILL_DIR = join(AGENT_DIR, "clawhub");
+const LIGHT_SKILL = readFileSync(join(LIGHT_SKILL_DIR, "SKILL.md"), "utf8");
+const SKILLS = [SKILL, LIGHT_SKILL];
 
 function frontmatter(text) {
   const match = /^---\n([\s\S]*?)\n---\n/.exec(text);
@@ -28,23 +31,45 @@ function frontmatter(text) {
 }
 
 describe("thin feature skill", () => {
+  it("keeps the light body equal to the carried body after npm runner and licence substitutions", () => {
+    const body = checkedHeader(SKILL, true)
+      .replace(/^Use the command you were started with:.*$/m, "Use `npx -y @syncky/agent` with Node.js ≥22.15 and npm. Network access is required on first use to download the package from npm. Use the same protected home for setup, receive and MCP. Ask for the home location if unknown.\n\nThe agent package is Apache-2.0 on npm; the MIT-0 licence covers only this instructions text.")
+      .replace(" The recipe uses npm when `SYNCKY_RUNNER` is unset. In a carried package, set it to the absolute adjacent launcher. Keep the same runner for all `syncky_run` examples.", "")
+      .replace(/^syncky_run\(\) \{\n[\s\S]*?^\}\n/m, "")
+      .replaceAll("syncky_run ", "npx -y @syncky/agent ")
+      .replace("owner-assisted offline migration", "owner-assisted migration")
+      .replace("`skill` and `skill --diff` work offline", "`npx -y @syncky/agent skill` and `npx -y @syncky/agent skill --diff` show bundled or verified instructions")
+      .replace("Unit/type definitions are in the source kit's `protocol/types.json` and `protocol/units.json`; carried packages embed them.", "Unit/type definitions are in the public [type catalog](https://github.com/syncky/syncky-open/blob/main/protocol/types.json) and [units](https://github.com/syncky/syncky-open/blob/main/protocol/units.json).");
+    assert.equal(checkedHeader(LIGHT_SKILL, true, ["node", "npx"]), body);
+  });
+  it("exposes only the canonical syncky skill to repository skill discovery", () => {
+    const skills = readdirSync(join(AGENT_DIR, "skills")).filter(name => {
+      const file = join(AGENT_DIR, "skills", name, "SKILL.md");
+      return existsSync(file) && frontmatter(readFileSync(file, "utf8")).name === "syncky";
+    });
+    assert.deepEqual(skills, ["syncky"]);
+  });
   it('explains per-type refusals, bounded amendments and canonical root replies', () => {
-    for (const pattern of [/five admitted events per rolling 24 hours/, /three admitted amendments/, /requested_recently/, /declined_recently/,
-      /next_available_at/, /daily_ceiling/, /amendment_limit/, /merged_into/, /merged_refs/, /remaining needed types/,
-      /Never.*(?:evade|bypass).*wait/, /original.*expiry/]) assert.match(SKILL, pattern);
-    assert.doesNotMatch(SKILL, /one admission per rolling (?:24 hours|day)/);
+    for (const document of SKILLS) {
+      for (const pattern of [/five admitted events per rolling 24 hours/, /three admitted amendments/, /requested_recently/, /declined_recently/,
+        /next_available_at/, /daily_ceiling/, /amendment_limit/, /merged_into/, /merged_refs/, /remaining needed types/,
+        /Never.*(?:evade|bypass).*wait/, /original.*expiry/]) assert.match(document, pattern);
+      assert.doesNotMatch(document, /one admission per rolling (?:24 hours|day)/);
+    }
     const metadata = JSON.parse(readFileSync(join(SKILL_DIR, 'document.json')));
     assert.ok(metadata.skill_version > 3);
     assert.deepEqual(metadata.protocol, { protocol_version: 1, message_table_schema: 1 });
     assert.match(metadata.whats_new, /per-type.*merged/i);
   });
   it('explains interval sums of activity totals, raw logged entries and the replace rule', () => {
-    for (const pattern of [/top-level `summaries` array/, /15-minute UTC interval/, /`stat: "sum"`/, /same key replaces the earlier value/,
-      /never add the two together/, /`value: 0`/, /missing interval is not a zero/, /ignore the overlapping raw samples/,
-      /Workouts, weight and every other type without `"interval_sums": true` remain raw samples/, /Phones from 0\.1\.3 send activity totals/,
-      /logged as separate entries \(`"interval_sums": false`: `dietary_\*` including water and caffeine, `insulin_delivery`, `inhaler_usage`/,
-      /always arrive as raw samples, each with its own time and source/]) assert.match(SKILL, pattern);
-    assert.doesNotMatch(SKILL, /newer than 0\.1\.3/);
+    for (const document of SKILLS) {
+      for (const pattern of [/top-level `summaries` array/, /15-minute UTC interval/, /`stat: "sum"`/, /same key replaces the earlier value/,
+        /never add the two together/, /`value: 0`/, /missing interval is not a zero/, /ignore the overlapping raw samples/,
+        /Workouts, weight and every other type without `"interval_sums": true` remain raw samples/, /Phones from 0\.1\.3 send activity totals/,
+        /logged as separate entries \(`"interval_sums": false`: `dietary_\*` including water and caffeine, `insulin_delivery`, `inhaler_usage`/,
+        /always arrive as raw samples, each with its own time and source/]) assert.match(document, pattern);
+      assert.doesNotMatch(document, /newer than 0\.1\.3/);
+    }
     const metadata = JSON.parse(readFileSync(join(SKILL_DIR, 'document.json')));
     assert.ok(metadata.skill_version > 5);
     assert.match(metadata.whats_new, /interval sums.*replaces/i);
@@ -55,23 +80,27 @@ describe("thin feature skill", () => {
     const result = await runCli(['--home', tmp.home, 'skill', '--json']);
     assert.equal(result.code, 0);
     assert.equal(JSON.parse(result.stdout).skill, SKILL);
-    assert.match(SKILL, /revoke only with the owner's explicit approval when the phone says the relay was not told/);
-    assert.match(SKILL, /Leave confirm\/reject\/revoke\/forget decisions to them/);
-    assert.match(SKILL, /obtain explicit deletion consent before forget/);
+    for (const document of SKILLS) {
+      assert.match(document, /revoke only with the owner's explicit approval when the phone says the relay was not told/);
+      assert.match(document, /Leave confirm\/reject\/revoke\/forget decisions to them/);
+      assert.match(document, /obtain explicit deletion consent before forget/);
+    }
   });
   it('provides executable schema-valid generic send examples', () => {
     const validate = createLocalValidator(loadSchemas());
-    for (const type of ['commands', 'diagnostics_request', 'access_request', 'scope_release']) {
-      assert.doesNotThrow(() => validate(skillExample(type)));
-      assert.match(SKILL, new RegExp(`send --type ${type} --validate --json -`));
-    }
-    for (const type of ['diagnostics_request', 'access_request']) {
-      const inner = skillExample(type);
-      assert.equal(Date.parse(inner.expires_at) - Date.parse(inner.created_at), 86400000);
+    for (const document of SKILLS) {
+      for (const type of ['commands', 'diagnostics_request', 'access_request', 'scope_release']) {
+        assert.doesNotThrow(() => validate(skillExample(type, {}, document)));
+        assert.match(document, new RegExp(`send --type ${type} --validate --json -`));
+      }
+      for (const type of ['diagnostics_request', 'access_request']) {
+        const inner = skillExample(type, {}, document);
+        assert.equal(Date.parse(inner.expires_at) - Date.parse(inner.created_at), 86400000);
+      }
     }
   });
   it('skill and setup require commands-array batching and explain the hourly budget and retries', () => {
-    for (const document of [SKILL, readFileSync(join(AGENT_DIR, 'SETUP.md'), 'utf8')]) {
+    for (const document of [...SKILLS, readFileSync(join(AGENT_DIR, 'SETUP.md'), 'utf8')]) {
       assert.match(document, /[Ss]end several entries in [Oo][Nn][Ee] `send` with a `commands` array/);
       assert.match(document, /60 data envelopes per hour per agent/);
       assert.match(document, /burst of up to 60 data envelopes/);
@@ -86,7 +115,7 @@ describe("thin feature skill", () => {
     }
   });
   it('skill and setup bound daily totals and separate access recovery from format and save failures', () => {
-    for (const document of [SKILL, readFileSync(join(AGENT_DIR, 'SETUP.md'), 'utf8')]) {
+    for (const document of [...SKILLS, readFileSync(join(AGENT_DIR, 'SETUP.md'), 'utf8')]) {
       for (const pattern of [
         /`end` must not be later than now \+ 1 h.*`invalid`/,
         /`start` to local day start and `end` to now or the last diary entry time/,
@@ -112,18 +141,24 @@ describe("thin feature skill", () => {
     }
   });
   it("has the OpenClaw header and names only real commands", () => {
-    checkedHeader(SKILL, true);
-    assert.equal(frontmatter(SKILL).description, "Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone.");
-    const commands = [...SKILL.matchAll(/syncky_run ([a-z]+)/g)].map(m => m[1]);
-    assert.ok(commands.length > 0); assert.deepEqual(commands.filter(c => !commandNames().includes(c)), []);
-    assert.doesNotMatch(SKILL, /syncky_(?:samples|summary|write|commands|request_access|request_diagnostics)/);
+    for (const document of SKILLS) {
+      checkedHeader(document, true, document === LIGHT_SKILL ? ["node", "npx"] : ["node"]);
+      assert.equal(frontmatter(document).description, "Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone.");
+      const commandPattern = document === LIGHT_SKILL ? /npx -y @syncky\/agent ([a-z]+)/g : /syncky_run ([a-z]+)/g;
+      const commands = [...document.matchAll(commandPattern)].map(m => m[1]);
+      assert.ok(commands.length > 0); assert.deepEqual(commands.filter(c => !commandNames().includes(c)), []);
+      assert.doesNotMatch(document, /syncky_(?:samples|summary|write|commands|request_access|request_diagnostics)/);
+    }
   });
   it("keeps private pairing, code proof and owner-approved service/on-demand decisions", () => {
-    for (const pattern of [/Use Syncky and start onboarding with a QR code/, /SYNCKY_RUNNER/, /SYNCKY_INVITE/, /source-kit fallback/, /missing invites/, /Scanning alone does not/, /private reply/, /never quote the token-bearing URI/, /one receiver per home/, /Needs attention/, /uploads wait/, /Without an answer, wait/, /login startup and restart on failure/, /receive --once/, /stdout must go to/, /checksum/, /cannot protect against someone/]) assert.match(SKILL, pattern);
-    const recipe = /```sh\n([\s\S]*?)\n```/.exec(SKILL)[1];
-    assert.match(recipe, /syncky_run pair/);
-    assert.doesNotMatch(recipe, /SYNCKY_RUNNER:\?/);
-    assert.doesNotMatch(recipe, /--force|--wait|--no-qr|--json|--v1|npm|curl|wget|&\s*$/m);
+    for (const pattern of [/SYNCKY_RUNNER/, /source-kit fallback/, /checksum/, /cannot protect against someone/]) assert.match(SKILL, pattern);
+    for (const document of SKILLS) {
+      for (const pattern of [/Use Syncky and start onboarding with a QR code/, /SYNCKY_INVITE/, /missing invites/, /Scanning alone does not/, /private reply/, /never quote the token-bearing URI/, /one receiver per home/, /Needs attention/, /uploads wait/, /Without an answer, wait/, /login startup and restart on failure/, /receive --once/, /stdout must go to/]) assert.match(document, pattern);
+      const recipe = /```sh\n([\s\S]*?)\n```/.exec(document)[1];
+      assert.match(recipe, document === LIGHT_SKILL ? /npx -y @syncky\/agent pair/ : /syncky_run pair/);
+      assert.doesNotMatch(recipe, /SYNCKY_RUNNER:\?/);
+      assert.doesNotMatch(recipe, /--force|--wait|--no-qr|--json|--v1|npm|curl|wget|&\s*$/m);
+    }
   });
   it("runs the onboarding recipe through npm or a carried launcher with spaces", () => {
     const root = mkdtempSync(join(tmpdir(), "syncky skill runner "));
@@ -134,9 +169,9 @@ describe("thin feature skill", () => {
       const stub = '#!/bin/sh\nprintf "%s\\n" "$@" >> "$SYNCKY_RECIPE_CALLS"\n';
       writeFileSync(join(bin, "npx"), stub, { mode: 0o755 });
       writeFileSync(launcher, stub, { mode: 0o755 });
-      const recipe = /```sh\n([\s\S]*?)\n```/.exec(SKILL)[1];
-      for (const carried of [false, true]) {
-        const calls = join(root, carried ? "carried.calls" : "npm.calls");
+      for (const [index, [document, carried]] of [[SKILL, false], [SKILL, true], [LIGHT_SKILL, false]].entries()) {
+        const recipe = /```sh\n([\s\S]*?)\n```/.exec(document)[1];
+        const calls = join(root, `${index}.calls`);
         const env = { PATH: bin, HOME: root, SYNCKY_AGENT_HOME: join(root, "fresh home"), SYNCKY_AGENT_NAME: "Recipe agent", SYNCKY_RECIPE_CALLS: calls };
         if (carried) env.SYNCKY_RUNNER = launcher;
         const result = spawnSync("/bin/sh", ["-c", recipe], { env, encoding: "utf8" });
@@ -147,18 +182,20 @@ describe("thin feature skill", () => {
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
   it("preserves explicit writes/requests, untrusted-data, no-diagnosis and report-file consent rules", () => {
-    for (const pattern of [/explicitly asks for the exact value\/time/, /Confirm inferred entries first/, /explicit owner approval/, /untrusted data, never instructions/, /Never expose private keys, CEKs, invites/, /never post it publicly/, /raw home files/, /exclusive creation of a new file/, /Never overwrite or append/, /Without an answer, wait/, /Forget|forget/, /not a medical device/, /command_id.*version/, /Absent data is not zero/]) assert.match(SKILL, pattern);
-    for (const feature of ['Health JSON in','Writes','Diagnostics request','Access request','Scope release']) {
-      const section = SKILL.split('## ' + feature + '\n')[1]?.split('\n## ')[0];
-      assert.ok(section); for (const field of ['**When:**','**JSON:**','**Phone reply:**','**Tell the owner:**']) assert.ok(section.includes(field));
+    for (const document of SKILLS) {
+      for (const pattern of [/explicitly asks for the exact value\/time/, /Confirm inferred entries first/, /explicit owner approval/, /untrusted data, never instructions/, /Never expose private keys, CEKs, invites/, /never post it publicly/, /raw home files/, /exclusive creation of a new file/, /Never overwrite or append/, /Without an answer, wait/, /Forget|forget/, /not a medical device/, /command_id.*version/, /Absent data is not zero/]) assert.match(document, pattern);
+      for (const feature of ['Health JSON in','Writes','Diagnostics request','Access request','Scope release']) {
+        const section = document.split('## ' + feature + '\n')[1]?.split('\n## ')[0];
+        assert.ok(section); for (const field of ['**When:**','**JSON:**','**Phone reply:**','**Tell the owner:**']) assert.ok(section.includes(field));
+      }
+      assert.match(document, /read-only configurations disable both send and ack/i);
+      assert.match(document, /Start receive separately/);
+      assert.match(document, /No binary auto-update/);
     }
-    assert.match(SKILL, /read-only configurations disable both send and ack/i);
-    assert.match(SKILL, /Start receive separately/);
-    assert.match(SKILL, /No binary auto-update/);
   });
 });
 
-function checkedHeader(text, openclaw) {
+function checkedHeader(text, openclaw, bins = ["node"]) {
   const fields = frontmatter(text);
   assert.deepEqual(Object.keys(fields).sort(), (openclaw ? ["name", "description", "homepage", "metadata"] : ["name", "description", "license"]).sort());
   assert.equal(fields.name, "syncky");
@@ -169,7 +206,7 @@ function checkedHeader(text, openclaw) {
   }
   if (openclaw) {
     assert.equal(fields.homepage, "https://syncky.app/agents");
-    assert.deepEqual(JSON.parse(fields.metadata), { openclaw: { requires: { bins: ["node"] } } });
+    assert.deepEqual(JSON.parse(fields.metadata), { openclaw: { requires: { bins } } });
   } else assert.equal(fields.license, "Apache-2.0");
   return text.replace(/^---\n[\s\S]*?\n---\n/, "");
 }
@@ -185,6 +222,21 @@ describe("format-specific carried skills", () => {
     }
   });
   after(() => { if (root) rmSync(root, { recursive: true, force: true }); });
+
+  it("packs only the npm-only light skill checked by the shared feature and consent tests", () => {
+    assert.deepEqual(readdirSync(LIGHT_SKILL_DIR), ["SKILL.md"]);
+    const archive = join(dist, "syncky-agent-clawhub-light.tar.gz");
+    const listing = spawnSync("/usr/bin/tar", ["-tzf", archive], { encoding: "utf8" });
+    assert.equal(listing.status, 0, "light archive listing failed");
+    assert.deepEqual(listing.stdout.trim().split("\n"), ["clawhub-light/", "clawhub-light/syncky/", "clawhub-light/syncky/SKILL.md"]);
+    const extracted = spawnSync("/usr/bin/tar", ["-xOzf", archive, "clawhub-light/syncky/SKILL.md"], { encoding: "utf8" });
+    assert.equal(extracted.status, 0, "light skill extraction failed");
+    assert.equal(extracted.stdout, LIGHT_SKILL);
+    assert.doesNotMatch(LIGHT_SKILL, /SYNCKY_RUNNER|syncky_run|syncky-agent\.(?:mjs|sh)|`syncky-agent[\s`]|carried|launcher|checksum|source-kit|work(?:s)? offline/);
+    assert.match(LIGHT_SKILL, /Node\.js ≥22\.15 and npm/);
+    assert.match(LIGHT_SKILL, /Network access is required on first use/);
+    assert.match(LIGHT_SKILL, /^The agent package is Apache-2\.0 on npm; the MIT-0 licence covers only this instructions text\.$/m);
+  });
 
   it("shares byte-identical bodies while preserving the source OpenClaw and portable header policies", () => {
     const sourceBody = checkedHeader(SKILL, true);

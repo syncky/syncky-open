@@ -161,6 +161,13 @@ async function distributions(outdir, payload, hash, notices) {
     await writePayload(archivePath, await archiveTree(outdir, tree));
     sums.push(`${createHash("sha256").update(await readFile(archivePath)).digest("hex")}  ${name}`);
   }
+  const lightTree = "clawhub-light";
+  await rm(join(outdir, lightTree), { recursive: true, force: true });
+  await writePayload(join(outdir, lightTree, "syncky/SKILL.md"), await readFile(join(ROOT, "clawhub/SKILL.md")));
+  const lightName = "syncky-agent-clawhub-light.tar.gz";
+  const lightArchive = await archiveTree(outdir, lightTree);
+  await writePayload(join(outdir, lightName), lightArchive);
+  sums.push(`${createHash("sha256").update(lightArchive).digest("hex")}  ${lightName}`);
   await writePayload(join(outdir, "SHA256SUMS"), `${sums.join("\n")}\n`);
 }
 

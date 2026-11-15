@@ -103,7 +103,7 @@ describe("release bundle", () => {
   });
 
   it("emits one ESM and its correct SHA-256 alongside the distribution packages, with the build-time version", () => {
-    assert.deepEqual(readdirSync(dirname(result.bundlePath)).sort(), ["SHA256SUMS", "agent-skills", "claude-code", "clawhub", "codex", "syncky-agent-claude-code.tar.gz", "syncky-agent-clawhub.tar.gz", "syncky-agent-codex.tar.gz", "syncky-agent-skills.tar.gz", "syncky-agent.mjs", "syncky-agent.mjs.sha256", "syncky-health.mcpb", "syncky-health.mcpb.sha256"].sort());
+    assert.deepEqual(readdirSync(dirname(result.bundlePath)).sort(), ["SHA256SUMS", "agent-skills", "claude-code", "clawhub", "clawhub-light", "codex", "syncky-agent-claude-code.tar.gz", "syncky-agent-clawhub.tar.gz", "syncky-agent-clawhub-light.tar.gz", "syncky-agent-codex.tar.gz", "syncky-agent-skills.tar.gz", "syncky-agent.mjs", "syncky-agent.mjs.sha256", "syncky-health.mcpb", "syncky-health.mcpb.sha256"].sort());
     const hash = digest(readFileSync(result.bundlePath));
     assert.equal(result.hash, hash);
     assert.equal(readFileSync(`${result.bundlePath}.sha256`, "utf8"), `${hash}  syncky-agent.mjs\n`);

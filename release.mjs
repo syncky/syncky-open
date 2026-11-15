@@ -11,7 +11,7 @@ const ROOT = fileURLToPath(new URL("./", import.meta.url));
 export const MCP_PUBLISHER = Object.freeze({ version: "v1.8.7", asset: "mcp-publisher_linux_amd64.tar.gz",
   checksums: "registry_1.8.7_checksums.txt", sha256: "00b21004149a4ce66f0782508ae4a2bce67d1bea395a8da0bd8028159fb59579" });
 export const ASSETS = ["syncky-agent.mjs", "syncky-agent.mjs.sha256", "syncky-health.mcpb", "syncky-health.mcpb.sha256", "SHA256SUMS", "server.json",
-  ...["claude-code", "codex", "clawhub", "skills"].map((name) => `syncky-agent-${name}.tar.gz`)].sort();
+  ...["claude-code", "codex", "clawhub", "clawhub-light", "skills"].map((name) => `syncky-agent-${name}.tar.gz`)].sort();
 const INVENTORY = ["LICENSE", "NOTICE", "README.md", "dist/syncky-agent.mjs", "dist/syncky-agent.mjs.sha256", "package.json"].map((name) => `package/${name}`).sort();
 const digest = (path) => sha256(readFileSync(path));
 const execute = (command, args, cwd, stdio = ["ignore", "pipe", "pipe"], encoding = "utf8") => {

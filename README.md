@@ -99,6 +99,8 @@ Review the installation confirmation, then restart the Gemini CLI session; exten
 
 Other skill-capable agents can use the root `SKILL.md`. The plugin's `plugins/syncky/skills/syncky/SKILL.md` has the same instructions. These repository skills use npm; they do not carry an executable. For hosts without npm access, the release's four carried skill archives include a local launcher and bundle. Their carried Claude Code MCP registration uses the local bundle offline; the repository plugin uses npm.
 
+The additional `syncky-agent-clawhub-light.tar.gz` is for ClawHub publication only and contains only [the ClawHub instructions](agent/clawhub/SKILL.md), unpacked at `clawhub-light/syncky/SKILL.md`. It uses `npx -y @syncky/agent` with Node.js ≥22.15 and npm, requiring network access on first use. The agent package is Apache-2.0 on npm; the MIT-0 licence covers only this instructions text.
+
 MCPB is the alternative: download `syncky-health.mcpb`, its `.sha256` sidecar and `SHA256SUMS` from the matching [GitHub release](https://github.com/syncky/syncky-open/releases), check the digest and import the bundle into a compatible client. Node ≥22.15 is still required. A checksum detects damage; it does not authenticate a compromised release. The same release also carries the standalone bundle and its sidecar.
 
 ## Registry and release preparation

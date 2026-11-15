@@ -18,7 +18,7 @@ const description = "Give your AI agent Apple Health data you pick, end-to-end e
 const registryDescription = "Apple Health data, end-to-end encrypted between iPhone and local Syncky agent, allowed write-back";
 const offline = { npm_config_offline: "true", npm_config_audit: "false", npm_config_fund: "false", npm_config_update_notifier: "false" };
 const assets = ["syncky-agent.mjs", "syncky-agent.mjs.sha256", "syncky-health.mcpb", "syncky-health.mcpb.sha256", "SHA256SUMS", "server.json",
-  ...["claude-code", "codex", "clawhub", "skills"].map((name) => `syncky-agent-${name}.tar.gz`)].sort();
+  ...["claude-code", "codex", "clawhub", "clawhub-light", "skills"].map((name) => `syncky-agent-${name}.tar.gz`)].sort();
 
 function run(args, cwd, env = {}) {
   return spawnSync(process.execPath, args, { cwd, env: { ...process.env, ...offline, ...env }, encoding: "utf8", timeout: 120_000, maxBuffer: 4 * 1024 * 1024 });
