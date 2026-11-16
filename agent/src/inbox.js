@@ -1,6 +1,6 @@
 import nodeFs from "node:fs";
 import { join } from "node:path";
-import { addIndexRecord, extendIndex, fileIndex, indexPath, rawLines, replaceInboxFile, sameSignature, saveIndex, scanLimit, signature } from "./inbox-io.js";
+import { addIndexRecord, changedDuringRead, extendIndex, fileIndex, indexPath, rawLines, replacedSince, replaceInboxFile, sameSignature, saveIndex, scanLimit, signature } from "./inbox-io.js";
 import { LocalStateError } from "./config.js";
 import { isB64u } from "./encoding.js";
 import { isMemberId, isUuidV7 } from "./ids.js";
@@ -102,7 +102,12 @@ export function admissionInboxSequence(home, record, { view, ...options }) {
   }
   return checkInboxSequence(record, view.match ? [view.match] : []);
 }
-function* fileLines(home, name, index, { fs = nodeFs, afterSeq = -1, seq, budget, snapshot = false } = {}) {
+function* fileLines(home, name, index, options = {}) {
+  const file = index.file;
+  try { yield* indexedFileLines(home, name, index, options); }
+  catch (error) { throw changedDuringRead(error, join(home, "inbox", name), file, options); }
+}
+function* indexedFileLines(home, name, index, { fs = nodeFs, afterSeq = -1, seq, budget, snapshot = false } = {}) {
   for (const block of index.blocks) {
     if (block.last <= afterSeq || (seq !== undefined && (seq < block.minSeq || seq > block.maxSeq))) continue;
     for (const line of rawLines(join(home, "inbox", name), { fs, start: block.start, end: block.end, budget, expected: index.file })) {
@@ -117,7 +122,8 @@ function* fileLines(home, name, index, { fs = nodeFs, afterSeq = -1, seq, budget
 }
 export function* iterateInbox(home, { fs = nodeFs, afterSeq = -1, since, until, budget, snapshot = false, seq, view, refresh = true } = {}) {
   const startDay = since ? new Date(Date.parse(since)).toISOString().slice(0, 10) : "", endDay = until ? new Date(Date.parse(until)).toISOString().slice(0, 10) : "9999";
-  const streams = [];
+  const streams = [], checks = [];
+  let failed = false;
   try {
     if (view && refresh) refreshInboxAdmission(home, view, { fs });
     const names = view ? [...view.indexes].map(([name, index]) => ({ name, index }))
@@ -126,9 +132,10 @@ export function* iterateInbox(home, { fs = nodeFs, afterSeq = -1, since, until, 
       if (!view && !stat) continue;
       if (name.slice(0, 10) < startDay || name.slice(0, 10) > endDay) continue;
       let index;
-      try { index = saved ?? fileIndex(home, name, decode, { fs, snapshot, stat, lazy: !!budget }); }
+      try { index = saved ?? fileIndex(home, name, decode, { fs, snapshot, stat, lazy: !!budget, budget }); }
       catch (error) { if (snapshot && error.code === "ENOENT") continue; throw error; }
       if (!index.pending && !index.blocks.some(b => b.last > afterSeq && (seq === undefined || seq >= b.minSeq && seq <= b.maxSeq))) continue;
+      if (snapshot) checks.push({ path: join(home, "inbox", name), file: index.file, verified: { end: index.end, head: index.head, tail: index.tail } });
       const iterator = fileLines(home, name, index, { fs, afterSeq, seq, budget, snapshot });
       streams.push({ iterator, lower: index.blocks.find(b => b.last > afterSeq)?.first ?? afterSeq + 1 });
     }
@@ -141,7 +148,12 @@ export function* iterateInbox(home, { fs = nodeFs, afterSeq = -1, since, until, 
       catch (error) { if (snapshot && error.code === "ENOENT") { streams.shift(); continue; } throw error; }
       if (next.done) streams.shift(); else stream.head = next.value;
     }
-  } finally { for (const s of streams) s.iterator.return(); }
+  } catch (error) { failed = true; throw error; }
+  finally {
+    for (const s of streams) s.iterator.return();
+    // An unlocked reader can meet a day file replaced under the same inode after its edge check.
+    if (!failed && checks.some(c => replacedSince(c.path, c.verified, c.file, { fs }))) throw new LocalStateError("home_locked", "inbox snapshot changed");
+  }
 }
 export function inboxLines(home, options = {}) {
   for (let attempt = 0; ; attempt++) {
@@ -266,7 +278,7 @@ export function appendInboxLocked(home, record, { fs = nodeFs, innerText, view }
       writeAll(appendFd, bytes, options); fs.fsyncSync(appendFd); syncDirectory(join(home, "inbox"), options);
     } finally { fs.closeSync(appendFd); }
   }
-  addIndexRecord(index, { offset: index.end, end: index.end + bytes.length, record: { ...record, cursor } });
+  addIndexRecord(index, { raw: bytes, offset: index.end, end: index.end + bytes.length, record: { ...record, cursor } });
   const st = privateStat(path, { fs });
   index.file = signature(st);
   saveIndex(home, name, index, options);

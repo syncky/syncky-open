@@ -38,6 +38,9 @@ function seed(home) {
   for (const [i, day] of days.entries()) createInbox(home).append(row(i + 1, day));
   updateHomeState(home, s => { s.transport.inbox_committed_cursor = 3; });
 }
+const inodeAliases = new Map();
+const aliasStat = (op, st) => ['lstatSync', 'statSync', 'fstatSync'].includes(op) && inodeAliases.has(st.ino)
+  ? Object.assign(Object.create(Object.getPrototypeOf(st)), st, { ino: inodeAliases.get(st.ino) }) : st;
 function trace(home, hook = () => {}, work = measured.work) {
   const paths = new Map(), transactions = [], standalone = [], calls = {};
   let armed = false, active;
@@ -79,7 +82,7 @@ function trace(home, hook = () => {}, work = measured.work) {
           const count = target.readSync(...args); active.bytes += count; return count;
         }
       }
-      return target[op](...args);
+      return aliasStat(op, target[op](...args));
     };
   } });
   return { fs: io, transactions, standalone, calls, arm() { armed = true; active = undefined; }, disarm() { armed = false; active = standalone[0]; } };
@@ -194,6 +197,11 @@ const mutations = [
     const path = join(home, 'inbox', days[2] + '.jsonl'); fs.renameSync(path, path + '.old');
     fs.unlinkSync(path + '.old'); put(home, row(80, days[2], { cursor: 80 }));
   }, high: 80, affected: days[2] },
+  { name: 'target replacement reusing the inode', change(home) {
+    const path = join(home, 'inbox', days[2] + '.jsonl'), old = fs.statSync(path), replacement = JSON.stringify(row(80, days[2], { cursor: 80 })) + '\n';
+    assert.ok(replacement.length > old.size);
+    fs.unlinkSync(path); put(home, row(80, days[2], { cursor: 80 })); inodeAliases.set(fs.statSync(path).ino, old.ino);
+  }, high: 80, affected: days[2] },
   { name: 'target creation', day: '2026-11-06', change(home) { put(home, row(80, '2026-11-06', { cursor: 80 })); }, high: 80 },
   { name: 'other day creation', change(home) { put(home, row(80, '2026-11-02', { cursor: 80 })); }, high: 80 },
   { name: 'other day removal', change(home) { fs.unlinkSync(join(home, 'inbox', days[0] + '.jsonl')); }, high: 3 },
@@ -203,6 +211,7 @@ for (const phase of ['lookup', 'append', 'target']) for (const mutation of mutat
   if (phase === 'target' && mutation.name.startsWith('other day')) continue;
   test(`${mutation.name} at ${phase} refreshes only affected indexes and cursor maxima`, async t => {
     const { home, transport } = setup(t); seed(home); let fired = false;
+    t.after(() => inodeAliases.clear());
     const spy = trace(home, (op, path, active) => {
       if (!active || fired) return;
       if (phase === 'lookup' && op === 'work' && path === 'findInboxSequence'
