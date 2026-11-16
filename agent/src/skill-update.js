@@ -6,6 +6,8 @@ import { MAX_ENVELOPE_BYTES, parseDocumentJSON, productionSkillTrust, validateSk
 import { createThinTransport } from './thin-transport.js';
 import { atomicPrivateWrite, privateStat, readPrivateFile, withHomeLock } from './protected-files.js';
 import { retryHomeLock } from './thin-lock.js';
+import { PRODUCTION_RELAY_URL } from './config.js';
+import { pairingSite } from './url-scheme.js';
 
 export const SKILL_UPDATE_ERROR_CODES = ['skill_url_invalid', 'skill_fetch_failed', 'skill_fetch_timeout', 'skill_response_invalid', 'skill_version_mismatch', 'skill_downgrade', 'skill_version_conflict', 'skill_state_invalid', 'skill_write_failed'];
 const failure = code => Object.assign(new Error(code), { code });
@@ -15,12 +17,12 @@ const bootstrapPayload = Buffer.from(parseDocumentJSON(bootstrapBytes, MAX_ENVEL
 const MAX_STATE_BYTES = MAX_ENVELOPE_BYTES * 3;
 const MAX_CACHE_BYTES = 8192;
 
-function checkedURL(raw) {
+function checkedURL(raw, origin) {
   try {
     if (typeof raw !== 'string' || raw.length > 2048 || /[\s\\\p{Cc}\p{Cf}\p{Cs}]/u.test(raw)
-      || !/^https:\/\/(?:syncky\.app|dev\.syncky\.app)(?::443)?(?:[/?]|$)/.test(raw)) throw new Error();
+      || ![origin, `${origin}:443`].some(base => raw === base || raw.startsWith(`${base}/`) || raw.startsWith(`${base}?`))) throw new Error();
     const url = new URL(raw);
-    if (url.protocol !== 'https:' || !['syncky.app', 'dev.syncky.app'].includes(url.hostname) || url.port || url.username || url.password || url.hash) throw new Error();
+    if (url.protocol !== 'https:' || url.origin !== origin || url.port || url.username || url.password || url.hash) throw new Error();
     return raw;
   } catch { throw failure('skill_url_invalid'); }
 }
@@ -52,7 +54,8 @@ function requireBootstrapCapabilities() {
   bootstrapChecked = true;
 }
 
-export function createSkillUpdater({ home, trust = productionSkillTrust, fetch = globalThis.fetch, now = Date.now, timeoutMs = 15000, fs: io = fs, maxAttempts = 5 } = {}) {
+export function createSkillUpdater({ home, trust = productionSkillTrust, fetch = globalThis.fetch, now = Date.now, timeoutMs = 15000, fs: io = fs, maxAttempts = 5, relayUrl = PRODUCTION_RELAY_URL } = {}) {
+  const pinnedOrigin = `https://${pairingSite(new URL(relayUrl).hostname)}`;
   const options = { fs: io }, bundlePath = join(home, 'installed-bundle.json'), statusPath = join(home, 'skill-update.json');
   const mutate = fn => withHomeLock(home, fn, options);
   let pending, installedBytes, installedBundle;
@@ -134,7 +137,7 @@ export function createSkillUpdater({ home, trust = productionSkillTrust, fetch =
           s.hint = null;
         } else {
           let url = '';
-          try { url = checkedURL(hint.url); } catch {}
+          try { url = checkedURL(hint.url, pinnedOrigin); } catch {}
           s.attempts = 0; s.next_attempt_at = 0; s.code = null; s.state = 'available';
           s.hint = { skill_version: hint.skill_version, url };
         }
@@ -180,7 +183,7 @@ export function createSkillUpdater({ home, trust = productionSkillTrust, fetch =
       if (!hint) return { state: s.state === 'stale' ? 'stale' : 'idle' };
       if (s.next_attempt_at > now() || s.attempts >= maxAttempts) return { state: 'backoff' };
       trust.requireKey();
-      checkedURL(hint.url);
+      checkedURL(hint.url, pinnedOrigin);
       const bytes = await download(hint.url, signal), next = trust.verifyEnvelope(bytes);
       if (next.document.skill_version !== hint.skill_version) throw failure('skill_version_mismatch');
       capabilities(next.document);

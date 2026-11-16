@@ -84,7 +84,7 @@ export async function proveSkillExtension(t) {
         const executableBefore = executableHashes(), home = join(root, mode + '-home'), logs = [];
         let fetches = 0;
         const fetch = async (url, options) => {
-          if (url === 'https://dev.syncky.app/agent-skill.json') {
+          if (url === 'https://syncky.app/agent-skill.json') {
             fetches++; assert.equal(options.redirect, 'error'); assert.equal(options.headers.Authorization, undefined);
             return new Response(feed);
           }
@@ -152,7 +152,7 @@ export async function proveSkillExtension(t) {
           const malformed = { ...futureEcho, request: 12 };
           for (const mcp of [false, true]) await roundTrip(futureEcho, mcp);
           const baseline = await roundTrip(malformed, false);
-          runtime.updater.observeHeartbeat({ skill_update: { skill_version: document.skill_version, url: 'https://dev.syncky.app/agent-skill.json' } });
+          runtime.updater.observeHeartbeat({ skill_update: { skill_version: document.skill_version, url: 'https://syncky.app/agent-skill.json' } });
           assert.equal((await runtime.updater.tick()).state, 'applied'); assert.equal(fetches, 1);
           assert.equal(runtime.updater.read().document.messages, initial.messages);
           assert.deepEqual(runtime.updater.read().document.schemas, document.schemas);

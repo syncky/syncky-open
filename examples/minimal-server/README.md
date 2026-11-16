@@ -18,21 +18,20 @@ Open the link on the iPhone (Connections › **+** › Paste a setup link) or sh
 | --- | --- |
 | `init` | creates the data dir (mode 700) and the files `token` (`srv_…`) and `hmac` (`whsec_…`), mode 600; existing files are kept |
 | `serve [--port 3000] [--bind 127.0.0.1]` | accepts `POST` on any path, `GET /health` answers `200` |
-| `link [--host <name>.local] [--port 3000] [--format native\|hae\|csv\|influx] [--name <name>] [--url-scheme syncky\|syncky-dev\|syncky-staging]` | prints the setup link for `http://<host>:<port>/syncky`, with signing on when an HMAC secret exists; scheme defaults to `syncky` |
+| `link [--host <name>.local] [--port 3000] [--format native\|hae\|csv\|influx] [--name <name>] [--url-scheme <scheme>]` | prints the setup link for `http://<host>:<port>/syncky`, with signing on when an HMAC secret exists; scheme defaults to `syncky` |
 | `write <type> <value> <unit> [--at <rfc3339>]` | queues a HealthKit write (`c_<n>`, version 1) for the next reply, for example `write dietary_water 0.25 L`; a negative value needs `--` before the type: `write -- water_temperature -1 degC` |
 | `delete <command_id>` | queues the deletion of what that write created (the same id, version + 1) |
 | `status` | prints counts only: stored samples, deletions, inbox files, queued commands, results |
 
 Every command takes `--data <dir>` (default `./syncky-data`). `serve` and `link` take `--auth none|bearer|basic|header` (default `bearer`), `--user <name>` for Basic and `--header <Name>` for a custom header such as `X-Api-Key`. Secrets never come from flags: `SYNCKY_SERVER_TOKEN` and `SYNCKY_SERVER_HMAC` override the `token` and `hmac` files. Without an HMAC secret (no `hmac` file, no variable) requests are not checked for a signature and replies are not signed. Exit codes: 0 ok, 1 runtime error, 2 bad arguments.
 
-For `link` only, choose `syncky` (Syncky), `syncky-dev` (Syncky Dev) or `syncky-staging` (Syncky β). Selection order is `--url-scheme` → `SYNCKY_URL_SCHEME` → optional `<data>/config.json` key `url_scheme` → `syncky`. The receiver hostname never selects an environment. Values must be exactly one of these three bare lowercase schemes. A missing config file, an absent or null key, and an empty environment variable are unset; an empty flag or config string is invalid. Malformed config or an invalid selected value exits 2 with a fixed message. Other commands ignore this environment variable and config file; the flag is accepted only by `link`.
+For `link`, the scheme defaults to `syncky`. Selection order is `--url-scheme` → `SYNCKY_URL_SCHEME` → optional `<data>/config.json` key `url_scheme` → `syncky`. Only `syncky` is supported. The receiver hostname never selects a scheme. A missing config file, absent or null key, and empty environment variable are unset; an empty flag or config string is invalid. Malformed config or an invalid selected value exits 2 with a fixed message. Other commands ignore this environment variable and config file; the flag is accepted only by `link`.
 
-```bash
-./server.mjs link --host box.local --url-scheme syncky-dev
-SYNCKY_URL_SCHEME=syncky-staging ./server.mjs link --host box.local
+```sh
+./server.mjs link --host box.local
 ```
 
-An optional `syncky-data/config.json` can contain `{"url_scheme":"syncky-dev"}`. The file must contain a JSON object; no config command is needed. The link scheme selects which installed build opens a tap; webhook setup links can be scanned or pasted into any build.
+An optional `syncky-data/config.json` can contain `{"url_scheme":"syncky"}`. The file must contain a JSON object. The link opens Syncky for import review and confirmation.
 
 ## What it does with a request
 
@@ -55,7 +54,7 @@ The log is one stdout line per request: time, kind (`data`, `test`, `results`, `
 - `vectors.test.js`: every request of `webhook-requests.json` is accepted with the vector's auth, secret and clock and stored as its `report` counts; replaying a native resend twice preserves UUID deduplication; every `webhook-signatures.json` case gives its verdict; `signReply` reproduces every valid reply signature of `webhook-exchanges.json`; queued writes, the results request and a delete give the vector reply bodies and signatures byte for byte; Check-connection probes store nothing; `buildLink` gives every vector `link`.
 - `server.test.js`: `401`, `413`, `404`, `405` and `400` cases, duplicates and deletions, restarts, signed replies checked with an independent HMAC, a lost reply repeated until its result, a delete replacing an undelivered write, and a backlog of 500 writes drained with no reply above 60,000 bytes.
 - `cli.test.js`: `init`, `link`, `write`, `delete`, `status` and argument errors (secret flags are rejected).
-- `url-scheme.test.js`: all three builder/CLI schemes, precedence, optional config, fixed errors without input disclosure, and receiver-host independence. Local Dev/Staging cases in `vectors.test.js` replay unchanged requests before those schemes appear in shared vectors.
+- `url-scheme.test.js`: builder/CLI schemes, precedence, optional config, fixed errors without input disclosure, and receiver-host independence. Labelled-scheme cases in `vectors.test.js` refuse link generation and replay unchanged requests.
 - `secrecy.test.js`: after a `serve` run its output, `results.jsonl` and `outbox.jsonl` hold no token, secret, signature, body or URL; the secret files are mode 600.
 - `size.test.js`: the 400-line cap, the shebang, `node:*` imports only, and tests that read nothing outside the package but the vectors.
 

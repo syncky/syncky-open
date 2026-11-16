@@ -273,7 +273,7 @@ describe("carried distributions", () => {
     const local = { SYNCKY_AGENT_HOME: home, SYNCKY_RELAY_URL: relay.url, SYNCKY_INVITE: "local-distribution-invite", SYNCKY_AGENT_NAME: "Name with spaces ' and $literal" };
     try {
       const missingInvite = await onboard(leaf, { ...local, SYNCKY_INVITE: "" });
-      assert.ok(missingInvite.code !== 0 && /invite/.test(missingInvite.stderr) && !existsSync(join(home, "secrets.json")), "missing invite did not stop safely");
+      assert.ok(missingInvite.code !== 0 && /relay refused registration/i.test(missingInvite.stderr) && !existsSync(join(home, "secrets.json")), "missing invite did not stop safely");
       const first = await onboard(leaf, local);
       assert.ok(hasPair(first), "fresh recipe did not return QR and grouped code immediately");
       assert.ok(!/waiting for the phone|\[y\/n\]/i.test(first.stdout), "recipe waited or prompted");

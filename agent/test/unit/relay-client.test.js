@@ -202,9 +202,10 @@ describe("relay client error mapping", () => {
       assert.ok(err instanceof RelayError);
       assert.equal(err.name, "RelayError");
       assert.equal(err.status, status);
-      assert.equal(err.code, code);
+      assert.equal(err.code, code === "invalid_invite" ? "registration_refused" : code);
       assert.deepEqual(err.details, details);
-      assert.match(err.message, new RegExp(code));
+      if (code === "invalid_invite") assert.doesNotMatch(JSON.stringify(err) + err.message, /invite/i);
+      else assert.match(err.message, new RegExp(code));
       const retryable = status === 429 || status >= 500;
       assert.equal(requests.length, retryable ? RETRY_POLICY.maxAttempts : 1);
     });
@@ -259,7 +260,8 @@ describe("relay client error mapping", () => {
       jsonResponse(403, { error: "invalid_invite", message: `bad invite ${init.headers["X-Syncky-Invite"]} token ${TOKEN}` });
     const { client } = harness([echo]);
     const err = await client.register({ invite: INVITE, name: "a", publicKey: "k" }).catch((e) => e);
-    assert.equal(err.code, "invalid_invite");
+    assert.equal(err.code, "registration_refused");
+    assert.doesNotMatch(err.message, /invite/i);
     assert.ok(!err.message.includes(INVITE), err.message);
     assert.ok(!err.message.includes(TOKEN), err.message);
     assert.ok(!err.message.includes("sk_hub_"), err.message);

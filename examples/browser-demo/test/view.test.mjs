@@ -7,7 +7,7 @@ import { qrPath } from "../src/qr.mjs";
 import { pairView } from "../src/view.mjs";
 
 describe("pair block", () => {
-  const pairing = { code: "pairing-code", uri: "https://dev.syncky.app/pair#v=2" };
+  const pairing = { code: "pairing-code", uri: "https://alpha.syncky.app/pair#v=2" };
 
   for (const phase of ["confirmed", "phone_left", "expired"]) {
     it(`keeps the code through joining and clears it on ${phase}`, () => {
@@ -77,7 +77,7 @@ describe("pair block", () => {
       },
     });
     session.emit({ phase: "pairing", pairing });
-    for (const nextPairing of [pairing, { code: "next-code", uri: "https://dev.syncky.app/pair#v=2&next" }]) {
+    for (const nextPairing of [pairing, { code: "next-code", uri: "https://alpha.syncky.app/pair#v=2&next" }]) {
       const previousQr = get("qr").children[0];
       assert.ok(previousQr);
       const code = session.state.pairing.code;

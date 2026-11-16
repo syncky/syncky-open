@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { spawn as nodeSpawn } from 'node:child_process';
 import { join, resolve } from 'node:path';
-import { errorHint } from './error-guidance.js';
+import { agentErrorCode, errorHint } from './error-guidance.js';
 import { LocalStateError, agentHome, errorDetail, resolveConfig } from './config.js';
 import { LEVELS, createLogger } from './log.js';
 import { createRuntime, readSkill, AGENT_VERSION, INBOX_MAX_LIMIT } from './runtime.js';
@@ -271,7 +271,7 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
     json(await waitPair(runtime, pairing, started, { timeout: flags.timeout === undefined ? 900 : integer(flags.timeout, 1, 86400), now, sleep, signal })); return 0;
   } catch (error) {
     const usage = error instanceof UsageError, relay = error instanceof RelayError;
-    const code = usage ? 'invalid_arguments' : typeof error.code === 'string' && /^[a-z_]{1,64}$/.test(error.code) ? error.code : 'local_error';
+    const code = usage ? 'invalid_arguments' : typeof error.code === 'string' && /^[a-z_]{1,64}$/.test(error.code) ? agentErrorCode(error.code) : 'local_error';
     stderr.write(JSON.stringify({ error: code, ...errorDetail(error), hint: hint ?? errorHint(code), ...(usage && parsed?.command && commands[parsed.command] ? { usage: commandHelp(parsed.command).trim() } : {}) }) + '\n');
     return usage ? 1 : relay ? error.code === 'invalid_token' ? 3 : 2 : 4;
   }

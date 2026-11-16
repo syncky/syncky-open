@@ -1,5 +1,5 @@
 import Ajv from 'ajv/dist/2020.js';
-import { errorHint } from './error-guidance.js';
+import { agentErrorCode, errorHint } from './error-guidance.js';
 import { errorDetail } from './config.js';
 import { MEMBER_ID_RE } from './ids.js';
 
@@ -21,7 +21,7 @@ export const TOOLS = Object.freeze([
       until: { type: 'string', format: 'date-time', description: 'Include records whose `received_at` is at or before this inclusive ISO 8601 date-time, e.g. 2026-11-15T23:59:59Z; must not precede `since`. Omit for no upper time bound; empty strings are invalid; include Z or an offset.' },
       limit: { type: 'integer', minimum: 1, maximum: 1000, description: 'Maximum records to return (integer 1 to 1000, default 100), e.g. 50; byte or scan limits can produce a shorter page, so check `has_more`.' },
     }), annotations: read },
-  { name: 'syncky_send', description: "Send caller-owned JSON to one confirmed phone; use syncky_skill for rules and syncky_inbox to read replies. Scope releases need no owner approval. Obtain owner approval for writes, diagnostics and access requests. Writes use the owner's standing per-type allowance. The phone enforces policy and consent; sent means relay delivery only. Returns a receipt object with `msg_id`, `kind`, `type`, `to` (array of member IDs), `state` (pending, sent or failed) and optional `seq`, `attempts`, `next_attempt_at`, `retry_after_until`, `code`, `relay_code`, `relay_status` and `hint`.",
+  { name: 'syncky_send', description: "Send caller-owned JSON to one confirmed phone; use syncky_skill for rules and syncky_inbox to read replies. Scope releases need no owner approval. Obtain owner approval for writes, diagnostics and access requests. Writes use the owner's standing per-type allowance. The phone enforces policy and consent; sent means relay delivery only. Returns a send receipt. Pending sends retry while receive runs; check `state` and `hint`, then `outbox` counts and `sends` receipts in syncky_status.",
     inputSchema: { ...object({
       type: { ...text, description: "Message type string, e.g. 'access_request'; must equal the `type` field inside `inner`." },
       inner: { type: 'object', description: 'Caller-owned inner JSON message object, including its required `type` string and the message fields defined by the current skill.',
@@ -29,6 +29,31 @@ export const TOOLS = Object.freeze([
       to: { ...member, description: "Target confirmed phone's member ID string, e.g. m_dev_1; omit only when exactly one eligible confirmed phone is available." },
       validate: { type: 'boolean', description: "Boolean, default false. Set true to check available local message schemas before sending; unknown types may have no schema. Messages of type 'access_request' and 'scope_release' are always validated by this MCP tool, even when false. Validation does not grant approval or permission." },
     }), required: ['type','inner'] },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        msg_id: { type: 'string', description: 'Sealed message ID used to track this send.' },
+        kind: { type: 'string', enum: ['data', 'control'], description: 'Outgoing envelope kind.' },
+        type: { type: 'string', description: 'Caller-supplied message type.' },
+        to: { type: 'array', items: { type: 'string' }, description: 'Recipient member IDs; currently one confirmed phone.' },
+        state: { type: 'string', enum: ['pending', 'sent', 'failed'], description: 'Pending is queued, sent is relay delivery only, failed is terminal.' },
+        seq: { ...seq, description: 'Relay sequence assigned on delivery, when available.' },
+        attempts: { ...seq, description: 'Number of relay delivery attempts so far.' },
+        next_attempt_at: { anyOf: [{ type: 'number', minimum: 0 }, { type: 'string' }], description: 'Next attempt time: Unix milliseconds (0 means due), or a stored date-time string.' },
+        retry_after_until: { type: 'number', minimum: 0, description: 'Relay retry floor in Unix milliseconds; 0 means no active floor.' },
+        code: { type: ['string', 'null'], description: 'Local queue or tool failure code; null when cleared on delivery.' },
+        relay_code: { type: 'string', description: 'Normalized relay or client failure cause, when available.' },
+        relay_status: { type: 'integer', anyOf: [{ const: 0 }, { minimum: 100, maximum: 599 }], description: 'Relay HTTP status, or 0 when no HTTP status is available.' },
+        hint: { type: 'string', description: 'Fixed guidance for a queued retry, terminal failure or tool error, when available.' },
+        detail: { type: 'string', pattern: '^[a-z_]{1,64}$', description: 'Safe local error detail code, when available.' },
+        types: { type: 'array', items: { type: 'string', pattern: '^[a-z][a-z0-9_]{0,63}$' }, description: 'Validated type names associated with a local error detail, when available.' },
+      },
+      anyOf: [
+        { required: ['msg_id', 'kind', 'type', 'to', 'state'] },
+        { required: ['code'], properties: { code: { type: 'string', pattern: '^[a-z_]{1,64}$', description: 'Safe tool error code.' } } },
+      ],
+      additionalProperties: true,
+    },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true } },
   { name: 'syncky_ack', description: 'Acknowledge relay messages through `up_to_seq` only after records were durably processed; use syncky_inbox to read them first. ACK only through the durable receive checkpoint. Does not apply Health changes. Returns an object with `acked_up_to`, or `deferred`, `reason` and `next_poll_at` when acknowledgment must wait.',
     inputSchema: { ...object({ up_to_seq: { ...seq, description: "Highest relay inbox sequence number already durably processed, inclusive (integer 0 to 9007199254740991, e.g. 42); cannot exceed the durable receive checkpoint. Use the record's relay `seq`, not its local pagination `cursor`." } }), required: ['up_to_seq'] },
@@ -46,7 +71,7 @@ function toolValidators() {
 }
 const reply = (id, result) => ({ jsonrpc: '2.0', id, result });
 const error = (id, code, message) => ({ jsonrpc: '2.0', id, error: { code, message } });
-const safeCode = err => typeof err?.code === 'string' && /^[a-z_]{1,64}$/.test(err.code) ? err.code : 'tool_failed';
+const safeCode = err => typeof err?.code === 'string' && /^[a-z_]{1,64}$/.test(err.code) ? agentErrorCode(err.code) : 'tool_failed';
 const result = value => ({ content: [{ type: 'text', text: JSON.stringify(value) }], structuredContent: value, isError: false });
 
 export function createMcpServer({ handlers, version, logger }) {

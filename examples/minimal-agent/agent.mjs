@@ -9,7 +9,7 @@ import { DhkemX25519HkdfSha256 } from "@hpke/dhkem-x25519";
 import { Chacha20Poly1305 } from "@hpke/chacha20poly1305";
 import qrcode from "qrcode-terminal";
 const USAGE = `usage: agent.mjs <command> [options]
-  init --relay <url> [--invite <invite>] [--name <name>]
+  init --relay <url> [--name <name>]
   pair [--wait <seconds>]
   poll [--once]
   send-water <liters> --to <member_id>
@@ -64,17 +64,14 @@ export const b64u = (bytes) => Buffer.from(bytes).toString("base64url");
 // Buffer.from(_, "base64url") is lenient (accepts padding, skips junk), so reject anything that does not re-encode identically.
 export function unb64u(text, length) {
   const bytes = typeof text === "string" && /^[A-Za-z0-9_-]*$/.test(text) ? new Uint8Array(Buffer.from(text, "base64url")) : null;
-  if (!bytes || b64u(bytes) !== text || (length !== undefined && bytes.length !== length)) {
-    throw fail("malformed", `not base64url${length === undefined ? "" : ` of ${length} bytes`}`);
-  }
+  if (!bytes || b64u(bytes) !== text || (length !== undefined && bytes.length !== length)) throw fail("malformed", `not base64url${length === undefined ? "" : ` of ${length} bytes`}`);
   return bytes;
 }
 const suite = new CipherSuite({ kem: new DhkemX25519HkdfSha256(), kdf: new HkdfSha256(), aead: new Chacha20Poly1305() });
 const importPrivate = (sk) => suite.kem.deserializePrivateKey(unb64u(sk, 32));
 const importPublic = (pk) => suite.kem.deserializePublicKey(unb64u(pk, 32));
 export async function generateKeys() {
-  const { privateKey, publicKey } = await suite.kem.generateKeyPair();
-  const raw = async (bytes) => b64u(new Uint8Array(await bytes));
+  const { privateKey, publicKey } = await suite.kem.generateKeyPair(), raw = async (bytes) => b64u(new Uint8Array(await bytes));
   return { sk: await raw(suite.kem.serializePrivateKey(privateKey)), pk: await raw(suite.kem.serializePublicKey(publicKey)) };
 }
 export function uuidv7(now = Date.now()) {
@@ -136,7 +133,8 @@ export async function openEnvelope(e, { hubId, memberId, sk, registry, kind = "d
     throw fail("aead_failed", "cannot decrypt the payload");
   } finally { cek.fill(0); }
 }
-const PAIR_SCHEMES = ["syncky", "syncky-dev", "syncky-staging"];
+const PAIR_SCHEME = /^syncky(?:-[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?$/;
+const isPairSchemeAllowed = (scheme, host) => scheme === "syncky" || !/(?:^|\.)syncky\.app\.?$/i.test(host) || host.toLowerCase() === `relay-${scheme.slice(7)}.syncky.app`;
 const PAIR_KEYS = new Set("vrhtkncs");
 const isB64u = (v, length) => { try { return !!unb64u(v, length); } catch { return false; } };
 const RELAY_RE = /^(?:[A-Za-z0-9.-]{1,253}|\[[0-9A-Fa-f:.]{2,45}\])(?::([1-9][0-9]{0,4}))?$/;
@@ -150,26 +148,27 @@ const PAIR_CHECKS = {
 const pctEncode = (v) => encodeURIComponent(v).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
 export function parsePairUri(uri, allowInsecure = false) {
   const bad = (param) => ({ ok: false, error: "invalid_uri", param });
-  let payload;
+  let payload, legacyScheme;
   if (typeof uri === "string" && uri.startsWith("https://")) {
     const rest = uri.slice(8), end = rest.search(/[/?#]/), authorityEnd = end < 0 ? rest.length : end;
-    if (!["syncky.app", "dev.syncky.app", "staging.syncky.app"].includes(rest.slice(0, authorityEnd))) return bad("host");
+    let site; try { const relay = decodeURIComponent(/(?:^|&)r=([^&]*)/.exec(rest.slice(rest.indexOf("#") + 1))?.[1] ?? ""), r = relay.toLowerCase().split(":")[0]; if (PAIR_CHECKS.r(relay)) site = /^relay-[a-z][a-z0-9]*(?:-[a-z0-9]+)*\.syncky\.app$/.test(r) ? r.replace(/^relay-/, "") : "syncky.app"; } catch {}
+    if (rest.slice(0, authorityEnd) !== "syncky.app" && rest.slice(0, authorityEnd) !== site) return bad("host");
     const path = rest.slice(authorityEnd).split(/[?#]/, 1)[0], pathEnd = authorityEnd + path.length;
     if (path !== "/pair") return bad("path");
     if (rest[pathEnd] === "?") return bad("query");
     payload = rest.slice(pathEnd + 1);
   } else {
-    const prefix = typeof uri === "string" && PAIR_SCHEMES.find((s) => uri.startsWith(`${s}://`));
+    const prefix = typeof uri === "string" && /^syncky(?:-[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?:\/\//.exec(uri)?.[0];
     if (!prefix) return bad("scheme");
-    const rest = uri.slice(prefix.length + 3), query = rest.search(/[?#]/), end = query < 0 ? rest.length : query;
+    legacyScheme = prefix.slice(0, -3);
+    const rest = uri.slice(prefix.length), query = rest.search(/[?#]/), end = query < 0 ? rest.length : query;
     if (rest.slice(0, end) !== "pair") return bad("host");
     if (rest.includes("#")) return bad("fragment");
     payload = rest.slice(end + 1);
   }
   const p = {};
   for (const segment of payload.split("&")) {
-    const eq = segment.indexOf("=");
-    const key = segment.slice(0, eq);
+    const eq = segment.indexOf("="), key = segment.slice(0, eq);
     if (eq < 0 || !PAIR_KEYS.has(key)) continue;
     if (Object.hasOwn(p, key)) return bad(key);
     try { p[key] = decodeURIComponent(segment.slice(eq + 1)); } catch { return bad("encoding"); }
@@ -180,17 +179,17 @@ export function parsePairUri(uri, allowInsecure = false) {
   for (const key of Object.keys(PAIR_CHECKS)) if (p[key] === undefined) return bad(key);
   if (p.v === "2" && p.c === undefined) return bad("c");
   for (const [key, check] of Object.entries(PAIR_CHECKS)) if (!check(p[key])) return bad(key);
+  if (legacyScheme && !isPairSchemeAllowed(legacyScheme, p.r.split(":")[0])) return bad("scheme");
   if (p.v === "2" && !isB64u(p.c, 16)) return bad("c");
   if (p.s !== undefined && p.s !== "http") return bad("s");
   if (p.s !== undefined && !allowInsecure) return { ok: false, error: "insecure_relay" };
-  const relay_base = `${p.s ? "http" : "https"}://${p.r}`;
-  return { ok: true, relay_base, hub_id: p.h, pairing_token: p.t, agent_public_key: p.k, agent_name: p.n, ...(p.v === "2" && { pair_secret: p.c }) };
+  return { ok: true, relay_base: `${p.s ? "http" : "https"}://${p.r}`, hub_id: p.h, pairing_token: p.t, agent_public_key: p.k, agent_name: p.n, ...(p.v === "2" && { pair_secret: p.c }) };
 }
 export function buildPairUri({ relay_base, hub_id, pairing_token, agent_public_key, agent_name, pair_secret, url_scheme = null }) {
-  if (url_scheme !== null && !PAIR_SCHEMES.includes(url_scheme)) throw new TypeError("url scheme must be syncky, syncky-dev or syncky-staging");
+  if (url_scheme !== null && !(typeof url_scheme === "string" && PAIR_SCHEME.test(url_scheme))) throw fail("invalid_url_scheme", "unsupported URL scheme");
   const query = { r: relay_base.replace(/^https?:\/\//, ""), h: hub_id, t: pairing_token, k: agent_public_key, n: agent_name, ...(pair_secret && { c: pair_secret }) };
-  const relayHost = query.r.split(":")[0].toLowerCase();
-  const site = relayHost === "relay-dev.syncky.app" ? "dev.syncky.app" : relayHost === "relay-staging.syncky.app" ? "staging.syncky.app" : "syncky.app";
+  const relayHost = query.r.split(":")[0].toLowerCase(), site = ((/^relay-([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\.syncky\.app$/.exec(relayHost)?.[1]) ? relayHost.replace(/^relay-/, "") : "syncky.app");
+  if (url_scheme !== null && !isPairSchemeAllowed(url_scheme, relayHost)) throw fail("invalid_url_scheme", "unsupported URL scheme");
   const params = Object.entries(query).map(([key, value]) => `&${key}=${pctEncode(value)}`).join("");
   return `${url_scheme === null ? `https://${site}/pair#` : `${url_scheme}://pair?`}v=${pair_secret ? 2 : 1}${params}${relay_base.startsWith("http://") ? "&s=http" : ""}`;
 }
@@ -200,9 +199,7 @@ export async function relayCall(state, method, path, { body, headers = {} } = {}
   if (state.token) init.headers.Authorization = `Bearer ${state.token}`;
   if (body !== undefined) init.headers["Content-Type"] = "application/json; charset=utf-8";
   for (let attempt = 1; ; attempt++) {
-    const res = await fetch(`${state.relay}${path}`, { ...init, signal: AbortSignal.timeout(15_000) }).catch((err) => {
-      throw fail("network_error", `relay unreachable: ${err.cause?.code ?? err.name}`);
-    });
+    const res = await fetch(`${state.relay}${path}`, { ...init, signal: AbortSignal.timeout(15_000) }).catch((err) => { throw fail("network_error", `relay unreachable: ${err.cause?.code ?? err.name}`); });
     const reader = res.body?.getReader(), decoder = new TextDecoder(), cap = (method === "GET" && /^\/v1\/messages(?:\?|$)/.test(path) ? 9 : 1) * 1024 * 1024;
     let text = "", size = 0, json;
     try {
@@ -215,21 +212,19 @@ export async function relayCall(state, method, path, { body, headers = {} } = {}
       try { json = res.status === 204 ? null : JSON.parse(text + decoder.decode()); } catch {}
     } catch (err) { throw err.code === "invalid_response" ? err : fail("network_error", "relay body could not be read"); } finally { if (reader) { await reader.cancel().catch(() => {}); reader.releaseLock(); } }
     if (res.ok) { if (json !== undefined) return json; throw fail("invalid_response", `relay ${res.status}: the body is not JSON`); }
-    const header = res.headers.get("retry-after") ?? "";
-    const wait = /^[0-9]{1,5}$/.test(header) ? Number(header) : 1;
+    const header = res.headers.get("retry-after") ?? "", wait = /^[0-9]{1,5}$/.test(header) ? Number(header) : 1;
     if (attempt === 1 && (res.status === 429 || res.status >= 500) && wait <= 60) { await sleep(wait * 1000); continue; }
     const code = typeof json?.error === "string" ? clean(json.error) : "relay_error";
+    if (code === "invalid_invite") throw fail("registration_refused", "The relay refused registration. Tell the owner and stop; do not retry.");
     const hint = code === "invalid_token" ? " (token revoked or the hub was deleted: no plan within 7 days or 7 days after the plan ended; remove state.json, then init and pair again)" : "";
     throw fail(code, `relay ${res.status} ${code}: ${clean(json?.message ?? "no message")}${hint}`);
   }
 }
-// E1: register (with the invite only if this relay requires one); the relay creates a hub and returns this agent's bearer token.
+// E1: registration creates a hub and returns this agent's bearer token.
 async function init(home, { relay, invite = process.env.SYNCKY_INVITE, name }) {
   const keys = await generateKeys();
-  const body = JSON.stringify({ name, public_key: keys.pk });
-  const reg = await relayCall({ relay }, "POST", "/v1/agents/register", { body, headers: invite ? { "X-Syncky-Invite": invite } : {} });
-  const valid = /^hub_[\w-]{22}$/.test(reg?.hub_id) && MEMBER_ID_RE.test(reg.member_id) && reg.token?.startsWith(`sk_${reg.hub_id}_`);
-  if (!valid) throw fail("invalid_response", "the relay returned a malformed registration");
+  const reg = await relayCall({ relay }, "POST", "/v1/agents/register", { body: JSON.stringify({ name, public_key: keys.pk }), headers: invite ? { "X-Syncky-Invite": invite } : {} });
+  if (!(/^hub_[\w-]{22}$/.test(reg?.hub_id) && MEMBER_ID_RE.test(reg.member_id) && reg.token?.startsWith(`sk_${reg.hub_id}_`))) throw fail("invalid_response", "the relay returned a malformed registration");
   const { hub_id, member_id, token } = reg;
   saveState(home, { relay, name, hub_id, member_id, token, sk: keys.sk, pk: keys.pk, webhook_url: null, last_seq: 0, acked_seq: 0, members: {}, commands: {} });
   console.log(`Registered ${member_id} in ${hub_id}. Next: pair`);
@@ -304,8 +299,7 @@ export async function handleMessage(home, state, msg) {
   if (!Array.isArray(members) || !members.every((m) => MEMBER_ID_RE.test(m?.member_id))) throw fail("invalid_response", "malformed member list");
   updateState(home, (state) => {
     if (msg.kind === "system") {
-      const b = msg.body ?? {};
-      const known = Object.hasOwn(state.members, b.member_id) ? state.members[b.member_id] : null;
+      const b = msg.body ?? {}, known = Object.hasOwn(state.members, b.member_id) ? state.members[b.member_id] : null;
       if (msg.event === "member_joined" && !known && MEMBER_ID_RE.test(b.member_id) && PAIR_CHECKS.k(b.public_key)) {
         state.members[b.member_id] = { name: clean(b.device_name ?? "phone"), pk: b.public_key, state: "joined" };
         return console.log(`${tag}: ${b.member_id} joined; it is confirmed when it picks the code pair shows`);
@@ -382,8 +376,7 @@ async function sendWater(home, state, { liters, to }) {
     s.commands[command_id] = { to, version: 1, msg_id: msgId, state: "pending" };
   });
   const at = nowText();
-  const command = { command_id, version: 1, op: "write", type: "dietary_water", value: liters, unit: "L", start: at, end: at };
-  const plaintext = JSON.stringify({ v: 1, type: "commands", commands: [command] });
+  const plaintext = JSON.stringify({ v: 1, type: "commands", commands: [{ command_id, version: 1, op: "write", type: "dietary_water", value: liters, unit: "L", start: at, end: at }] });
   const envelope = await sealEnvelope({ hubId: state.hub_id, from: state.member_id, sk: state.sk, recipients: [{ member_id: to, pk: target.pk }], plaintext, msgId });
   const res = await relayCall(state, "POST", "/v1/messages", { body: JSON.stringify(envelope) });
   updateState(home, ({ commands: { [command_id]: c } }) => c.state === "pending" && Object.assign(c, { state: "sent", seq: res?.seq }));
@@ -429,8 +422,7 @@ export function parseCommand(argv) {
 }
 async function main(argv) {
   const { name, values } = parseCommand(argv);
-  const home = resolve(process.env.SYNCKY_HOME || ".syncky-minimal");
-  const state = loadState(home);
+  const home = resolve(process.env.SYNCKY_HOME || ".syncky-minimal"), state = loadState(home);
   if (name === "init" && state) throw exitError(2, `already initialized (${join(home, "state.json")}); remove it to register again`);
   if (name === "init") return init(home, values);
   if (!state) throw exitError(3, `not initialized: run init first (state: ${join(home, "state.json")})`);
@@ -441,9 +433,7 @@ async function main(argv) {
 }
 if (process.argv[1] && realpathSync(process.argv[1]) === import.meta.filename) {
   process.umask(0o077);
-  try {
-    await main(process.argv.slice(2));
-  } catch (err) {
+  try { await main(process.argv.slice(2)); } catch (err) {
     process.exitCode = err.exit ?? 1;
     console.error(err.exit ? err.message : `error: ${err.message}`);
   }

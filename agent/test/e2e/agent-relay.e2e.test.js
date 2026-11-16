@@ -91,7 +91,7 @@ describe('thin agent against the real relay (wrangler dev)', { skip: SKIP }, () 
 
   it('registers, polls, holds authentic data until fingerprint confirmation and rejects a mismatch', { timeout: TIMEOUT }, async () => {
     const wrong = tempHome();
-    try { const result = await run(['init', '--relay', RELAY, '--name', 'Wrong invite', '--invite', 'wrong-invite-e2e-0000'], { home: wrong.home }); assert.equal(result.code, 2); assert.match(result.stderr, /invalid_invite/); } finally { wrong.cleanup(); }
+    try { const result = await run(['init', '--relay', RELAY, '--name', 'Wrong invite', '--invite', 'wrong-invite-e2e-0000'], { home: wrong.home }); assert.equal(result.code, 2); assert.match(result.stderr, /registration_refused/); assert.doesNotMatch(result.stderr, /invite/i); } finally { wrong.cleanup(); }
     identity = await json(['init', '--relay', RELAY, '--name', 'Thin relay e2e']);
     const pairing = await json(['pair', '--v1'], { privateOutput: true });
     pairingTokens.push(parsePairUri(pairing.uri, { allowInsecureRelay: true }).value.pairingToken);

@@ -401,7 +401,7 @@ A custom header cannot be `Host`, `Content-Type`, `Content-Length`, `User-Agent`
 
 A setup link fills in the whole server entry. Your server prints it, and the user pastes it or scans it as a QR code in Settings › Connections › **+** › **Paste a setup link**.
 
-The supported schemes are exactly `syncky` (Syncky), `syncky-dev` (Syncky Dev) and `syncky-staging` (Syncky β). Link builders default to `syncky`. In the app, paste and scan accept webhook setup links with all three schemes. For pair links to relay agents, the app refuses a link for another build. A tapped webhook setup link opens the build registered for its own scheme and shows the import review and confirmation; no server is added before you confirm.
+Use the `syncky` scheme. A tapped webhook setup link opens Syncky and shows the import review and confirmation; no server is added before you confirm.
 
 ```text
 syncky://webhook?v=1&name=<pct>&url=<pct>&format=native|hae|csv|influx&auth=none|bearer|header|basic
@@ -704,5 +704,5 @@ Not verified by Syncky: this format against a live Health Auto Export receiver, 
 - [ ] For native JSON, store samples by `(device, uuid)` and parts by `(device, uuid, part)`. Replace characteristics and activity summaries. Apply deletions.
 - [ ] Answer `2xx` within a few seconds. Never redirect. Answer `413` only when the body is really too large.
 - [ ] Optional: reply with commands (JSON, signed over plain HTTP), accept the results request, and keep each command until its result arrives.
-- [ ] Optional: print a webhook setup link or a QR code with your URL, token and `hmac` secret; default to `syncky`, or select `syncky-dev` / `syncky-staging` (section 9).
+- [ ] Optional: print a webhook setup link or a QR code with your URL, token and `hmac` secret; use `syncky` (section 9).
 - [ ] Replay [`webhook-requests.json`](test-vectors/webhook-requests.json), [`webhook-signatures.json`](test-vectors/webhook-signatures.json) and [`webhook-exchanges.json`](test-vectors/webhook-exchanges.json) against your server.

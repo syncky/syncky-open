@@ -1,4 +1,4 @@
-import { errorHint } from './error-guidance.js';
+import { agentErrorCode, errorHint } from './error-guidance.js';
 import { RELAY_ERROR_CODES, RELAY_CLIENT_ERROR_CODES } from './relay-client.js';
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
@@ -10,12 +10,13 @@ import { activateResponseWaits, completeResponseWaits } from "./response-waits.j
 
 const relayCodes = new Set([...RELAY_ERROR_CODES, ...RELAY_CLIENT_ERROR_CODES]);
 const relayCause = error => ({
-  relay_code: relayCodes.has(error.code) ? error.code : 'relay_error',
+  relay_code: relayCodes.has(agentErrorCode(error.code)) ? agentErrorCode(error.code) : 'relay_error',
   relay_status: Number.isInteger(error.status) && (error.status === 0 || error.status >= 100 && error.status <= 599) ? error.status : 0,
 });
 
 export function sendReceipt(entry) {
   const receipt = Object.fromEntries(["msg_id", "kind", "type", "to", "state", "seq", "attempts", "next_attempt_at", "retry_after_until", "code"].filter(k => entry[k] !== undefined).map(k => [k, entry[k]]));
+  if (receipt.code) receipt.code = agentErrorCode(receipt.code);
   if (['pending', 'failed'].includes(entry.state) && entry.code) {
     if (entry.code !== 'target_revoked' && (entry.relay_code != null || entry.relay_status != null)) Object.assign(receipt, relayCause({ code: entry.relay_code, status: entry.relay_status }));
     receipt.hint = (entry.state === 'pending' ? 'Queued; the receiver retries after the receipt deadline. ' : 'Terminal receipt; this send will not retry. ') + errorHint(receipt.relay_code ?? entry.code);

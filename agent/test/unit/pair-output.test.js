@@ -86,24 +86,26 @@ test('pair output follows flag > environment > saved config, leaving config inta
   let lock;
   t.after(async () => { lock?.release(); await relay.stop(); tmp.cleanup(); });
   assert.equal((await runCli(['--home', tmp.home, 'init', '--name', 'Lab', '--relay', relay.url], { env: { SYNCKY_INVITE: 'output-fixture' } })).code, 0);
-  const path = join(tmp.home, 'config.json'), config = JSON.parse(fs.readFileSync(path, 'utf8'));
+  const origin = 'https://relay-alpha.syncky.app';
+  const forward = (url, options) => { const target = new URL(url); return fetch(relay.url + target.pathname + target.search, options); };
+  const path = join(tmp.home, 'config.json'), config = { ...JSON.parse(fs.readFileSync(path, 'utf8')), relay_url: origin };
   lock = acquireHomeLock(tmp.home, 'receiver');
   for (const [saved, envScheme, flagScheme, prefix] of [
-    [undefined, undefined, undefined, 'https://syncky.app/pair#'],
-    [null, '', undefined, 'https://syncky.app/pair#'],
+    [undefined, undefined, undefined, 'https://alpha.syncky.app/pair#'],
+    [null, '', undefined, 'https://alpha.syncky.app/pair#'],
     ['syncky', undefined, undefined, 'syncky://pair?'],
-    ['syncky', 'syncky-staging', undefined, 'syncky-staging://pair?'],
-    ['syncky', 'syncky-staging', 'syncky-dev', 'syncky-dev://pair?'],
+    ['syncky', "syncky-alpha", undefined, "syncky-alpha://pair?"],
+    ['syncky', "syncky-beta", "syncky-alpha", "syncky-alpha://pair?"],
   ]) {
     saveConfig(tmp.home, { ...config, ...(saved === undefined ? {} : { url_scheme: saved }) });
     const before = fs.readFileSync(path, 'utf8'), env = envScheme === undefined ? {} : { SYNCKY_URL_SCHEME: envScheme };
     for (const json of [false, true]) {
-      const result = await runCli(['--home', tmp.home, 'pair', ...(flagScheme ? ['--url-scheme', flagScheme] : []), ...(json ? ['--json'] : [])], { env });
-      assert.equal(result.code, 0);
+      const result = await runCli(['--home', tmp.home, 'pair', ...(flagScheme ? ['--url-scheme', flagScheme] : []), ...(json ? ['--json'] : [])], { env, fetch: forward });
+      assert.equal(result.code, 0, result.stderr);
       const pairing = readPairingFile(tmp.home), uri = pairing.uri;
       assert.ok(uri.startsWith(prefix), 'wrong pairing transport');
       const parsed = parsePairUri(uri, { allowInsecureRelay: true }); assert.equal(parsed.ok, true);
-      assert.equal(parsed.value.relayBase, relay.url);
+      assert.equal(parsed.value.relayBase, origin);
       if (json) assert.ok(JSON.parse(result.stdout).uri === uri, 'JSON differs from persisted link');
       else {
         assert.ok(result.stdout.split('\n')[0] === uri, 'printed link differs from persisted link');
@@ -120,14 +122,14 @@ test('pair output follows flag > environment > saved config, leaving config inta
       for (const credential of [uri, parsed.value.pairingToken, parsed.value.pairSecret]) assert.ok(!(status.stdout + status.stderr).includes(credential), 'credential leaked into status');
     }
   }
-  saveConfig(tmp.home, { ...config, url_scheme: null });
+  saveConfig(tmp.home, { ...config, relay_url: relay.url, url_scheme: null });
   for (const [flagRelay, envRelay, site] of [
     [undefined, undefined, 'syncky.app'],
     [relay.url + '/', undefined, 'syncky.app'],
     [undefined, relay.url + '/', 'syncky.app'],
-    [undefined, 'https://relay-staging.syncky.app:8443', 'staging.syncky.app'],
-    ['https://relay-dev.syncky.app:8443', 'https://relay-staging.syncky.app', 'dev.syncky.app'],
-    ['https://relay-dev.syncky.app.example', 'https://relay-dev.syncky.app', 'syncky.app'],
+    [undefined, "https://relay-beta.syncky.app:9443", "beta.syncky.app"],
+    ["https://relay-alpha.syncky.app:9443", "https://relay-beta.syncky.app", "alpha.syncky.app"],
+    ["https://relay-alpha.syncky.app.example", "https://relay-alpha.syncky.app", 'syncky.app'],
   ]) {
     const before = fs.readFileSync(path, 'utf8'), requested = [];
     const result = await runCli(['--home', tmp.home, 'pair', '--json', ...(flagRelay ? ['--relay', flagRelay] : [])], {

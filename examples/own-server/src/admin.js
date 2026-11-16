@@ -14,7 +14,7 @@ function adminPage(store, human, link, headers = {}) {
     <label>Basic username<input name="auth_user" value="${escaped(options.auth.user ?? "phone")}"></label>
     <label>Custom header<input name="header_name" value="${escaped(options.auth.header_name ?? "X-Upload-Key")}"></label>
     ${checkbox("hmac_enabled", "HMAC", options.hmac_enabled)}${checkbox("writes_enabled", "Allow newly consented writes", store.setting("writes_enabled"))}
-    <label>App scheme<select name="scheme">${["syncky", "syncky-dev", "syncky-staging"].map(k => `<option${options.scheme === k ? " selected" : ""}>${k}</option>`).join("")}</select></label>
+    <label>App scheme<select name="scheme">${["syncky"].map(k => `<option${options.scheme === k ? " selected" : ""}>${k}</option>`).join("")}</select></label>
     <label>Exact HTTPS callbacks<textarea name="redirect_allowlist">${escaped(store.setting("redirect_allowlist").join("\n"))}</textarea></label><button>Save settings</button>`)}
     <p>Upload authentication and HMAC changes take effect on explicit rotation. Disabling writes pauses unfinished delivery, including retries. Re-enabling resumes only still-authorized grants. An already emitted reply cannot be recalled.</p>
     ${form("/admin/rotate-upload", human.csrf, `${input("confirm", "rotate")}<button>Rotate upload credentials and show link once</button>`)}
@@ -92,7 +92,7 @@ function settings(store, body, now) {
   }
   if (Object.hasOwn(body, "hmac_enabled")) options.hmac_enabled = boolean(body.hmac_enabled);
   if (Object.hasOwn(body, "scheme")) {
-    if (!["syncky", "syncky-dev", "syncky-staging"].includes(body.scheme)) fail(400, "invalid_settings");
+    if (!(typeof body.scheme === "string" && /^syncky(?:-[a-z][a-z0-9]{0,31})?$/.test(body.scheme))) fail(400, "invalid_settings");
     options.scheme = body.scheme;
   }
   let redirects = store.setting("redirect_allowlist");

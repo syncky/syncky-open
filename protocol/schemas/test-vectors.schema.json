@@ -467,21 +467,21 @@
             "agent_public_key": { "$ref": "#/$defs/b64url_32" },
             "agent_name": { "$ref": "#/$defs/agent_name" },
             "pair_secret": { "$ref": "#/$defs/b64url_16" },
-            "url_scheme": { "type": "string", "enum": ["syncky", "syncky-dev", "syncky-staging"] },
+            "url_scheme": { "type": "string", "pattern": "^syncky(?:-[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?$" },
             "requested_scope": { "$ref": "#/$defs/pair_requested_scope_input" }
           }
         },
         "uri": {
           "description": "Absent input.url_scheme selects an inferred HTTPS site with fragment payload; explicit url_scheme selects the legacy query form. v=2 with c exactly when input has pair_secret",
           "type": "string",
-          "pattern": "^(?:syncky(?:-dev|-staging)?://pair\\?|https://(?:syncky\\.app|(?:dev|staging)\\.syncky\\.app)/pair#)(v=1&r=[^&#?]+&h=[^&#?]+&t=[^&#?]+&k=[^&#?]+&n=[^&#?]+|v=2&r=[^&#?]+&h=[^&#?]+&t=[^&#?]+&k=[^&#?]+&n=[^&#?]+&c=[A-Za-z0-9_-]{22})(&s=http)?(&request_ref=[0-9a-f]{32}&read=%5B[^&#?]*%5D&write=%5B[^&#?]*%5D)?$"
+          "pattern": "^(?:syncky(?:-[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?://pair\\?|https://(?:syncky\\.app|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.syncky\\.app)/pair#)(v=1&r=[^&#?]+&h=[^&#?]+&t=[^&#?]+&k=[^&#?]+&n=[^&#?]+|v=2&r=[^&#?]+&h=[^&#?]+&t=[^&#?]+&k=[^&#?]+&n=[^&#?]+&c=[A-Za-z0-9_-]{22})(&s=http)?(&request_ref=[0-9a-f]{32}&read=%5B[^&#?]*%5D&write=%5B[^&#?]*%5D)?$"
         }
       },
       "if": {
         "type": "object",
         "properties": { "input": { "type": "object", "properties": { "url_scheme": true }, "required": ["url_scheme"] } }
       },
-      "then": { "type": "object", "properties": { "uri": { "type": "string", "pattern": "^syncky(?:-dev|-staging)?://pair\\?" } } },
+      "then": { "type": "object", "properties": { "uri": { "type": "string", "pattern": "^syncky(?:-[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?://pair\\?" } } },
       "else": { "type": "object", "properties": { "uri": { "type": "string", "pattern": "^https://" } } },
       "not": { "type": "object", "properties": { "expect": true }, "required": ["expect"] }
     },
@@ -582,7 +582,7 @@
         "follows": { "$ref": "#/$defs/case_name" },
         "summaries": { "type": "array", "items": { "$ref": "#/$defs/daily_quantity_summary" } },
         "resend": { "type": "boolean", "default": false },
-        "url_scheme": { "type": "string", "enum": ["syncky", "syncky-dev", "syncky-staging"], "default": "syncky" },
+        "url_scheme": { "type": "string", "pattern": "^syncky(?:-[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?$", "default": "syncky" },
         "format": { "type": "string", "enum": ["native", "hae", "csv", "influx"] },
         "destination": {
           "type": "object",
@@ -646,7 +646,7 @@
         "requests": { "type": "array", "items": { "$ref": "#/$defs/webhook_request" } },
         "link": {
           "type": "string",
-          "pattern": "^syncky(?:-dev|-staging)?://webhook\\?v=1&name=[^&]+&url=[^&]+&format=(native|hae|csv|influx)&auth=(none|bearer|header|basic)(&header=[^&]+)?(&user=[^&]+)?(&token=[^&]+)?(&hmac=whsec_[A-Za-z0-9_-]{43})?(&types=[^&]+)?$"
+          "pattern": "^syncky(?:-[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?://webhook\\?v=1&name=[^&]+&url=[^&]+&format=(native|hae|csv|influx)&auth=(none|bearer|header|basic)(&header=[^&]+)?(&user=[^&]+)?(&token=[^&]+)?(&hmac=whsec_[A-Za-z0-9_-]{43})?(&types=[^&]+)?$"
         }
       }
     },

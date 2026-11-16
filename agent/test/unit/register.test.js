@@ -42,7 +42,7 @@ test('init refuses every initialized/legacy artifact without touching it or regi
   assert.equal(relay.state.requests.length, 0);
 });
 
-for (const scheme of ['syncky', 'syncky-dev', 'syncky-staging']) test(`init preserves explicit ${scheme} scheme`, async t => {
+for (const scheme of ['syncky', 'syncky-alpha', 'syncky-other']) test(`init preserves explicit ${scheme} scheme with a local relay`, async t => {
   const { home, init } = await fixture(t); assert.equal((await init(['--url-scheme', scheme])).code, 0);
   assert.equal(JSON.parse(fs.readFileSync(join(home, 'config.json'))).url_scheme, scheme);
 });
@@ -71,4 +71,24 @@ test('wrong invite and authoritative Retry-After retain no credentials; bounded 
   const before = fs.readFileSync(join(home, 'secrets.json'));
   assert.equal((await init()).code, 4); assert.equal((await init(['--force'])).code, 1);
   assert.deepEqual(fs.readFileSync(join(home, 'secrets.json')), before);
+});
+
+for (const scheme of ['syncky-alpha', 'syncky-other']) test(`init refuses unbound ${scheme} before registration`, async t => {
+  const { home, relay } = await fixture(t);
+  const result = await runCli(['--home', home, 'init', '--name', 'Alpha agent', '--relay', 'https://relay.syncky.app', '--url-scheme', scheme], {
+    env: { SYNCKY_INVITE: invite }, fetch: (url, init) => fetch(relay.url + new URL(url).pathname, init),
+  });
+  assert.equal(result.code, 4);
+  assert.equal(JSON.parse(result.stderr).error, 'invalid_url_scheme');
+  assert.equal(relay.state.requests.length, 0);
+  assert.equal(fs.existsSync(home), false);
+});
+
+test('init preserves a bound labelled override', async t => {
+  const { home, relay } = await fixture(t);
+  const result = await runCli(['--home', home, 'init', '--name', 'Alpha agent', '--relay', 'https://relay-alpha.syncky.app', '--url-scheme', 'syncky-alpha'], {
+    env: { SYNCKY_INVITE: invite }, fetch: (url, init) => fetch(relay.url + new URL(url).pathname, init),
+  });
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(JSON.parse(fs.readFileSync(join(home, 'config.json'))).url_scheme, 'syncky-alpha');
 });

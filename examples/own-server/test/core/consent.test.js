@@ -8,7 +8,7 @@ import { createStore } from "../../src/store.js";
 it("consent CSP permits only the selected validated callback origin through approve and deny redirects", async (t) => {
   const b = await browser(t);
   await b.login();
-  const extra = "https://ai.example:8443/oauth/callback";
+  const extra = "https://ai.example:9443/oauth/callback";
   assert.equal((await b.post("/admin/settings", { redirect_allowlist: callback + "\n" + extra })).status, 200);
   const client = await b.register({ redirect_uris: [callback, extra] });
   for (const redirect_uri of [callback, extra]) {

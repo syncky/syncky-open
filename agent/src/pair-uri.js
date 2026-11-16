@@ -1,14 +1,13 @@
 import { isB64u, utf8, utf8Decode } from "./encoding.js";
 import { isHubId, isPairingToken } from "./ids.js";
-import { isUrlScheme, URL_SCHEMES } from "./url-scheme.js";
+import { isUrlScheme, pairingSite } from "./url-scheme.js";
 import { validateAccessScope } from './access-scope.js';
 
 export const PAIR_URI_ERROR_CODES = Object.freeze(["invalid_uri", "unsupported_version", "insecure_relay"]);
 
-const PREFIXES = URL_SCHEMES.map((scheme) => `${scheme}://`);
+const LEGACY_PREFIX = /^syncky(?:-[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?:\/\//;
 const HTTPS = "https://";
 const HTTP = "http://";
-const SITES = new Set(["syncky.app", "dev.syncky.app", "staging.syncky.app"]);
 const SCOPE_KEYS = ['request_ref', 'read', 'write'];
 const KNOWN = new Set(["v", "r", "h", "t", "k", "n", "c", "s", ...SCOPE_KEYS]);
 const REQUIRED = ["r", "h", "t", "k", "n"];
@@ -58,18 +57,21 @@ function percentDecode(value) {
 }
 
 export function parsePairUri(uri, { allowInsecureRelay = false } = {}) {
-  let payload;
+  let payload, legacyScheme;
   if (typeof uri === "string" && uri.startsWith(HTTPS)) {
     const rest = uri.slice(HTTPS.length), end = rest.search(/[/?#]/);
     const authorityEnd = end < 0 ? rest.length : end;
-    if (!SITES.has(rest.slice(0, authorityEnd))) return invalid("host");
+    const site = rest.slice(0, authorityEnd);
+    const relay = percentDecode(/(?:^|&)r=([^&]*)/.exec(rest.slice(rest.indexOf("#") + 1))?.[1] ?? "");
+    if (site !== "syncky.app" && (!relay || !isRelay(relay) || site !== pairingSite(relay.split(":")[0]))) return invalid("host");
     const path = rest.slice(authorityEnd).split(/[?#]/, 1)[0], pathEnd = authorityEnd + path.length;
     if (path !== "/pair") return invalid("path");
     if (rest[pathEnd] === "?") return invalid("query");
     payload = rest.slice(pathEnd + 1);
   } else {
-    const prefix = typeof uri === "string" && PREFIXES.find((p) => uri.startsWith(p));
+    const prefix = typeof uri === "string" && LEGACY_PREFIX.exec(uri)?.[0];
     if (!prefix) return invalid("scheme");
+    legacyScheme = prefix.slice(0, -3);
     const rest = uri.slice(prefix.length), end = rest.search(/[?#]/);
     const authorityEnd = end < 0 ? rest.length : end;
     if (rest.slice(0, authorityEnd) !== "pair") return invalid("host");
@@ -99,6 +101,7 @@ export function parsePairUri(uri, { allowInsecureRelay = false } = {}) {
   const [r, h, t, k, n] = REQUIRED.map((key) => params.get(key));
   const s = params.get("s");
   if (!isRelay(r)) return invalid("r");
+  if (legacyScheme && !isUrlScheme(legacyScheme, r.split(":")[0])) return invalid("scheme");
   if (!isHubId(h)) return invalid("h");
   if (!isPairingToken(t)) return invalid("t");
   if (!isB64u(k, { length: 32 })) return invalid("k");
@@ -142,10 +145,10 @@ function relayHostOf(relayBase) {
 }
 
 export function buildPairUri({ relayBase, hubId, pairingToken, agentPublicKey, agentName, pairSecret, requestedScope, urlScheme = null }) {
-  if (urlScheme !== null && !isUrlScheme(urlScheme)) throw new TypeError("url scheme must be syncky, syncky-dev or syncky-staging");
   const { host, insecure } = relayHostOf(relayBase);
   const relayHost = host.split(":")[0].toLowerCase();
-  const site = relayHost === "relay-dev.syncky.app" ? "dev.syncky.app" : relayHost === "relay-staging.syncky.app" ? "staging.syncky.app" : "syncky.app";
+  if (urlScheme !== null && !isUrlScheme(urlScheme, relayHost)) throw Object.assign(new TypeError("unsupported URL scheme"), { code: "invalid_url_scheme" });
+  const site = pairingSite(relayHost);
   const v2 = pairSecret !== undefined && pairSecret !== null;
   let uri = `${urlScheme === null ? `https://${site}/pair#` : `${urlScheme}://pair?`}v=${v2 ? 2 : 1}`;
   const params = [

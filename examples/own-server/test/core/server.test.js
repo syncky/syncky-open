@@ -177,7 +177,7 @@ it("rejects aborted body streams without persisting any records", async (t) => {
 
 it("builds only authenticated native setup links for all supported schemes", () => {
   const token = secret();
-  for (const scheme of ["syncky", "syncky-dev", "syncky-staging"]) {
+  for (const scheme of ["syncky", "syncky-lab", "syncky-preview"]) {
     const link = new URL(buildLink({ name: "Local Grüße", url: "https://receiver.example/server", format: "native", auth: { kind: "bearer" }, signing: false }, { token }, scheme));
     assert.equal(link.protocol, scheme + ":");
     assert.equal(link.searchParams.get("format"), "native");

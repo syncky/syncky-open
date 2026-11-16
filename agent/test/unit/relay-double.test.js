@@ -75,7 +75,7 @@ describe("relay double smoke", () => {
     assert.deepEqual(await anon.health(), { ok: true, service: "syncky-relay", api: 1 });
     await assert.rejects(anon.register({ invite: "wrong", name: "agent", publicKey: b64uEncode(agentKeys.publicKey) }), {
       status: 403,
-      code: "invalid_invite",
+      code: "registration_refused",
     });
   });
 

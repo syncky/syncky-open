@@ -149,12 +149,13 @@ describe("init (E1)", () => {
     assert.equal(JSON.parse(relay.requests[0].body).name, "Syncky minimal agent");
   });
 
-  it("a rejected invite exits 1 and saves nothing", async (t) => {
+  it("refused registration exits 1, gives neutral guidance and saves nothing", async (t) => {
     const relay = await startRelay(t, () => json(403, { error: "invalid_invite", message: "invite is missing or wrong" }));
     const h = withHome(t);
     const r = await run(["init", "--relay", relay.url, "--invite", INVITE], { home: h.home });
     assert.equal(r.status, 1);
-    assert.match(r.stderr, /^error: relay 403 invalid_invite: invite is missing or wrong/);
+    assert.match(r.stderr, /^error: The relay refused registration\. Tell the owner and stop; do not retry\./);
+    assert.doesNotMatch(r.stderr, /\binvites?\b/i);
     assert.equal(relay.requests.length, 1, "4xx is not retried");
     assert.equal(existsSync(h.home), false);
   });

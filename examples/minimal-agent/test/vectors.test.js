@@ -270,23 +270,43 @@ describe("pair-uris.json", () => {
       assert.equal(Object.hasOwn(base, "requested_scope"), false, c.name);
     }
   });
-  it("supports all three explicit schemes in v1/v2 helpers without a builder-only parse field", () => {
+  it("supports labelled explicit schemes in v1/v2 helpers without a builder-only parse field", () => {
     for (const c of buildCases) {
-      for (const urlScheme of ["syncky", "syncky-dev", "syncky-staging"]) {
-        const { url_scheme, ...expected } = baseInput(c.input);
+      for (const urlScheme of ["syncky", "syncky-alpha", "syncky-other", "syncky-alpha-2"]) {
+        const { url_scheme, ...original } = baseInput(c.input);
+        const expected = urlScheme === "syncky" ? original : { ...original, relay_base: `https://relay-${urlScheme.slice(7)}.syncky.app` };
         const uri = buildPairUri({ ...expected, url_scheme: urlScheme });
-        assert.equal(uri, `${urlScheme}://pair?${baseUri(c.uri).split(/[?#]/)[1]}`);
+        const canonical = buildPairUri({ ...expected, url_scheme: "syncky" });
+        assert.equal(uri, canonical.replace("syncky://", `${urlScheme}://`));
         assert.deepEqual(parsePairUri(uri, true), { ok: true, ...expected });
       }
     }
-    for (const scheme of ["Syncky", "syncky-dev-extra", "syncky-staging-extra", "http", "auto"]) {
+    for (const relay_base of ["https://syncky.app", "https://relay.syncky.app", "https://relay-beta.syncky.app", "https://nested.relay-alpha.syncky.app", "https://relay-alpha.syncky.app."]) {
+      const input = { ...baseInput(buildCases[0].input), relay_base };
+      assert.throws(() => buildPairUri({ ...input, url_scheme: "syncky-alpha" }), { code: "invalid_url_scheme" });
+      const uri = buildPairUri({ ...input, url_scheme: "syncky" }).replace("syncky://", "syncky-alpha://");
+      assert.deepEqual(parsePairUri(uri), { ok: false, error: "invalid_uri", param: "scheme" });
+    }
+    for (const relay_base of ["https://relay-alpha.syncky.app:9443", "https://RELAY-ALPHA.SYNCKY.APP", "http://127.0.0.1:8787", "http://localhost:8787", "http://[::1]:8787", "https://relay.example.test", "https://relay-alpha.syncky.app.evil.example"]) {
+      for (const pair_secret of [undefined, "AAECAwQFBgcICQoLDA0ODw"]) {
+        const { url_scheme, ...original } = baseInput(buildCases[0].input);
+        const input = { ...original, relay_base, ...(pair_secret && { pair_secret }) };
+        const uri = buildPairUri({ ...input, url_scheme: "syncky-alpha" });
+        assert.ok(uri.startsWith(`syncky-alpha://pair?v=${pair_secret ? 2 : 1}&`));
+        assert.deepEqual(parsePairUri(uri, true), { ok: true, ...input });
+        const canonical = buildPairUri({ ...input, url_scheme: "syncky" });
+        assert.deepEqual(parsePairUri(canonical.replace("syncky://", "syncky-alpha://"), true), { ok: true, ...input });
+        if (relay_base.startsWith("http://")) assert.deepEqual(parsePairUri(uri), { ok: false, error: "insecure_relay" });
+      }
+    }
+    for (const scheme of ["Syncky", "syncky-alpha--extra", "syncky-beta--extra", "http", "auto"]) {
       assert.deepEqual(parsePairUri(`${scheme}://pair`), { ok: false, error: "invalid_uri", param: "scheme" });
     }
-    for (const url_scheme of ["", "auto", "syncky://", "syncky-dev ", 42, true]) {
+    for (const url_scheme of ["", "auto", "syncky://", "syncky-alpha ", 42, true]) {
       assert.throws(() => buildPairUri({ ...buildCases[0].input, url_scheme }));
     }
     const { url_scheme, ...input } = buildCases[0].input;
-    assert.ok(buildPairUri({ ...input, relay_base: "https://relay-dev.syncky.app" }).startsWith("https://dev.syncky.app/pair#"));
+    assert.ok(buildPairUri({ ...input, relay_base: "https://relay-alpha.syncky.app" }).startsWith("https://alpha.syncky.app/pair#"));
   });
   it("has parse ok, parse error and build cases, for v1 and v2", () => {
     assert.ok(parseCases.some((c) => c.expect.ok && c.expect.pair_secret === undefined));
@@ -345,12 +365,12 @@ describe("HTTPS producer inference", () => {
   const input = vectors("pair-uris").cases.find(c => c.input).input;
   for (const [relay_base, site] of [
     ["https://relay.syncky.app", "syncky.app"],
-    ["https://relay-dev.syncky.app:8443", "dev.syncky.app"],
-    ["https://RELAY-DEV.SYNCKY.APP:443", "dev.syncky.app"],
-    ["https://relay-staging.syncky.app", "staging.syncky.app"],
-    ["http://relay-staging.syncky.app:8790", "staging.syncky.app"],
-    ["https://relay-dev.syncky.app.example", "syncky.app"],
-    ["https://relay-staging.syncky.app.", "syncky.app"],
+    ["https://relay-alpha.syncky.app:9443", "alpha.syncky.app"],
+    [`https://RELAY-ALPHA.SYNCKY.APP:443`, "alpha.syncky.app"],
+    ["https://relay-beta.syncky.app", "beta.syncky.app"],
+    ["http://relay-beta.syncky.app:8790", "beta.syncky.app"],
+    ["https://relay-alpha.syncky.app.example", "syncky.app"],
+    ["https://relay-beta.syncky.app.", "syncky.app"],
     ["https://dev.example", "syncky.app"],
     ["http://localhost:8790", "syncky.app"],
     ["http://127.0.0.1:8790", "syncky.app"],
@@ -369,4 +389,18 @@ describe("HTTPS producer inference", () => {
       assert.ok(legacy === `syncky://pair?${url.hash.slice(1)}`, "explicit scheme changed the payload");
     }
   });
+});
+
+
+it("binds labelled HTTPS sites to their relay host", () => {
+  const { url_scheme, ...input } = vectors("pair-uris").cases.find(c => c.input).input;
+  for (const label of ["alpha", "beta", "alpha-2"]) {
+    const value = { ...input, relay_base: `https://relay-${label}.syncky.app:9443` };
+    const uri = buildPairUri(value);
+    assert.deepEqual(parsePairUri(uri), { ok: true, ...value });
+    for (const bad of [uri.replace(`https://${label}.syncky.app`, "https://other.syncky.app"), uri.replace(`relay-${label}.syncky.app`, "relay.example.test")]) {
+      assert.deepEqual(parsePairUri(bad), { ok: false, error: "invalid_uri", param: "host" });
+    }
+    assert.deepEqual(parsePairUri(uri.replace(`https://${label}.syncky.app`, "https://syncky.app")), { ok: true, ...value });
+  }
 });

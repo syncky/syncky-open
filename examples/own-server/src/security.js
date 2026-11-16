@@ -28,7 +28,7 @@ export function cookie(request, name) {
 export function canonicalOrigin(value) {
   let url;
   try { url = new URL(value); } catch { fail(400, "invalid_origin"); }
-  const hostname = url.hostname.toLowerCase(), service = ["syncky", "app"].join(".");
+  const hostname = url.hostname.toLowerCase(), service = "syncky.app";
   if (url.username || url.password || hostname === service || hostname.endsWith("." + service) ||
       !(url.protocol === "https:" || url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(hostname))) fail(400, "invalid_origin");
   return url.origin;

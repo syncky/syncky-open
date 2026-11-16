@@ -22,18 +22,18 @@ const ALLOWLIST = ["dist/syncky-agent.mjs", "dist/syncky-agent.mjs.sha256", "LIC
 const REPOSITORY = { type: "git", url: "git+https://github.com/syncky/syncky-open.git", directory: "agent" };
 
 describe("public npm package", () => {
-  let root, staging, unpacked, packed, release, env, cwd, bin;
+  let root, packageSource, unpacked, packed, release, env, cwd, bin;
 
   before(async () => {
     root = mkdtempSync(join(tmpdir(), "syncky npm package "));
-    staging = join(root, "source");
-    cpSync(AGENT, staging, { recursive: true, filter: (path) => path !== join(AGENT, "node_modules") && path !== join(AGENT, "dist") });
+    packageSource = join(root, "source");
+    cpSync(AGENT, packageSource, { recursive: true, filter: (path) => path !== join(AGENT, "node_modules") && path !== join(AGENT, "dist") });
     if (process.env.SYNCKY_AGENT_BUNDLE_FIXTURE) {
       release = json(process.env.SYNCKY_AGENT_BUNDLE_FIXTURE).release;
-      cpSync(dirname(release.bundlePath), join(staging, "dist"), { recursive: true });
+      cpSync(dirname(release.bundlePath), join(packageSource, "dist"), { recursive: true });
     } else {
       const { buildAgent } = await import("../../build.mjs");
-      release = await buildAgent({ outdir: join(staging, "dist") });
+      release = await buildAgent({ outdir: join(packageSource, "dist") });
     }
     for (const parts of [
       [".run", "sentinel"], [".env"], [".dev.vars"], ["secrets.json"], ["config.json"], ["agent.db"],
@@ -41,14 +41,14 @@ describe("public npm package", () => {
       ["test", "sentinel.test.js"], ["node_modules", "sentinel", "index.js"],
       ["dist", "unlisted.mjs"], ["dist", "unlisted.tar.gz"], ["dist", "unlisted.mcpb"],
     ]) {
-      const path = join(staging, ...parts);
+      const path = join(packageSource, ...parts);
       mkdirSync(dirname(path), { recursive: true });
       writeFileSync(path, "excluded npm fixture\n");
     }
     const destination = join(root, "packed");
     mkdirSync(destination);
     const pack = spawnSync("npm", ["pack", "--offline", "--ignore-scripts", "--json", "--pack-destination", destination, "--cache", join(root, "npm-cache")], {
-      cwd: staging, encoding: "utf8", timeout: 60_000,
+      cwd: packageSource, encoding: "utf8", timeout: 60_000,
       env: { ...process.env, npm_config_offline: "true", npm_config_audit: "false", npm_config_fund: "false", npm_config_update_notifier: "false" },
     });
     assert.equal(pack.status, 0, "actual offline npm pack failed");

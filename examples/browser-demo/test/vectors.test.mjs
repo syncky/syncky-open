@@ -123,7 +123,7 @@ describe("pair-uris.json", () => {
   for (const c of buildCases) {
     it(`build ${c.name}, in each scheme`, () => {
       assert.equal(buildPairUri(c.input), c.uri);
-      for (const url_scheme of ["syncky", "syncky-dev", "syncky-staging"]) {
+      for (const url_scheme of ["syncky", "syncky-alpha", "syncky-beta"]) {
         assert.equal(buildPairUri({ ...c.input, url_scheme }), `${url_scheme}://pair?${c.uri.split(/[?#]/)[1]}`);
       }
     });
@@ -136,7 +136,7 @@ describe("pair-uris.json", () => {
       const uri = buildPairUri({ ...base, requested_scope });
       assert.equal(uri, buildPairUri(base) + "&request_ref=" + requested_scope.request_ref + "&read=%5B%22body_mass%22%2C%22heart_rate%22%5D&write=%5B%5D");
       assert.equal(new URL(uri).search, "");
-      for (const url_scheme of ["syncky", "syncky-dev", "syncky-staging"]) assert.equal(buildPairUri({ ...base, requested_scope, url_scheme }), `${url_scheme}://pair?${new URL(uri).hash.slice(1)}`);
+      for (const url_scheme of ["syncky", "syncky-alpha", "syncky-beta"]) assert.equal(buildPairUri({ ...base, requested_scope, url_scheme }), `${url_scheme}://pair?${new URL(uri).hash.slice(1)}`);
     }
     assert.deepEqual(requested_scope.read, ["heart_rate", "body_mass", "heart_rate"]);
   });
@@ -191,12 +191,12 @@ describe("HTTPS producer inference", () => {
   const input = vectors("pair-uris").cases.find(c => c.input).input;
   for (const [relay_base, site] of [
     ["https://relay.syncky.app", "syncky.app"],
-    ["https://relay-dev.syncky.app:8443", "dev.syncky.app"],
-    ["https://RELAY-DEV.SYNCKY.APP:443", "dev.syncky.app"],
-    ["https://relay-staging.syncky.app", "staging.syncky.app"],
-    ["http://relay-staging.syncky.app:8790", "staging.syncky.app"],
-    ["https://relay-dev.syncky.app.example", "syncky.app"],
-    ["https://relay-staging.syncky.app.", "syncky.app"],
+    ["https://relay-alpha.syncky.app:9443", "alpha.syncky.app"],
+    [`https://RELAY-ALPHA.SYNCKY.APP:443`, "alpha.syncky.app"],
+    ["https://relay-beta.syncky.app", "beta.syncky.app"],
+    ["http://relay-beta.syncky.app:8790", "beta.syncky.app"],
+    ["https://relay-alpha.syncky.app.example", "syncky.app"],
+    ["https://relay-beta.syncky.app.", "syncky.app"],
     ["https://dev.example", "syncky.app"],
     ["http://localhost:8790", "syncky.app"],
     ["http://127.0.0.1:8790", "syncky.app"],

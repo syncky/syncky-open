@@ -77,7 +77,7 @@ export function createRuntime({ home, flags = {}, env = process.env, fetch, slee
   const state = retryHomeLockSync(() => readHomeState(home)), secrets = loadSecrets(home);
   if (state.identity.public_key !== secrets.public_key) throw new LocalStateError('key_mismatch', 'home identity and secrets disagree');
   const config = loadConfig(home, { initialized: true, env, flags: { relay_url: flags.relay, url_scheme: flags['url-scheme'], poll_interval_s: flags['poll-interval'] } });
-  const updater = createSkillUpdater({ home, fetch, now: () => now().getTime() });
+  const updater = createSkillUpdater({ home, relayUrl: config.relay_url, fetch, now: () => now().getTime() });
   let active, activeMessages;
   const latest = () => {
     const messages = updater.read().document.messages;
@@ -114,7 +114,7 @@ export function createRuntime({ home, flags = {}, env = process.env, fetch, slee
       const schemas = Object.values((await retryHomeLock(() => updater.read())).document.schemas).map(text => JSON.parse(text));
       const receipt = await createGenericSender({ home, transport, self, now, schemas })({ type, innerText, to, validate });
       await outbox.flush();
-      return (await retryHomeLock(() => outbox.receipts())).find(e => e.msg_id === receipt.msg_id);
+      return (await retryHomeLock(() => outbox.receipts())).find(e => e.msg_id === receipt.msg_id) ?? receipt;
     },
   };
 }

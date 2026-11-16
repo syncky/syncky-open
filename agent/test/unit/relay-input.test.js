@@ -56,7 +56,7 @@ test('saved configuration pins canonical origin before credentials or fetch', t 
   saveSecrets(home, { private_key: keys.agent.sk, public_key: keys.agent.pk, token: `sk_${identity.hub_id}_${'T'.repeat(40)}`, webhook_secret: `whsec_${'W'.repeat(43)}` });
   saveConfig(home, { relay_url: 'https://RELAY.test:443/' });
   let fetched = 0;
-  for (const url of [...invalidUrls, 'https://other.test', 'https://relay.test:8443', 'http://localhost:8787']) {
+  for (const url of [...invalidUrls, 'https://other.test', 'https://relay.test:9443', 'http://localhost:8787']) {
     for (const options of [{ flags: { relay: url }, env: {} }, { env: { SYNCKY_RELAY_URL: url } }]) {
       assert.throws(() => createRuntime({ home, ...options, fetch: () => { fetched++; } }), e => e.code === 'invalid_config' && !e.message.includes('private'));
     }

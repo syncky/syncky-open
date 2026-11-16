@@ -81,7 +81,7 @@ export function percentEncode(value) {
 }
 
 export function buildLink(destination, secrets = {}, scheme = "syncky") {
-  if (!["syncky", "syncky-dev", "syncky-staging"].includes(scheme) || destination.format !== "native") return fail();
+  if (!(typeof scheme === "string" && /^syncky(?:-[a-z][a-z0-9]{0,31})?$/.test(scheme)) || destination.format !== "native") return fail();
   credentialValue(destination.auth, destination.auth?.kind === "header" ? secrets.header_value : secrets.token);
   let url;
   try { url = new URL(destination.url); } catch { return fail(); }

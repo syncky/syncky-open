@@ -20,13 +20,13 @@ For a client whose JSON configuration uses `mcpServers`:
 {"mcpServers":{"syncky":{"command":"npx","args":["-y","@syncky/agent","mcp"]}}}
 ```
 
-Pair first using `SKILL.md` or the [operator guide](agent/SETUP.md). Use the same `SYNCKY_AGENT_HOME` during setup and in the MCP client's environment when selecting a custom home. Grant only the read/write types you want to share. iOS background scheduling and an unlocked phone govern delivery; this is not a real-time feed.
+Pair first using `SKILL.md` or the [operator guide](agent/SETUP.md). Use the same `SYNCKY_AGENT_HOME` during setup and in the MCP client's environment variables when selecting a custom home. Grant only the read/write types you want to share. iOS background scheduling and an unlocked phone govern delivery; this is not a real-time feed.
 
 ### Cursor
 
 [Add to Cursor](https://cursor.com/en/install-mcp?name=syncky&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBzeW5ja3kvYWdlbnQiLCJtY3AiXX0%3D)
 
-The default home is `~/.syncky-agent`; add `env.SYNCKY_AGENT_HOME` only for a custom home, using the absolute path of the same initialized/paired home used by your receiver. JSON environment values do not expand `$HOME` or `~`; use your actual path, including on Windows.
+The default home is `~/.syncky-agent`; add `env.SYNCKY_AGENT_HOME` only for a custom home, using the absolute path of the same initialized/paired home used by your receiver. JSON environment-variable values do not expand `$HOME` or `~`; use your actual path, including on Windows.
 
 For manual configuration, merge this server into global `~/.cursor/mcp.json` or project `.cursor/mcp.json`, preserving other servers:
 
@@ -46,7 +46,7 @@ For manual local setup, the [official MCP tutorial](https://modelcontextprotocol
 
 Save, fully quit and restart Desktop to start the local stdio server. It runs under your user account. Inspect tools through **+ → Connectors** or Local MCP servers settings; current Anthropic Help describes **Settings → Desktop app → Manage** Extensions and the older **Settings → Extensions** layout. Review permission requests and approve only intended operations. This registration does not disable writes. Use the same paired home and a separate receiver; MCP neither pairs nor starts one. For a custom home, the manual server entry can add `env.SYNCKY_AGENT_HOME` with an absolute paired-home path.
 
-Anthropic documents custom `.mcpb` import under Extensions → **Advanced settings → Install Extension** and publishes the [manifest specification](https://github.com/anthropics/mcpb/blob/main/MANIFEST.md), currently `0.3`. This documents the schema and import mechanism; local packaging tests do not establish Claude Desktop acceptance of Syncky's archive. Keep the MCPB compatibility caveat below. The shipped bundle has no custom-home UI field; use the manual environment configuration for a custom home.
+Anthropic documents custom `.mcpb` import under Extensions → **Advanced settings → Install Extension** and publishes the [manifest specification](https://github.com/anthropics/mcpb/blob/main/MANIFEST.md), currently `0.3`. This documents the schema and import mechanism; local packaging tests do not establish Claude Desktop acceptance of Syncky's archive. Keep the MCPB compatibility caveat below. The shipped bundle has no custom-home UI field; use the manual environment-variable configuration for a custom home.
 
 ### VS Code Copilot
 
@@ -127,7 +127,7 @@ This repository holds everything a developer needs to build the other end:
 | [`protocol/`](protocol/README.md) | the schemas, the type catalog `types.json`, the unit table `units.json` and the test vectors every implementation checks itself against; the [server integration guide](protocol/server.md); the [HealthKit data kind inventory](protocol/healthkit-inventory.md) |
 | [`agent/`](agent/README.md) | `syncky-agent`, the Syncky agent (Node 22): pairing, end-to-end encryption, a 30-day local inbox of what the iPhone sends, sending messages to the iPhone (a Health write, applied at the next sync when the owner has allowed writing for that type in the app or at pairing and iOS Health permits it, or a diagnostics or access request, which the owner approves on the phone) and an MCP server for local clients. The integration guide for your own agent in any language is [`agent/AGENTS.md`](agent/AGENTS.md), the operator guide for an AI agent that runs it is [`agent/SETUP.md`](agent/SETUP.md), and every error code and limit is in [`agent/docs/REFERENCE.md`](agent/docs/REFERENCE.md) |
 | [`examples/minimal-agent/`](examples/minimal-agent/README.md) | one Node file that walks the whole relay flow, from registration to the phone's acknowledgement of a write |
-| [`examples/browser-demo/`](examples/browser-demo/README.md) | the demo agent that runs only in a browser tab, served at https://demo.syncky.app (Syncky Health / `relay.syncky.app`), https://demo-dev.syncky.app (Syncky Dev / `relay-dev.syncky.app`) and https://demo-staging.syncky.app (Syncky β / `relay-staging.syncky.app`): pair the matching app, watch decrypted samples arrive, send a write; it stores nothing |
+| [`examples/browser-demo/`](examples/browser-demo/README.md) | the demo agent that runs only in a browser tab, served at https://demo.syncky.app using `relay.syncky.app`: pair Syncky Health, watch decrypted samples arrive, send a write; it stores nothing |
 | [`examples/own-server/`](examples/own-server/README.md) | self-hosted Worker or Docker storage, server-local OAuth consent and bounded remote MCP over the direct-server route |
 | [`examples/minimal-server/`](examples/minimal-server/README.md) | one Node file, no dependencies, that receives the app's direct deliveries in every format, checks auth and signatures and writes back |
 

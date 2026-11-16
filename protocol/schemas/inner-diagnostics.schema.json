@@ -224,13 +224,10 @@
               "maxLength": 32
             },
             "channel": {
+              "description": "Opaque channel label; the receiving app validates its supported values.",
               "type": "string",
-              "enum": [
-                "dev",
-                "staging",
-                "release",
-                "unknown"
-              ]
+              "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?![\\s\\S])",
+              "maxLength": 32
             }
           },
           "required": [

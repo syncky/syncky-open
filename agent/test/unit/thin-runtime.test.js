@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { test } from 'node:test';
+import Ajv from 'ajv/dist/2020.js';
 import { main, commandNames, parseArgs } from '../../src/cli.js';
 import { createMcpServer, TOOLS } from '../../src/mcp.js';
 import { createInbox } from '../../src/inbox.js';
@@ -17,6 +18,12 @@ import { setup, keys, identity, now, delivery, messageId } from '../support/thin
 import { scopedRequest, pairingId, requestedScope, resolvedReply } from '../support/pairing-scope.js';
 import { PAIRING_ACCESS_NOTICE } from '../../src/pairing-access.js';
 import { runCli } from '../support/helpers.js';
+
+const sendOutputSchema = TOOLS.find(tool => tool.name === 'syncky_send').outputSchema;
+const validateSendReceipt = new Ajv({ strict: false, validateFormats: false }).compile(sendOutputSchema);
+function assertSendReceipt(receipt) {
+  assert.equal(validateSendReceipt(receipt), true, JSON.stringify(validateSendReceipt.errors));
+}
 
 for (const version of [1, 2]) for (const scoped of [false, true]) test(`wait rejects an expired ${scoped ? 'scoped' : 'bare'} v${version} binding after restart releases a held unpair`, async t => {
   const { home, pairing } = homeFixture(t, { confirmed: false }); scopedRequest(home);
@@ -168,9 +175,22 @@ for (const surface of ['cli', 'mcp']) test(`${surface} validates access TTL boun
       : await cli(home, ['mcp'], JSON.stringify(request) + '\n', fetch);
     assert.equal(result.code, surface === 'cli' && !valid ? 4 : 0);
     const value = surface === 'cli' ? valid ? result.json : JSON.parse(result.stderr) : result.json.result.structuredContent;
-    if (valid) { assert.equal(value.state, 'sent'); assert.equal(sends, 1); }
+    if (valid) {
+      assertSendReceipt(value);
+      assert.equal(value.state, 'sent'); assert.equal(value.kind, 'control'); assert.equal(value.type, 'access_request');
+      assert.equal(sends, 1);
+      assert.ok(!(result.stdout + result.stderr).includes(base.request_ref));
+      assert.doesNotMatch(result.stdout + result.stderr, /"inner"|"ciphertext"|"created_at"|"expires_at"/);
+    }
     else { assert.equal(value.code ?? value.error, 'schema_invalid'); assert.equal(value.detail, 'ttl'); assert.equal(sends, 0); }
-    if (surface === 'mcp') assert.equal(result.json.result.isError, !valid);
+    if (surface === 'mcp') {
+      assert.equal(result.json.result.isError, !valid);
+      assert.deepEqual(JSON.parse(result.json.result.content[0].text), value);
+      if (!valid) {
+        assertSendReceipt(value);
+        assert.equal(result.json.result.structuredContent.code, 'schema_invalid');
+      }
+    }
   }
 });
 async function cli(home, args, input = '', fetch = () => { throw Error('unexpected network'); }) {
@@ -376,6 +396,27 @@ test('send waits for a receiver transaction while reading its receipt without re
   } finally { clearTimeout(timer); transaction?.release(); receiver.release(); }
 });
 
+test('MCP send returns a conforming queued receipt when flush prunes its completed entry', async t => {
+  const { home } = homeFixture(t), queue = createCipherFiles(home, 'outbox');
+  for (let i = 1; i <= 100; i++) queue.put({ msg_id: `ffffffff-ffff-7000-8000-${String(i).padStart(12, '0')}`,
+    kind: 'control', type: 'future', to: ['m_dev_1'], state: 'sent', seq: i, body: 'RETAINED_CIPHERTEXT_CANARY' });
+  let posts = 0, msgId;
+  const runtime = createRuntime({ home, env: {}, now, fetch: async (_url, options) => {
+    posts++; msgId = JSON.parse(options.body).msg_id;
+    return Response.json({ seq: 101 }, { status: 201 });
+  } });
+  const server = createMcpServer({ handlers: { syncky_send: args => runtime.send(args) } });
+  const { result } = await server.handle({ jsonrpc: '2.0', id: 1, method: 'tools/call',
+    params: { name: 'syncky_send', arguments: { type: 'future', inner: { type: 'future', private: 'INNER_CANARY' } } } });
+  assert.equal(posts, 1); assert.equal(result.isError, false);
+  assertSendReceipt(result.structuredContent);
+  assert.deepEqual(result.structuredContent, { msg_id: msgId, kind: 'control', type: 'future', to: ['m_dev_1'], state: 'pending' });
+  assert.deepEqual(JSON.parse(result.content[0].text), result.structuredContent);
+  assert.equal(queue.list().length, 100);
+  assert.equal(queue.list().some(entry => entry.msg_id === msgId), false);
+  assert.doesNotMatch(JSON.stringify(result), /INNER_CANARY|ciphertext|RETAINED_CIPHERTEXT_CANARY/);
+});
+
 test('inbox pagination is bounded and all version replies remain distinct', async t => {
   const { home } = homeFixture(t), inbox = createInbox(home);
   for (let seq = 1; seq <= 3; seq++) inbox.append({ seq, from: 'm_dev_1', kind: 'data', type: 'sync', received_at: now().toISOString(), inner: { type: 'sync', acks: [{ command_id: 'c_158', version: seq }] } });
@@ -404,6 +445,9 @@ test('MCP exact tools, annotations, verified resource and bounded error channels
   assert.equal((await call('resources/read', { uri: 'file:///secret' })).error.code, -32602);
   const error = await call('tools/call', { name: 'syncky_send', arguments: { type: 'future', inner: { type: 'future' } } });
   assert.equal(error.result.isError, true); assert.doesNotMatch(JSON.stringify(error), /INNER_CANARY/);
+  assert.equal(error.result.structuredContent.code, 'tool_failed');
+  assert.deepEqual(JSON.parse(error.result.content[0].text), error.result.structuredContent);
+  assertSendReceipt(error.result.structuredContent);
 });
 
 test('MCP starts no receiver, heartbeat, retry or update network work', async t => {
@@ -440,8 +484,12 @@ for (const surface of ['cli', 'mcp']) for (const [status, cause, state, queueCod
   const output = surface === 'cli' ? await cli(home, ['send', '--type', 'future', '--json', '-'], JSON.stringify(inner), fetch)
     : await cli(home, ['mcp'], JSON.stringify(request) + '\n', fetch);
   assert.equal(output.code, 0); assert.equal(posts, 1);
-  if (surface === 'mcp') assert.equal(output.json.result.isError, false);
+  if (surface === 'mcp') {
+    assert.equal(output.json.result.isError, false);
+    assert.deepEqual(JSON.parse(output.json.result.content[0].text), output.json.result.structuredContent);
+  }
   const receipt = surface === 'cli' ? output.json : output.json.result.structuredContent;
+  assertSendReceipt(receipt);
   assert.equal(receipt.state, state); assert.equal(receipt.code, queueCode); assert.equal(receipt.attempts, 1);
   assert.equal(receipt.relay_code, cause ? cause === 'PRIVATE_CAUSE' ? 'relay_error' : cause : undefined);
   assert.equal(receipt.relay_status, cause ? status : undefined);
@@ -454,6 +502,23 @@ for (const surface of ['cli', 'mcp']) for (const [status, cause, state, queueCod
   assert.equal((await cli(home, ['inbox'])).json.records.length, 0);
 });
 
+test('real MCP adapter returns a conforming scope-release receipt without exposing its inner data', async t => {
+  const { home } = homeFixture(t); let posts = 0;
+  const inner = { v: 1, type: 'scope_release', read: ['steps'], write: ['body_mass'] };
+  const request = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'syncky_send', arguments: { type: 'scope_release', inner, validate: false } } };
+  const output = await cli(home, ['mcp'], JSON.stringify(request) + '\n', async () => {
+    posts++; return Response.json({ seq: 8 }, { status: 201 });
+  });
+  assert.equal(output.code, 0); assert.equal(posts, 1); assert.equal(output.json.result.isError, false);
+  const receipt = output.json.result.structuredContent;
+  assertSendReceipt(receipt);
+  assert.equal(receipt.state, 'sent'); assert.equal(receipt.kind, 'control'); assert.equal(receipt.type, 'scope_release');
+  assert.equal(receipt.seq, 8); assert.equal(receipt.code, null);
+  assert.deepEqual(JSON.parse(output.json.result.content[0].text), receipt);
+  assert.deepEqual((await cli(home, ['status'])).json.sends, [receipt]);
+  assert.doesNotMatch(output.stdout + output.stderr, /"inner"|"ciphertext"|"read"|"write"|steps|body_mass/);
+});
+
 for (const surface of ['cli', 'mcp']) test(`${surface} real scope-release validation keeps safe detail and thrown local failure behavior`, async t => {
   const { home } = homeFixture(t);
   for (const [read, detail] of [[[], 'empty'], [['PRIVATE_CANARY'], 'unknown_type'], [null, 'malformed']]) {
@@ -461,7 +526,12 @@ for (const surface of ['cli', 'mcp']) test(`${surface} real scope-release valida
     const request = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'syncky_send', arguments: { type: 'scope_release', inner } } };
     const output = surface === 'cli' ? await cli(home, ['send', '--type', 'scope_release', '--json', '-'], JSON.stringify(inner)) : await cli(home, ['mcp'], JSON.stringify(request) + '\n');
     assert.equal(output.code, surface === 'cli' ? 4 : 0);
-    if (surface === 'mcp') assert.equal(output.json.result.isError, true);
+    if (surface === 'mcp') {
+      assert.equal(output.json.result.isError, true);
+      assert.equal(output.json.result.structuredContent.code, 'schema_invalid');
+      assertSendReceipt(output.json.result.structuredContent);
+      assert.deepEqual(JSON.parse(output.json.result.content[0].text), output.json.result.structuredContent);
+    }
     const error = surface === 'cli' ? JSON.parse(output.stderr) : output.json.result.structuredContent;
     assert.equal(error.error ?? error.code, 'schema_invalid'); assert.equal(error.detail, detail);
     assert.equal(error.hint, errorHint('schema_invalid'));

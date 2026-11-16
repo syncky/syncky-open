@@ -4,13 +4,23 @@ import { readFileSync, readdirSync } from "node:fs";
 import { fixture, native, sample, messageRequest } from "../support/helpers.js";
 import { browser, origin, hidden } from "../support/browser.js";
 import { connected, command, write, tool } from "../support/mcp.js";
+import { canonicalOrigin } from "../../src/security.js";
 
 it("shared runtime has no network clients, service hosts, timers or remote assets", () => {
   const dir = new URL("../../src/", import.meta.url);
   for (const file of readdirSync(dir).filter(n => n.endsWith(".js"))) {
     const source = readFileSync(new URL(file, dir), "utf8");
-    assert.ok(!/\bfetch\s*\(|\bWebSocket\b|\bXMLHttpRequest\b|\bconnect\s*\(|\bset(?:Interval|Timeout)\s*\(|https?:\/\/|syncky\.app/.test(source), "no external runtime egress");
+    const scanned = file === "security.js" ? source.replace('service = "syncky.app";', 'service = "";') : source;
+    assert.ok(!/\bfetch\s*\(|\bWebSocket\b|\bXMLHttpRequest\b|\bconnect\s*\(|\bset(?:Interval|Timeout)\s*\(|https?:\/\/|syncky\.app/.test(scanned), "no external runtime egress");
   }
+});
+
+it("the service domain is an origin denylist entry", () => {
+  for (const host of ["syncky.app", "alpha.syncky.app", "relay-alpha.syncky.app", "SYNCKY.APP"]) {
+    assert.throws(() => canonicalOrigin(`https://${host}`), { message: "invalid_origin" });
+  }
+  assert.equal(canonicalOrigin("https://server.example.test"), "https://server.example.test");
+  assert.equal(canonicalOrigin("https://syncky.app.example.test"), "https://syncky.app.example.test");
 });
 
 it("runtime has no external egress through initialization, admin, registration, consent, OAuth or MCP", async (t) => {

@@ -59,3 +59,17 @@ for (const status of [301, 302, 307, 308]) test(`invite registration refuses red
   await assert.rejects(relayCall({ relay: `http://127.0.0.1:${source.address().port}` }, 'POST', '/v1/agents/register', { body: '{}', headers: { 'X-Syncky-Invite': 'private-canary' } }), { code: 'network_error' });
   assert.equal(delivered, 0);
 });
+
+test('registration refusal gives neutral guidance without repeating relay prose', async t => {
+  const original = globalThis.fetch;
+  t.after(() => { globalThis.fetch = original; });
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return Response.json({ error: 'invalid_invite', message: 'private registration credential rejected' }, { status: 403 });
+  };
+  await assert.rejects(relayCall({ relay: 'https://relay.test' }, 'POST', '/v1/agents/register'), {
+    code: 'registration_refused', message: 'The relay refused registration. Tell the owner and stop; do not retry.',
+  });
+  assert.equal(calls, 1);
+});

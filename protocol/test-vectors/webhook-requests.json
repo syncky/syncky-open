@@ -526,7 +526,6 @@
     },
     {
       "name": "native_nothing_collected",
-      "url_scheme": "syncky-dev",
       "format": "native",
       "destination": {
         "id": "wh_KuZiLc46it0hZJ3ZGwUpqg",
@@ -565,7 +564,7 @@
         "delivered_groups": []
       },
       "requests": [],
-      "link": "syncky-dev://webhook?v=1&name=Vector%20empty&url=https%3A%2F%2Freceiver.example%2Fhook%2Fempty&format=native&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "syncky://webhook?v=1&name=Vector%20empty&url=https%3A%2F%2Freceiver.example%2Fhook%2Fempty&format=native&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "hae_bearer_signed_every_shape",
@@ -1267,7 +1266,6 @@
     },
     {
       "name": "hae_only_deletions_and_unmapped",
-      "url_scheme": "syncky-staging",
       "format": "hae",
       "destination": {
         "id": "wh_zGdtCP_Te79XCGd8naB5Xg",
@@ -1335,7 +1333,7 @@
         ]
       },
       "requests": [],
-      "link": "syncky-staging://webhook?v=1&name=Vector%20hae-dropped&url=https%3A%2F%2Freceiver.example%2Fhook%2Fhae-dropped&format=hae&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "syncky://webhook?v=1&name=Vector%20hae-dropped&url=https%3A%2F%2Freceiver.example%2Fhook%2Fhae-dropped&format=hae&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "native_all_kinds",

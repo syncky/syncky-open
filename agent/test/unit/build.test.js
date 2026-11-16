@@ -255,7 +255,7 @@ describe("release bundle", () => {
       assert.equal(initial.document.skill_version, ${initial.skill_version});
       assert.equal(initial.previous, null);
       assert.deepEqual(readdirSync(home), []);
-      updater.observeHeartbeat({ skill_update: { skill_version: initial.document.skill_version + 1, url: 'https://dev.syncky.app/agent-skill.json' } });
+      updater.observeHeartbeat({ skill_update: { skill_version: initial.document.skill_version + 1, url: 'https://syncky.app/agent-skill.json' } });
       assert.equal((await updater.tick()).code, 'skill_key_unset');
       assert.equal(fetches, 0);
       process.stdout.write('offline bootstrap ok');

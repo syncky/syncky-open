@@ -15,7 +15,7 @@ export const diagnosticsFixture = () => ({
     "version": "1.0",
     "build": "1",
     "os": "26.0",
-    "channel": "dev"
+    "channel": "release"
   },
   "pairing": {
     "status": "unavailable"

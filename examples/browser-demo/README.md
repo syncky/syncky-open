@@ -1,6 +1,6 @@
 # Syncky browser demo agent
 
-An agent that runs only in a browser tab: a static page and one bundle, `demo.js`, built from [`src/`](src/). The hosted targets are `https://demo.syncky.app` (Syncky Health / `relay.syncky.app`), `https://demo-dev.syncky.app` (Syncky Dev / `relay-dev.syncky.app`) and `https://demo-staging.syncky.app` (Syncky β / `relay-staging.syncky.app`), where anyone can pair the matching Syncky app with it and watch end-to-end encrypted Health data arrive, without running a server. The protocol code is a browser port of [`examples/minimal-agent/agent.mjs`](../minimal-agent/agent.mjs): the same three pinned `@hpke/*` packages, WebCrypto instead of `node:crypto`, `qrcode` 1.5.4 for the pairing QR and esbuild 0.28.1 for the bundle.
+An agent that runs only in a browser tab: a static page and one bundle, `demo.js`, built from [`src/`](src/). The hosted demo is `https://demo.syncky.app`, where anyone can pair Syncky Health with it and watch end-to-end encrypted Health data arrive, without running a server. The protocol code is a browser port of [`examples/minimal-agent/agent.mjs`](../minimal-agent/agent.mjs): the same three pinned `@hpke/*` packages, WebCrypto instead of `node:crypto`, `qrcode` 1.5.4 for the pairing QR and esbuild 0.28.1 for the bundle.
 
 **This demo stores nothing: close or reload the tab and everything is gone.** The keys, the bearer token, the pairing and every decrypted sample live in the tab's memory. The page reads and writes no cookie, `localStorage`, `sessionStorage`, IndexedDB or cache, loads nothing from a third party, has no analytics and talks only to the relay it was built for.
 
@@ -20,11 +20,10 @@ Supported browsers: Safari 17 or later and current Chrome, on a page served over
 ```bash
 npm ci
 node build.mjs --relay https://relay.syncky.app         # production app
-node build.mjs --relay https://relay-dev.syncky.app     # Syncky Dev
-node build.mjs --relay https://relay-staging.syncky.app # Syncky β
+node build.mjs --relay https://relay.example.test
 ```
 
-`dist/` then holds `index.html`, `demo.css` and `demo.js`. The relay origin is a build constant. Pairing infers `dev.syncky.app` from `relay-dev.syncky.app`, `staging.syncky.app` from `relay-staging.syncky.app`, and `syncky.app` otherwise, including localhost. The fragment is not included in the browser's HTTP request to the pairing page. After installing, tap the link again or scan the QR code; “Open in Syncky” bridges to scheme-only apps. The low-level builder accepts an explicit legacy scheme for vector replay; normal sessions use HTTPS. The relay answers CORS only for the demo origins it is configured with, so serve `dist/` from such an origin, with a Content Security Policy like:
+`dist/` then holds `index.html`, `demo.css` and `demo.js`. The relay origin is a build constant. Pairing uses `https://syncky.app/pair#…` by default. A relay hostname of `relay-<label>.syncky.app` selects `<label>.syncky.app`. The fragment is not included in the browser's HTTP request to the pairing page. After installing, tap the link again or scan the QR code; “Open in Syncky” bridges to scheme-only apps. The low-level builder accepts an explicit legacy scheme for vector replay; normal sessions use HTTPS. The relay answers CORS only for the demo origins it is configured with, so serve `dist/` from such an origin, with a Content Security Policy like:
 
 ```
 default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://relay.syncky.app; base-uri 'none'; form-action 'none'; frame-ancestors 'none'

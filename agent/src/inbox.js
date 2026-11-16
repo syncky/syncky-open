@@ -1,6 +1,6 @@
 import nodeFs from "node:fs";
 import { join } from "node:path";
-import { addIndexRecord, extendIndex, fileIndex, indexPath, rawLines, replaceInboxFile, saveIndex, scanLimit } from "./inbox-io.js";
+import { addIndexRecord, extendIndex, fileIndex, indexPath, rawLines, replaceInboxFile, sameSignature, saveIndex, scanLimit, signature } from "./inbox-io.js";
 import { LocalStateError } from "./config.js";
 import { isB64u } from "./encoding.js";
 import { isMemberId, isUuidV7 } from "./ids.js";
@@ -59,6 +59,49 @@ export function inboxMetadata(home, options = {}) {
   }
   return out;
 }
+export function createInboxAdmission({ legacy = false } = {}) {
+  return { indexes: null, legacyOrder: legacy, high: -1, legacy: -1, searched: false };
+}
+function collectAdmissionIndexes(home, view, names, stats, { fs = nodeFs } = {}) {
+  const indexes = new Map();
+  let high = -1, legacy = -1;
+  for (const name of names) {
+    const stat = stats.get(name) ?? privateStat(join(home, "inbox", name), { fs });
+    const prior = view.indexes?.get(name);
+    const index = sameSignature(prior?.file, stat) ? prior : fileIndex(home, name, decode, { fs, stat });
+    indexes.set(name, index);
+    high = Math.max(high, index.blocks.at(-1)?.last ?? -1);
+    legacy = Math.max(legacy, index.legacy);
+  }
+  view.indexes = indexes; view.legacyOrder = false; view.high = high; view.legacy = legacy; view.searched = false;
+}
+export function refreshInboxAdmission(home, view, { fs = nodeFs, sequential = view.legacyOrder, target } = {}) {
+  if (target) {
+    if (target.stat) view.indexes.set(target.name, fileIndex(home, target.name, decode, { fs }));
+    else view.indexes.delete(target.name);
+  }
+  const names = files(home, { fs }), stats = new Map();
+  if (!sequential) for (const name of names) stats.set(name, privateStat(join(home, "inbox", name), { fs }));
+  if (view.indexes && !target) {
+    let unchanged = names.length === view.indexes.size;
+    for (const name of names) {
+      const stat = stats.get(name) ?? privateStat(join(home, "inbox", name), { fs });
+      stats.set(name, stat);
+      if (!sameSignature(view.indexes.get(name)?.file, stat)) { unchanged = false; break; }
+    }
+    if (unchanged) return;
+  }
+  collectAdmissionIndexes(home, view, names, stats, { fs });
+}
+export function admissionInboxSequence(home, record, { view, ...options }) {
+  const refreshed = view.searched;
+  if (refreshed) refreshInboxAdmission(home, view, options);
+  if (!view.searched) {
+    view.match = findInboxSequence(home, record, { ...options, view, refresh: !refreshed });
+    view.searched = true;
+  }
+  return checkInboxSequence(record, view.match ? [view.match] : []);
+}
 function* fileLines(home, name, index, { fs = nodeFs, afterSeq = -1, seq, budget, snapshot = false } = {}) {
   for (const block of index.blocks) {
     if (block.last <= afterSeq || (seq !== undefined && (seq < block.minSeq || seq > block.maxSeq))) continue;
@@ -72,16 +115,18 @@ function* fileLines(home, name, index, { fs = nodeFs, afterSeq = -1, seq, budget
     if ((line.record.cursor ?? line.record.seq) > afterSeq && (seq === undefined || line.record.seq === seq)) yield line;
   }
 }
-export function* iterateInbox(home, { fs = nodeFs, afterSeq = -1, since, until, budget, snapshot = false, seq } = {}) {
+export function* iterateInbox(home, { fs = nodeFs, afterSeq = -1, since, until, budget, snapshot = false, seq, view, refresh = true } = {}) {
   const startDay = since ? new Date(Date.parse(since)).toISOString().slice(0, 10) : "", endDay = until ? new Date(Date.parse(until)).toISOString().slice(0, 10) : "9999";
   const streams = [];
   try {
-    const names = files(home, { fs, snapshot }).map(name => ({ name, stat: privateStat(join(home, "inbox", name), { fs, optional: snapshot }) }));
-    for (const { name, stat } of names) {
-      if (!stat) continue;
+    if (view && refresh) refreshInboxAdmission(home, view, { fs });
+    const names = view ? [...view.indexes].map(([name, index]) => ({ name, index }))
+      : files(home, { fs, snapshot }).map(name => ({ name, stat: privateStat(join(home, "inbox", name), { fs, optional: snapshot }) }));
+    for (const { name, stat, index: saved } of names) {
+      if (!view && !stat) continue;
       if (name.slice(0, 10) < startDay || name.slice(0, 10) > endDay) continue;
       let index;
-      try { index = fileIndex(home, name, decode, { fs, snapshot, stat, lazy: !!budget }); }
+      try { index = saved ?? fileIndex(home, name, decode, { fs, snapshot, stat, lazy: !!budget }); }
       catch (error) { if (snapshot && error.code === "ENOENT") continue; throw error; }
       if (!index.pending && !index.blocks.some(b => b.last > afterSeq && (seq === undefined || seq >= b.minSeq && seq <= b.maxSeq))) continue;
       const iterator = fileLines(home, name, index, { fs, afterSeq, seq, budget, snapshot });
@@ -169,7 +214,7 @@ export function committedInboxRecord(record, state) {
   return record.msg_id === undefined || !state || (record.cursor ?? record.seq) <= (state.transport.inbox_committed_cursor ?? -1);
 }
 
-export function appendInboxLocked(home, record, { fs = nodeFs, innerText } = {}) {
+export function appendInboxLocked(home, record, { fs = nodeFs, innerText, view } = {}) {
   const options = { fs };
   metadata(record);
   const text = innerText ?? JSON.stringify(record.inner);
@@ -178,23 +223,37 @@ export function appendInboxLocked(home, record, { fs = nodeFs, innerText } = {})
   if (inner.type !== record.type) throw corrupt();
   const { seq, from, kind, type, received_at, msg_id, public_key, accepted_at } = record;
   privateDirectory(join(home, "inbox"), options);
-  const existing = findInboxSequence(home, { ...record, inner }, options);
-  if (existing) {
+  view ??= createInboxAdmission();
+  const lookup = refresh => admissionInboxSequence(home, { ...record, inner }, { ...options, view, ...refresh });
+  const duplicate = existing => {
     syncPrivateFile(join(home, "inbox", existing.name), options);
     return { inserted: false, seq, record: existing.record };
-  }
+  };
+  const existing = lookup();
+  if (existing) return duplicate(existing);
   const cursorPath = join(home, ".inbox-cursor.json");
-  let high = inboxCursor(home, options);
-  for (const { index } of inboxMetadata(home, options)) high = Math.max(high, index.blocks.at(-1)?.last ?? -1);
-  const cursor = Math.max(seq, high + 1);
+  const reserved = inboxCursor(home, options);
+  const refreshed = lookup({ sequential: true });
+  if (refreshed) return duplicate(refreshed);
+  let cursor = Math.max(seq, Math.max(reserved, view.high) + 1);
   if (!Number.isSafeInteger(cursor)) throw corrupt();
   // Reserve before appending so pruning, forgetting and interrupted writes cannot reuse a cursor.
   atomicPrivateWrite(cursorPath, JSON.stringify({ cursor }) + "\n", options);
+  const name = `${received_at.slice(0, 10)}.jsonl`, path = join(home, "inbox", name);
+  let prior = privateStat(path, { fs, optional: true });
+  while (prior ? !sameSignature(view.indexes.get(name)?.file, prior) : view.indexes.has(name)) {
+    const changed = lookup({ target: { name, stat: prior } });
+    if (changed) return duplicate(changed);
+    const next = Math.max(cursor, seq, Math.max(reserved, view.high) + 1);
+    if (!Number.isSafeInteger(next)) throw corrupt();
+    if (next !== cursor) {
+      cursor = next; atomicPrivateWrite(cursorPath, JSON.stringify({ cursor }) + "\n", options);
+    }
+    prior = privateStat(path, { fs, optional: true });
+  }
+  const index = prior ? view.indexes.get(name) : { version: 2, end: 0, legacy: -1, blocks: [] };
   const prefix = JSON.stringify({ seq, cursor, from, kind, type, received_at, msg_id, public_key, accepted_at });
   const bytes = Buffer.from(prefix.slice(0, -1) + ',"inner":' + text.replace(/[\r\n]/g, " ") + "}\n");
-  const name = `${received_at.slice(0, 10)}.jsonl`, path = join(home, "inbox", name);
-  const prior = privateStat(path, { fs, optional: true });
-  const index = prior ? fileIndex(home, name, decode, options) : { version: 2, end: 0, legacy: -1, blocks: [] };
   if (prior && prior.size !== index.end) {
     replaceInboxFile(path, write => write(bytes), { fs, prefixBytes: index.end });
   } else {
@@ -209,8 +268,9 @@ export function appendInboxLocked(home, record, { fs = nodeFs, innerText } = {})
   }
   addIndexRecord(index, { offset: index.end, end: index.end + bytes.length, record: { ...record, cursor } });
   const st = privateStat(path, { fs });
-  index.file = { ino: st.ino, dev: st.dev, size: st.size, mtime: st.mtimeMs, ctime: st.ctimeMs };
+  index.file = signature(st);
   saveIndex(home, name, index, options);
+  view.indexes.set(name, index); view.high = Math.max(view.high, cursor); view.legacy = Math.max(view.legacy, index.legacy); view.searched = false;
   return { inserted: true, seq, record: { ...record, cursor, inner } };
 }
 

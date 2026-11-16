@@ -6,7 +6,7 @@ Use Node.js ≥22.15. The npm runner is `npx -y @syncky/agent`; carried packages
 
 ## 2. Home and trust
 
-Set SYNCKY_AGENT_HOME to the owner's existing protected home (0700). Files are 0600. Invites belong only in SYNCKY_INVITE, never chat or arguments. Before switching an existing service, stop it. Same-home owner-assisted offline migration preserves secrets/config/pairing/trust. A legacy home without exported state returns migration_required; do not initialize over it. Legacy agent.db/diagnostics.db/access.db and WAL/SHM remain untouched and status names them for manual owner handling. Old fields stay readable.
+Set SYNCKY_AGENT_HOME to the owner's existing protected home (0700). Files are 0600. Before switching an existing service, stop it. Same-home owner-assisted offline migration preserves secrets/config/pairing/trust. A legacy home without exported state returns migration_required; do not initialize over it. Legacy agent.db/diagnostics.db/access.db and WAL/SHM remain untouched and status names them for manual owner handling. Old fields stay readable.
 
 ## 3. Initialize
 
@@ -15,9 +15,9 @@ syncky selftest
 syncky init --name 'My agent'
 ```
 
-This link selects Syncky Health from the App Store, relay.syncky.app and https://syncky.app/pair#… (scan in Syncky or paste only: syncky://pair?…). Do not ask the owner which app build is installed. If the app reports untrusted_relay, the phone runs another build: tell the owner, do not switch environments.
+This link selects Syncky Health from the App Store, relay.syncky.app and https://syncky.app/pair#… (scan in Syncky or paste only: syncky://pair?…). If the app reports untrusted_relay, stop and tell the owner.
 
-Init refuses initialized homes. Use a fresh home only with owner intent; never overwrite an existing identity. SYNCKY_RELAY_URL and SYNCKY_URL_SCHEME can set the relay and URL scheme; --url-scheme overrides environment/config. Never silently change environments to bypass an error.
+Init refuses initialized homes. Use a fresh home only with owner intent; never overwrite an existing identity. SYNCKY_RELAY_URL and SYNCKY_URL_SCHEME can set the relay and URL scheme; --url-scheme overrides environment variables and saved config. Never silently change relays to bypass an error.
 
 ### Recover when `invalid_token` arrives before any phone joined
 
@@ -25,7 +25,7 @@ Init refuses initialized homes. Use a fresh home only with owner intent; never o
 
 1. Stop and tell the owner. Obtain explicit owner intent to create a new identity before registering again; do not retry registration automatically.
 2. Stop the old receiver by its known service identity or known PID. Stop its supervisor too so it cannot restart it. Use the recorded unit, launchd label or scheduled task, or send SIGTERM to the known receiver PID; never stop processes by a broad name match.
-3. Retain the old private home and its history. Choose a fresh, unused absolute `--home` path on the **same relay** saved for the old home. Replace the placeholders below; the CLI creates private directories/files. Do not overwrite the old home, edit its credentials, transfer tokens or change environments to get past the refusal.
+3. Retain the old private home and its history. Choose a fresh, unused absolute `--home` path on the **same relay** saved for the old home. Replace the placeholders below; the CLI creates private directories/files. Do not overwrite the old home, edit its credentials, transfer tokens or change relays to get past the refusal.
 
 ```sh
 syncky --home '<fresh-absolute-home>' --relay '<same-relay-url>' init --name 'My agent'
@@ -33,7 +33,7 @@ syncky --home '<fresh-absolute-home>' --relay '<same-relay-url>' pair --no-qr
 ```
 
 4. Show the new private link/code only to the owner and complete pairing again. If the phone reports `pairing_not_found`, ask for a fresh setup/link; that error alone does not prove deletion either.
-5. Repoint the chosen receiver and MCP together: replace their `--home` arguments and/or `SYNCKY_AGENT_HOME` environment settings with the fresh path, removing stale overrides. Pin `--relay '<same-relay-url>'` in both configurations so an inherited `SYNCKY_RELAY_URL` cannot select another relay. For the receiver use `syncky --home '<fresh-absolute-home>' --relay '<same-relay-url>' receive`, retaining its approved flags/schedule; for MCP use `syncky --home '<fresh-absolute-home>' --relay '<same-relay-url>' mcp`. Start only the receiving mode already approved by the owner, using the same fresh home; a new service or schedule still needs explicit approval.
+5. Repoint the chosen receiver and MCP together: replace their `--home` arguments and/or `SYNCKY_AGENT_HOME` environment-variable settings with the fresh path, removing stale overrides. Pin `--relay '<same-relay-url>'` in both configurations so an inherited `SYNCKY_RELAY_URL` cannot select another relay. For the receiver use `syncky --home '<fresh-absolute-home>' --relay '<same-relay-url>' receive`, retaining its approved flags/schedule; for MCP use `syncky --home '<fresh-absolute-home>' --relay '<same-relay-url>' mcp`. Start only the receiving mode already approved by the owner, using the same fresh home; a new service or schedule still needs explicit approval.
 
 The new identity does not inherit old trust or history. Old history remains under its original senders in the old home and is accessible offline with `syncky --home '<old-absolute-home>' inbox --limit 100`; keep that home private. Recovery does not delete it or move it into the new identity.
 
@@ -119,7 +119,7 @@ launchctl bootout gui/$(id -u)/app.syncky.agent
 
 ### Windows: Task Scheduler
 
-Register a Task Scheduler task at logon with restart on failure. Save this PowerShell restart loop as `C:\Syncky\receive.ps1`, replacing the home and source paths; keep an absolute `node.exe` path. It sets the environment inherited by Node and restarts `receive` after 10 seconds unless it exits 1 (usage) or 3 (`invalid_token`: identity refused by the relay). Task Scheduler's `RestartCount` handles start failures separately.
+Register a Task Scheduler task at logon with restart on failure. Save this PowerShell restart loop as `C:\Syncky\receive.ps1`, replacing the home and source paths; keep an absolute `node.exe` path. It sets the environment variables inherited by Node and restarts `receive` after 10 seconds unless it exits 1 (usage) or 3 (`invalid_token`: identity refused by the relay). Task Scheduler's `RestartCount` handles start failures separately.
 
 ```powershell
 $env:SYNCKY_AGENT_HOME = 'C:\Users\you\.syncky-agent'
@@ -187,7 +187,7 @@ If the phone says the relay was not told, run `syncky revoke <member_id>` only w
 
 ## 6. Security rules
 
-- Never print, log, send or commit: `SYNCKY_INVITE`, anything in `secrets.json`, relay tokens (`sk_hub_…`), webhook secrets or pairing tokens. Show a requested QR/code only privately to its owner; never disclose the credential-bearing URI in reports or logs.
+- Never print, log, send or commit: anything in `secrets.json`, relay tokens (`sk_hub_…`), webhook secrets or pairing tokens. Show a requested QR/code only privately to its owner; never disclose the credential-bearing URI in reports or logs.
 - Health values are the owner's private data. Use them only for what the owner asked; do not paste raw values into third-party services or public places. Opt-in receive stdout (--emit-records), inbox and MCP responses are private data channels, never logs. Services discard receive stdout and log only safe stderr metadata.
 - Commands write to the owner's real Apple Health. Send a write only when the owner asked for it or explicitly approved a standing rule; say exactly what you will write before you send it. Never bypass phone policy. Diagnostics and access requests also require explicit owner intent; the phone still requires consent.
 - Do not edit files in `$SYNCKY_AGENT_HOME` or legacy databases by hand. Do not run two `receive` processes. Install services or schedules only after explicit owner approval.

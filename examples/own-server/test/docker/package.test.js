@@ -64,7 +64,8 @@ it("all runtime imports stay local; only Worker entry dispatches; no egress, log
     const source = read(directory + "/" + name);
     assert.doesNotMatch(source, /console\.|globalThis\.fetch|\b(?:await|return)\s+fetch\s*\(|https?:\/\/|setInterval|setTimeout|WebSocket|XMLHttpRequest|cloudflare:sockets|\.request\s*\(/);
     if (directory !== "worker" || name !== "index.js") assert.doesNotMatch(source, /\.fetch\s*\(|\.getByName\s*\(|\.jurisdiction\s*\(/);
-    assert.doesNotMatch(source, /C\u00a7|docs\/(?:planning|plans)|syncky\.app/);
+    const scanned = directory === "src" && name === "security.js" ? source.replace('service = "syncky.app";', 'service = "";') : source;
+    assert.doesNotMatch(scanned, /C\u00a7|docs\/(?:planning|plans)|syncky\.app/);
     for (const [, specifier] of source.matchAll(/(?:from\s*|import\s*)["']([^"']+)["']/g)) assert.ok(specifier.startsWith(".") || directory === "docker" && ["node:http", "node:events", "node:stream", "node:stream/promises", "node:url", "node:sqlite"].includes(specifier) || directory === "worker" && specifier === "cloudflare:workers");
     if (directory === "docker" && name === "server.js") assert.match(source, /import \{ createServer \} from "node:http"/);
     if (directory !== "docker") assert.doesNotMatch(source, /node:|\bBuffer\b|\brequire\s*\(/);

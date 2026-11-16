@@ -15,8 +15,8 @@ const info = {
 };
 
 it("normalizes requested scope without changing unscoped bytes in either version or envelope", () => {
-  for (const pairSecret of [undefined, "AAECAwQFBgcICQoLDA0ODw"]) for (const urlScheme of [null, "syncky-dev"]) {
-    const base = { ...info, pairSecret, urlScheme }, plain = buildPairUri(base);
+  for (const pairSecret of [undefined, "AAECAwQFBgcICQoLDA0ODw"]) for (const urlScheme of [null, "syncky-alpha"]) {
+    const base = { ...info, relayBase: "https://relay-alpha.syncky.app", pairSecret, urlScheme }, plain = buildPairUri(base);
     const requestedScope = { request_ref: "a".repeat(32), read: ["steps", "body_mass", "steps"], write: [] };
     const uri = buildPairUri({ ...base, requestedScope });
     assert.ok(uri.startsWith(plain + "&request_ref="));
@@ -31,12 +31,12 @@ describe("buildPairUri", () => {
   it("infers HTTPS by exact relay hostname, retaining ports, payload and explicit fallbacks", () => {
     for (const [relayBase, site] of [
       ["https://relay.syncky.app", "syncky.app"],
-      ["https://relay-dev.syncky.app:8443", "dev.syncky.app"],
-      ["https://RELAY-DEV.SYNCKY.APP:443", "dev.syncky.app"],
-      ["http://relay-staging.syncky.app:8790", "staging.syncky.app"],
-      ["https://relay-staging.syncky.app", "staging.syncky.app"],
-      ["https://relay-dev.syncky.app.example", "syncky.app"],
-      ["https://relay-staging.syncky.app.", "syncky.app"],
+      ["https://relay-alpha.syncky.app:9443", "alpha.syncky.app"],
+      [`https://RELAY-ALPHA.SYNCKY.APP:443`, "alpha.syncky.app"],
+      ["http://relay-beta.syncky.app:8790", "beta.syncky.app"],
+      ["https://relay-beta.syncky.app", "beta.syncky.app"],
+      ["https://relay-alpha.syncky.app.example", "syncky.app"],
+      ["https://relay-beta.syncky.app.", "syncky.app"],
       ["https://dev.example", "syncky.app"],
       ["http://localhost:8790", "syncky.app"],
       ["http://127.0.0.1:8790", "syncky.app"],
@@ -52,15 +52,15 @@ describe("buildPairUri", () => {
     }
   });
   it("builds and parses v1/v2 in every scheme without adding scheme to the parsed result", () => {
-    for (const urlScheme of ["syncky", "syncky-dev", "syncky-staging"]) {
+    for (const urlScheme of ["syncky", "syncky-alpha", "syncky-beta"]) {
       for (const pairSecret of [undefined, "AAECAwQFBgcICQoLDA0ODw"]) {
-        const value = { ...info, ...(pairSecret !== undefined && { pairSecret }) };
+        const value = { ...info, relayBase: urlScheme === "syncky" ? info.relayBase : `https://relay-${urlScheme.slice(7)}.syncky.app`, ...(pairSecret !== undefined && { pairSecret }) };
         const uri = buildPairUri({ ...value, urlScheme });
         assert.ok(uri.startsWith(`${urlScheme}://pair?v=${pairSecret ? 2 : 1}&`));
         assert.deepEqual(parsePairUri(uri), { ok: true, value });
       }
     }
-    for (const urlScheme of ["", "auto", "Syncky", "syncky://", "syncky-dev-extra", true, 42]) {
+    for (const urlScheme of ["", "auto", "Syncky", "syncky://", "syncky-alpha--extra", true, 42]) {
       assert.throws(() => buildPairUri({ ...info, urlScheme }), TypeError);
     }
   });
@@ -113,10 +113,10 @@ describe("buildPairUri", () => {
 
 describe("parsePairUri", () => {
   it("rejects unknown schemes and keeps host, fragment and version error order in supported schemes", () => {
-    for (const scheme of ["Syncky", "syncky-dev-extra", "syncky-staging-extra", "syncky-prod", "http"]) {
+    for (const scheme of ["Syncky", "syncky-alpha--extra", "syncky-beta--extra", "syncky-2alpha", "http"]) {
       assert.deepEqual(parsePairUri(`${scheme}://pair?v=2`), { ok: false, code: "invalid_uri", param: "scheme" });
     }
-    for (const scheme of ["syncky", "syncky-dev", "syncky-staging"]) {
+    for (const scheme of ["syncky", "syncky-alpha", "syncky-beta", "syncky-alpha-2"]) {
       assert.deepEqual(parsePairUri(`${scheme}://webhook#x`), { ok: false, code: "invalid_uri", param: "host" });
       assert.deepEqual(parsePairUri(`${scheme}://pair#x`), { ok: false, code: "invalid_uri", param: "fragment" });
       assert.deepEqual(parsePairUri(`${scheme}://pair`), { ok: false, code: "invalid_uri", param: "v" });
@@ -124,6 +124,17 @@ describe("parsePairUri", () => {
   });
   it("rejects a non-string input as a scheme error", () => {
     assert.deepEqual(parsePairUri(undefined), { ok: false, code: "invalid_uri", param: "scheme" });
+  });
+
+  it("binds labelled HTTPS sites to the matching relay host", () => {
+    for (const label of ["alpha", "beta", "alpha-2"]) {
+      const value = { ...info, relayBase: `https://relay-${label}.syncky.app:9443` };
+      const uri = buildPairUri(value);
+      assert.deepEqual(parsePairUri(uri), { ok: true, value });
+      assert.deepEqual(parsePairUri(uri.replace(`https://${label}.syncky.app`, "https://other.syncky.app")), { ok: false, code: "invalid_uri", param: "host" });
+      assert.deepEqual(parsePairUri(uri.replace(`relay-${label}.syncky.app`, "relay.example.test")), { ok: false, code: "invalid_uri", param: "host" });
+      assert.deepEqual(parsePairUri(uri.replace(`https://${label}.syncky.app`, "https://syncky.app")), { ok: true, value });
+    }
   });
 
   it("treats a URI without a query as missing v", () => {
@@ -146,4 +157,34 @@ describe("fingerprint", () => {
     assert.throws(() => fingerprint(keys.agent.pk, keys.dev1.pk.slice(1)));
     assert.throws(() => fingerprint(keys.agent.pk + "=", keys.dev1.pk));
   });
+});
+
+it('derives a labelled pairing site only from its matching relay host', () => {
+  const value = { ...info, relayBase: 'https://relay-lab.syncky.app:9443' };
+  const uri = buildPairUri(value);
+  assert.ok(uri.startsWith('https://lab.syncky.app/pair#'));
+  assert.deepEqual(parsePairUri(uri), { ok: true, value });
+  for (const host of ['lab.syncky.app.evil.example', 'www.syncky.app', 'other.syncky.app', 'lab.syncky.app:443']) assert.deepEqual(parsePairUri(uri.replace('lab.syncky.app/pair', `${host}/pair`)), { ok: false, code: 'invalid_uri', param: 'host' });
+});
+
+it("refuses mismatched labelled legacy schemes on syncky.app at build and parse", () => {
+  for (const relayBase of ["https://syncky.app", "https://relay.syncky.app", "https://relay-beta.syncky.app", "https://nested.relay-alpha.syncky.app", "https://relay-alpha.syncky.app."]) {
+    assert.throws(() => buildPairUri({ ...info, relayBase, urlScheme: "syncky-alpha" }), { code: "invalid_url_scheme", message: "unsupported URL scheme" });
+    const uri = buildPairUri({ ...info, relayBase, urlScheme: "syncky" }).replace("syncky://", "syncky-alpha://");
+    assert.deepEqual(parsePairUri(uri), { ok: false, code: "invalid_uri", param: "scheme" });
+  }
+});
+
+it("accepts labelled legacy schemes with a matching relay or a relay outside syncky.app", () => {
+  for (const relayBase of ["https://relay-alpha.syncky.app:9443", "https://RELAY-ALPHA.SYNCKY.APP", "http://127.0.0.1:8787", "http://localhost:8787", "http://[::1]:8787", "https://relay.example.test", "https://relay-alpha.syncky.app.evil.example"]) {
+    for (const pairSecret of [undefined, "AAECAwQFBgcICQoLDA0ODw"]) {
+      const value = { ...info, relayBase, ...(pairSecret && { pairSecret }) };
+      const uri = buildPairUri({ ...value, urlScheme: "syncky-alpha" });
+      assert.ok(uri.startsWith(`syncky-alpha://pair?v=${pairSecret ? 2 : 1}&`));
+      assert.deepEqual(parsePairUri(uri, { allowInsecureRelay: true }), { ok: true, value });
+      const canonical = buildPairUri({ ...value, urlScheme: "syncky" });
+      assert.deepEqual(parsePairUri(canonical.replace("syncky://", "syncky-alpha://"), { allowInsecureRelay: true }), { ok: true, value });
+      if (relayBase.startsWith("http://")) assert.deepEqual(parsePairUri(uri), { ok: false, code: "insecure_relay" });
+    }
+  }
 });

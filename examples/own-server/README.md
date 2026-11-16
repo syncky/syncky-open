@@ -26,7 +26,7 @@ https://deploy.workers.cloudflare.com/?url=https://github.com/syncky/syncky-open
 
 ### Docker with Node SQLite
 
-Use this directory as the build context. Set `ADMIN_PASSWORD` privately in your environment and `PUBLIC_URL` to the canonical public HTTPS origin (no path). Run `docker compose -f docker/compose.yaml up --build -d` behind your own HTTPS reverse proxy. This builds from source; no published image is assumed. Compose exposes only `127.0.0.1:3000:3000`. Provide TLS and preserve the canonical host; forwarded host headers cannot change the server's origin.
+Use this directory as the build context. Set `ADMIN_PASSWORD` privately through an environment variable and `PUBLIC_URL` to the canonical public HTTPS origin (no path). Run `docker compose -f docker/compose.yaml up --build -d` behind your own HTTPS reverse proxy. This builds from source; no published image is assumed. Compose exposes only `127.0.0.1:3000:3000`. Provide TLS and preserve the canonical host; forwarded host headers cannot change the server's origin.
 
 The pinned base is `node:22.15.0-bookworm-slim`. The non-root Node user stores `own-server.sqlite` in the named volume at `/data`; a bind mount must be writable by UID 1000. `DATABASE_PATH` and `PORT` override `/data/own-server.sqlite` and `3000` when running the Node entry directly. Encrypt the host disk and protect backups. Stop the server or use a consistent SQLite backup method; do not copy only the database while ignoring its WAL/SHM sidecars. `/health` returns only a constant health check, not storage readiness or Health values.
 
@@ -36,7 +36,7 @@ The pinned base is `node:22.15.0-bookworm-slim`. The non-root Node user stores `
 2. Import/open the link in Syncky Health and confirm the server. It fixes `format=native` and `/server`, defaults to Bearer plus HMAC, and cannot enable writes. Choose Health types in the app. HAE, CSV, Influx and unknown formats receive `415 unsupported_format`.
 3. Use **Check connection**, which sends a probe with no Health data. Then use **Sync now** with selected data. A successful probe proves connection/authentication, not stored Health data or permission to read it.
 
-Authentication can instead use Basic or a validated custom header; unauthenticated internet mode is unsupported. Admin settings changes to upload authentication, HMAC or app scheme take effect on explicit rotation. Default scheme is `syncky`; choose `syncky-dev` or `syncky-staging` only for that build, rotate and re-import. Admin, upload and OAuth credentials cannot substitute for each other.
+Authentication can instead use Basic or a validated custom header; unauthenticated internet mode is unsupported. Admin settings changes to upload authentication, HMAC or app scheme take effect on explicit rotation. The default app scheme is `syncky`. After changing link settings, rotate and re-import. Admin, upload and OAuth credentials cannot substitute for each other.
 
 The [server contract](../../protocol/server.md) and [public vectors](../../protocol/test-vectors/) define the exact bytes. These request distinctions matter:
 

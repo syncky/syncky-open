@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import { commandNames, generalHelp } from '../../src/cli.js';
 import { createPairingService, readPairingFile } from '../../src/pairing.js';
+import { saveConfig } from '../../src/config.js';
 import { createRuntime } from '../../src/runtime.js';
 import { createThinPoller } from '../../src/thin-poller.js';
 import { readHomeState, updateHomeState } from '../../src/home-state.js';
@@ -237,16 +238,19 @@ for (const mode of ['v1', 'wait', 'receiver']) test(`pair does not spawn a waite
 
 test('pair forwards relay and URL scheme overrides to the detached waiter', async t => {
   const f = await fixture(t), calls = [];
-  const result = await runCli(['--home', f.home, '--relay', f.relay.url, '--url-scheme', 'syncky-dev', 'pair', '--json'], {
-    env: { SYNCKY_RELAY_URL: 'http://127.0.0.1:1' }, spawn: (command, args) => {
+  const origin = 'https://relay-alpha.syncky.app';
+  saveConfig(f.home, { relay_url: origin, name: 'Alpha' });
+  const forward = (url, options) => { const target = new URL(url); return fetch(f.relay.url + target.pathname + target.search, options); };
+  const result = await runCli(['--home', f.home, '--relay', origin, '--url-scheme', "syncky-alpha", 'pair', '--json'], {
+    fetch: forward, env: { SYNCKY_RELAY_URL: 'http://127.0.0.1:1' }, spawn: (command, args) => {
       calls.push(args); const child = new EventEmitter(); child.unref = () => {}; return child;
     },
   });
   assert.equal(result.code, 0); assert.equal(calls.length, 1);
-  assert.deepEqual(calls[0], [process.argv[1], '--home', f.home, '--relay', f.relay.url, '--url-scheme', 'syncky-dev', 'pair-waiter', JSON.parse(result.stdout).pairing_id]);
+  assert.deepEqual(calls[0], [process.argv[1], '--home', f.home, '--relay', origin, '--url-scheme', "syncky-alpha", 'pair-waiter', JSON.parse(result.stdout).pairing_id]);
   const phone = createFakePhone({ relayUrl: f.relay.url });
   await phone.pair(JSON.parse(result.stdout).uri); await phone.sendPairProof();
-  const waiter = await runCli(calls[0].slice(1), { env: { SYNCKY_RELAY_URL: 'http://127.0.0.1:1' }, now: f.now, sleep: async ms => f.advance(ms) });
+  const waiter = await runCli(calls[0].slice(1), { fetch: forward, env: { SYNCKY_RELAY_URL: 'http://127.0.0.1:1' }, now: f.now, sleep: async ms => f.advance(ms) });
   assert.equal(waiter.code, 0); assert.equal(readHomeState(f.home).members[phone.memberId].state, 'confirmed');
 });
 

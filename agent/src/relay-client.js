@@ -1,4 +1,5 @@
 import { CONFIG_DEFAULTS, isLoopbackHost, relayOrigin, resolveConfig } from "./config.js";
+import { agentErrorCode, errorHint } from "./error-guidance.js";
 import { printable } from "./encoding.js";
 import { redact, REDACTED } from "./log.js";
 import { RETRY_POLICY, abortableSleep } from "./transport-time.js";
@@ -19,7 +20,7 @@ export const RELAY_ERROR_CODES = Object.freeze([
   "plan_insufficient",
   "hub_unpaid",
   "hub_suspended",
-  "invalid_invite",
+  "registration_refused",
   "invalid_assertion",
   "attestation_required",
   "forbidden",
@@ -43,11 +44,11 @@ export const RELAY_CLIENT_ERROR_CODES = Object.freeze(["network_error", "timeout
 
 export class RelayError extends Error {
   constructor({ status, code, message, details, retryAfterS }) {
-    super(message);
+    super(agentErrorCode(code) === "registration_refused" ? errorHint("registration_refused") : message);
     this.name = "RelayError";
     this.status = status;
-    this.code = code;
-    this.details = details;
+    this.code = agentErrorCode(code);
+    this.details = this.code === "registration_refused" ? undefined : details;
     this.retryAfterS = retryAfterS;
   }
 }
@@ -137,7 +138,7 @@ export function createRelayClient({
     const json = parseJson(text);
     const shaped = json !== null && typeof json === "object" && typeof json.error === "string";
     const details = shaped && json.details !== null && typeof json.details === "object" ? json.details : undefined;
-    const code = shaped && RELAY_ERROR_CODES.includes(json.error) ? json.error : "relay_error";
+    const code = shaped && RELAY_ERROR_CODES.includes(agentErrorCode(json.error)) ? agentErrorCode(json.error) : "relay_error";
     const relayMessage = shaped && typeof json.message === "string" ? json.message : `HTTP ${status}`;
     return new RelayError({
       status,
@@ -257,7 +258,7 @@ export function createRelayClient({
     health: () => bodyOf(request("GET", "/v1/health", { auth: false })),
 
     register({ invite, name, publicKey, webhookUrl } = {}) {
-      if (invite !== undefined && (typeof invite !== "string" || invite === "")) throw new TypeError("invite must be a non-empty string");
+      if (invite !== undefined && (typeof invite !== "string" || invite === "")) throw new TypeError("registration credential must be a non-empty string");
       const payload = { name, public_key: publicKey };
       if (webhookUrl !== undefined) payload.webhook_url = webhookUrl;
       return bodyOf(

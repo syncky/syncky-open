@@ -32,7 +32,7 @@ export async function registerAgent({
   fs = nodeFs,
   timers = globalThis,
 }) {
-  if (urlScheme !== null) validateUrlScheme(urlScheme);
+  if (urlScheme !== null) validateUrlScheme(urlScheme, relayUrl);
   if (isInitialized(home, { fs })) {
     throw new LocalStateError("already_initialized", "agent home is already initialized; use its identity or a new home");
   }

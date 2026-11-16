@@ -1,7 +1,7 @@
 export const ERROR_GUIDANCE = Object.freeze({
   "inbox_seen_limit": "This sender exceeded the replay protection capacity. Retain local history and leave delivery unACKed; retry after older IDs leave the protected window.",
   "inbox_scan_limit": "No inbox cursor progress fit within the scan budget. Use a narrower date range and retain local history.",
-  "invalid_uri": "The pairing link is malformed. Ask the owner for a link for the correct environment; keep its credentials private.",
+  "invalid_uri": "The pairing link is malformed. Ask the owner for a new link; keep its credentials private.",
   "insecure_relay": "The relay URL is insecure. Use HTTPS, except for an explicitly chosen loopback test relay.",
   "unsupported_version": "The pairing or transport version is unsupported. Retain local data and update the agent or phone.",
   "inner_invalid": "The inner message is not bounded UTF-8 JSON with a string type, or does not match its envelope marker. Correct the caller JSON.",
@@ -29,7 +29,7 @@ export const ERROR_GUIDANCE = Object.freeze({
   "invalid_config": "Local configuration is invalid. Keep the initialized config.json relay origin; use matching HTTP(S) overrides without credentials, paths, queries or fragments. Retain local data.",
   "invalid_envelope": "The relay rejected the encrypted envelope shape or metadata. Check the agent transport version and envelope limits before another send.",
   "invalid_input": "Local input is invalid. Check the command format, matching JSON type and any safe validation detail before retrying.",
-  "invalid_invite": "The registration invite was refused. Ask the owner to verify the invite and relay environment; keep the invite private.",
+  "registration_refused": "The relay refused registration. Tell the owner and stop; do not retry.",
   "invalid_plan_proof": "The relay rejected the subscription proof. Ask the owner to refresh the subscription state in the app; never disclose the proof.",
   "invalid_request": "The relay rejected the request format or parameters. Check the operation’s documented inputs before retrying.",
   "invalid_response": "The relay response is malformed, oversized or missing required metadata. Retain local state and check endpoint compatibility and availability.",
@@ -37,7 +37,7 @@ export const ERROR_GUIDANCE = Object.freeze({
   "invalid_state": "Local state conflicts with this operation or message. Stop and inspect safe status metadata before retrying; retain the home.",
   "invalid_token": "The relay refused this identity. Stop and tell the owner; retain local history and never automatically register again.",
   "invalid_transition": "The member state does not allow this operation. Check status and obtain owner approval for any trust change.",
-  "invalid_url_scheme": "The URL scheme is unsupported. Choose syncky, syncky-dev or syncky-staging for the intended app environment.",
+  "invalid_url_scheme": "The URL scheme override is unsupported. Remove --url-scheme or SYNCKY_URL_SCHEME; the default HTTPS link works.",
   "key_conflict": "A known member was presented with a different public key. Stop and check the binding with the owner; never inherit the old trust.",
   "key_mismatch": "The stored identity and private key do not match. Stop and have the owner restore the matching private home files.",
   "local_error": "An unclassified local operation failed. Retain the home and report the safe code and operation to the owner; keep private files and error text out of logs.",
@@ -54,7 +54,7 @@ export const ERROR_GUIDANCE = Object.freeze({
   "not_initialized": "This home has no initialized identity. Check --home; initialize a new private home only with owner intent.",
   "pair_proof_invalid": "Pairing proof verification failed and data remains held. Ask the owner to compare the phone fingerprint; never bypass trust checks.",
   "pairing_expired": "The pending pairing link or confirmation window expired. Check status and start a new pairing only with owner approval.",
-  "pairing_not_found": "The relay cannot find this pairing or its hub. Check the pairing and relay environment with the owner before starting again.",
+  "pairing_not_found": "The relay cannot find this pairing or its hub. Check the pairing with the owner before starting again.",
   "payload_too_large": "The serialized input or encrypted envelope exceeds its byte cap. Reduce the caller payload; account for encryption and recipient overhead.",
   "plan_in_use": "This subscription is already bound to another hub. Ask the owner to resolve the subscription binding in the app.",
   "plan_insufficient": "The subscription proof does not provide the required entitlement. Ask the owner to check the plan in the app.",
@@ -94,6 +94,9 @@ export const ERROR_GUIDANCE = Object.freeze({
   "unsupported_media_type": "The relay requires an application/json request body. Check client request formatting."
 });
 
+export const agentErrorCode = code => code === "invalid_invite" ? "registration_refused" : code;
+
 export function errorHint(code) {
+  code = agentErrorCode(code);
   return Object.hasOwn(ERROR_GUIDANCE, code) ? ERROR_GUIDANCE[code] : ERROR_GUIDANCE.local_error;
 }

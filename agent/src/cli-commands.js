@@ -2,7 +2,7 @@ export const PAIRING_LIMITS_NOTICE = 'Hosted default pairing-link lifetime: 10 m
 
 export const globalFlags = { home: 'string', relay: 'string', 'url-scheme': 'string', 'log-level': 'string', help: 'boolean' };
 export const commands = {
-  init: { usage: 'init --name <name> [--invite <secret>]', details: 'Relay: HTTP(S) origin without credentials, path, query or fragment. HTTPS is recommended; non-loopback HTTP warns once per process and host, while loopback HTTP stays quiet. Saved config.json relay_url binds the home; --relay/SYNCKY_RELAY_URL overrides must match its canonical origin. Redirects are refused.', flags: { name: 'string', invite: 'string' } },
+  init: { usage: 'init --name <name>', details: 'Relay: HTTP(S) origin without credentials, path, query or fragment. HTTPS is recommended; non-loopback HTTP warns once per process and host, while loopback HTTP stays quiet. Saved config.json relay_url binds the home; --relay/SYNCKY_RELAY_URL overrides must match its canonical origin. Redirects are refused.', flags: { name: 'string', invite: 'string' } },
   pair: { usage: 'pair [--read <comma-separated-types>] [--write <comma-separated-types>] [--v1] [--wait] [--timeout <seconds>] [--no-qr]', details: PAIRING_LIMITS_NOTICE.trimEnd(), flags: { read: 'string', write: 'string', v1: 'boolean', wait: 'boolean', timeout: 'string', 'no-qr': 'boolean' } },
   wait: { usage: 'wait [--timeout <seconds>]', flags: { timeout: 'string' } },
   confirm: { usage: 'confirm <member_id> <fingerprint>', max: 8 },

@@ -777,3 +777,12 @@ test('receiver completion erases credentials after durable proof derivation and 
   await phone.fetchCommands();
   assert.deepEqual(phone.controlReceived.map(r => r.type), ['confirmed', 'agent_info']);
 });
+
+test('pair refuses an unbound labelled scheme before creating a relay pairing', async t => {
+  const f = await fixture(t);
+  let calls = 0;
+  const service = createPairingService({ home: f.home, publicKey: 'unused', agentName: 'Alpha', urlScheme: 'syncky-alpha',
+    relay: { baseUrl: 'https://relay.syncky.app', createPairing: async () => { calls++; } } });
+  await assert.rejects(service.startPairing(), { code: 'invalid_url_scheme' });
+  assert.equal(calls, 0);
+});

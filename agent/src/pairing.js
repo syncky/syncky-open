@@ -72,6 +72,7 @@ export function createPairingService({ home, relay, publicKey, agentName, urlSch
   }
   return {
     async startPairing({ v1 = false, read, write } = {}) {
+      if (urlScheme != null) validateUrlScheme(urlScheme, relay.baseUrl);
       if (!isPairUriName(agentName)) throw new LocalStateError('invalid_config', 'agent name cannot fit pairing URI');
       let requestedScope;
       if (read !== undefined || write !== undefined) {

@@ -4,7 +4,7 @@ import { LocalStateError } from "./config.js";
 import { b64uDecode, isB64u } from "./encoding.js";
 import { EnvelopeError } from "./thin-transport.js";
 import { cipherEntries, createCipherFiles, readHomeState, STATE_FILE, updateHomeState, validateHomeState } from "./home-state.js";
-import { appendInboxLocked, findInboxSequence, iterateInbox, inboxMetadata, INBOX_SEEN_RETENTION_MS, INBOX_SEEN_CLOCK_SKEW_MS, INBOX_SEEN_MAX_IDS, INBOX_SEEN_PROTECTED_MS, INBOX_SEEN_MAX_RECENT_IDS } from "./inbox.js";
+import { appendInboxLocked, admissionInboxSequence, createInboxAdmission, refreshInboxAdmission, iterateInbox, inboxMetadata, INBOX_SEEN_RETENTION_MS, INBOX_SEEN_CLOCK_SKEW_MS, INBOX_SEEN_MAX_IDS, INBOX_SEEN_PROTECTED_MS, INBOX_SEEN_MAX_RECENT_IDS } from "./inbox.js";
 import { isMemberId, isUuidV7, uuidv7, uuidv7Timestamp } from "./ids.js";
 import { createThinPairing, validateMemberPairing } from "./thin-pairing.js";
 import { retryHomeLock } from "./thin-lock.js";
@@ -110,17 +110,19 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
     }
     return true;
   }
-  function* tail(state) {
-    if (state.transport.inbox_committed_cursor === undefined) {
-      state.transport.inbox_committed_cursor = Math.max(-1, ...inboxMetadata(home, options).map(({ index }) => index.legacy));
+  function* tail(state, view) {
+    const legacy = state.transport.inbox_committed_cursor === undefined;
+    if (legacy) {
+      if (view) refreshInboxAdmission(home, view, options);
+      state.transport.inbox_committed_cursor = view ? view.legacy : Math.max(-1, ...inboxMetadata(home, options).map(({ index }) => index.legacy));
     }
-    for (const line of iterateInbox(home, { ...options, afterSeq: state.transport.inbox_committed_cursor })) {
+    for (const line of iterateInbox(home, { ...options, view, refresh: !legacy, afterSeq: state.transport.inbox_committed_cursor })) {
       if (line.record.msg_id !== undefined) yield line;
     }
   }
-  function reconcileState(state, emitted, limit = Infinity) {
+  function reconcileState(state, emitted, limit = Infinity, view) {
     let count = 0;
-    for (const { record, name } of tail(state)) {
+    for (const { record, name } of tail(state, view)) {
       syncPrivateFile(join(home, "inbox", name), options);
       if (trusted(state, record)) {
         const { ids, stale } = seenIds(state, record, record.accepted_at);
@@ -139,6 +141,7 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
     for (;;) {
       const emitted = [];
       const count = await locked(() => {
+        emitted.length = 0;
         const state = readHomeState(home, options), rows = tail(state);
         try { if (rows.next().done) return 0; } finally { rows.return(); }
         return updateHomeState(home, s => reconcileState(s, emitted, 128), options);
@@ -150,14 +153,16 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
   async function admit(record, innerText, context) {
     const emitted = [];
     const result = await mutate(state => {
-      reconcileState(state, emitted);
+      emitted.length = 0;
+      const view = createInboxAdmission({ legacy: state.transport.inbox_committed_cursor === undefined });
+      reconcileState(state, emitted, Infinity, view);
       if (!trusted(state, record)) return poison("unknown_sender");
-      findInboxSequence(home, record, options);
+      admissionInboxSequence(home, record, { ...options, view });
       record = { ...record, accepted_at: now().getTime() };
       const { ids, count, stale } = seenIds(state, record, record.accepted_at), at = state.transport.inbox_seen_at;
       if (stale) return poison("expired");
       if (ids[record.msg_id] !== undefined) {
-        const existing = findInboxSequence(home, record, options);
+        const existing = admissionInboxSequence(home, record, { ...options, view });
         if (existing) syncPrivateFile(join(home, "inbox", existing.name), options);
         ids[record.msg_id] = Math.max(ids[record.msg_id], at);
         return { status: "duplicate", type: record.type };
@@ -169,7 +174,7 @@ export function createThinInbound({ home, transport, self, relay, fs, now = () =
       if (state.members[record.from].state === "joined" && (record.kind !== "control" || record.inner.type !== "pair_proof" || record.inner.v !== 1 || !isB64u(record.inner.proof, { length: 32 }))) return poison("unknown_sender");
       // A failed proof must invalidate trust without creating an accepted inbox row.
       if (state.members[record.from].state === "joined" && !pairing.confirmProofInState(state, record.from, record.inner.proof, new Date(record.accepted_at))) return poison("pair_proof_invalid");
-      const appended = appendInboxLocked(home, record, { ...options, innerText }), accepted = appended.record;
+      const appended = appendInboxLocked(home, record, { ...options, innerText, view }), accepted = appended.record;
       if (accepted.msg_id !== undefined && accepted.cursor > state.transport.inbox_committed_cursor) {
         applyRecord(state, accepted); emitted.push(accepted);
       }

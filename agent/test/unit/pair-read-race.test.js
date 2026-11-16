@@ -222,7 +222,7 @@ for (const file of ['installed-bundle.json', 'skill-update.json']) test(`receive
   const trust = skillTrustForTests(Buffer.from(pair.publicKey.export({ format: 'jwk' }).x, 'base64url').toString('base64'));
   let downloads = 0;
   const updater = createSkillUpdater({ home, trust, fetch: async () => { downloads++; return new Response(feed); } });
-  updater.observeHeartbeat({ skill_update: { skill_version: document.skill_version, url: 'https://dev.syncky.app/agent-skill.json' } });
+  updater.observeHeartbeat({ skill_update: { skill_version: document.skill_version, url: 'https://syncky.app/agent-skill.json' } });
   if (file === 'installed-bundle.json') assert.equal((await updater.tick()).state, 'applied');
   const race = replaceDuringRead(t, home, file);
   let yielded = false;

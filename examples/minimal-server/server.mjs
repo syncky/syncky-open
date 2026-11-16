@@ -12,9 +12,9 @@ export const MAX_REPLY_BYTES = 60_000;
 export const MAX_SKEW_S = 300;
 const EXTENSIONS = { native: "json", hae: "json", csv: "csv", influx: "lp" };
 const AUTH_KINDS = ["none", "bearer", "basic", "header"];
-const URL_SCHEMES = ["syncky", "syncky-dev", "syncky-staging"];
-const URL_SCHEME_ERROR = "url_scheme must be syncky, syncky-dev or syncky-staging";
-const urlSchemeOf = (value) => URL_SCHEMES.includes(value) ? value : usage(URL_SCHEME_ERROR);
+const isUrlScheme = value => value === "syncky";
+const URL_SCHEME_ERROR = "unsupported URL scheme";
+const urlSchemeOf = (value) => isUrlScheme(value) ? value : usage(URL_SCHEME_ERROR);
 const UPSERT_TYPES = new Set(["characteristic", "activity_summary"]);
 const DELIVERY_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const TIMESTAMP_RE = /^[0-9]{1,15}$/;
@@ -253,7 +253,7 @@ export async function createServer({ dir, port = 0, bind = "127.0.0.1", auth = "
 const USAGE = `usage: server.mjs <command> [options]
   init                                       create the data dir and its token and hmac files (mode 600)
   serve [--port 3000] [--bind 127.0.0.1]     accept Syncky deliveries on any path (POST), GET /health
-  link [--host <name>.local] [--port 3000] [--format native|hae|csv|influx] [--name <name>] [--url-scheme syncky|syncky-dev|syncky-staging]
+  link [--host <name>.local] [--port 3000] [--format native|hae|csv|influx] [--name <name>] [--url-scheme <scheme>]
                                              print the setup link for the iPhone (it contains the secrets)
   write [--at <rfc3339>] [--] <type> <value> <unit>  queue a Health write for the next reply (-- before a negative value)
   delete <command_id>                        queue the deletion of a record a write created
@@ -261,7 +261,7 @@ const USAGE = `usage: server.mjs <command> [options]
 options for every command: --data <dir> (default ./syncky-data)
 auth for serve and link: --auth none|bearer|basic|header (default bearer), --user <name>, --header <Name>
 link scheme: --url-scheme > SYNCKY_URL_SCHEME > <data>/config.json url_scheme > syncky
-example: server.mjs link --url-scheme syncky-dev
+example: server.mjs link
 secrets: SYNCKY_SERVER_TOKEN and SYNCKY_SERVER_HMAC, else the token and hmac files in the data dir`;
 class UsageError extends Error {}
 const usage = (message) => {

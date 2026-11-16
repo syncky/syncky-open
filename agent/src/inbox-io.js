@@ -5,16 +5,16 @@ import { LocalStateError } from "./config.js";
 import { atomicPrivateWrite, parsePrivateJson, privateDirectory, privateStat, readPrivateFile, syncDirectory, writeAll } from "./protected-files.js";
 
 export const INBOX_CHUNK_BYTES = 64 * 1024;
-export const INBOX_BLOCK_RECORDS = 128;
-export const INBOX_LINE_BYTES = 9 * 1024 * 1024;
+const INBOX_BLOCK_RECORDS = 128;
+const INBOX_LINE_BYTES = 9 * 1024 * 1024;
 export const scanLimit = () => new LocalStateError("inbox_scan_limit", "inbox page exceeds scan budget");
 const corrupt = () => new LocalStateError("corrupt_state", "invalid inbox seek metadata");
 export const indexPath = (home, name) => join(home, ".inbox-index", name + ".json");
-export function openInboxFile(path, { fs = nodeFs, write = false } = {}) {
+function openInboxFile(path, { fs = nodeFs } = {}) {
   for (let attempt = 0; attempt < 3; attempt++) {
     privateStat(dirname(path), { fs, directory: true });
     const st = privateStat(path, { fs });
-    const fd = fs.openSync(path, (write ? fs.constants.O_RDWR : fs.constants.O_RDONLY) | fs.constants.O_NOFOLLOW);
+    const fd = fs.openSync(path, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
     try {
       const opened = fs.fstatSync(fd);
       if (st.ino !== opened.ino || st.dev !== opened.dev || opened.nlink === 0) { fs.closeSync(fd); continue; }
@@ -55,7 +55,8 @@ export function* rawLines(path, { fs = nodeFs, start = 0, end = Infinity, budget
   } finally { fs.closeSync(fd); }
 }
 
-const signature = st => ({ ino: st.ino, dev: st.dev, size: st.size, mtime: st.mtimeMs, ctime: st.ctimeMs });
+export const signature = st => ({ ino: st.ino, dev: st.dev, size: st.size, mtime: st.mtimeMs, ctime: st.ctimeMs });
+export const sameSignature = (file, st) => !!file && Object.entries(signature(st)).every(([k, v]) => file[k] === v);
 export function saveIndex(home, name, index, options) {
   privateDirectory(join(home, ".inbox-index"), options);
   atomicPrivateWrite(indexPath(home, name), JSON.stringify(index) + "\n", options);
@@ -91,7 +92,7 @@ export function fileIndex(home, name, decode, { fs = nodeFs, snapshot = false, s
   if (index?.version === 1) index = null;
   if (index && !validIndex(index)) throw corrupt();
   const sameFile = index?.file?.ino === st.ino && index.file.dev === st.dev;
-  const unchanged = sameFile && Object.entries(signature(st)).every(([k, v]) => index.file[k] === v);
+  const unchanged = sameFile && sameSignature(index.file, st);
   if (unchanged && index.end <= st.size && (lazy || !index.pending)) return index;
   if (!sameFile || index.end > st.size || (!unchanged && index.file.size === st.size)) index = { version: 2, end: 0, legacy: -1, blocks: [] };
   index.file = signature(st); index.pending = true;
@@ -133,12 +134,12 @@ export function* extendIndex(home, name, index, decode, { fs = nodeFs, snapshot 
     if (start === originalEnd) delete index.pending;
   } catch (error) {
     const current = privateStat(path, { fs, optional: snapshot });
-    if (error.code === "inbox_scan_limit" || !snapshot || !current || Object.entries(signature(current)).every(([k, v]) => index.file[k] === v)) throw error;
+    if (error.code === "inbox_scan_limit" || !snapshot || !current || sameSignature(index.file, current)) throw error;
     delete index.pending;
   } finally {
     if (!snapshot) {
       const current = privateStat(path, { fs });
-      if (Object.entries(signature(current)).every(([k, v]) => index.file[k] === v)) saveIndex(home, name, index, { fs });
+      if (sameSignature(index.file, current)) saveIndex(home, name, index, { fs });
     }
   }
 }

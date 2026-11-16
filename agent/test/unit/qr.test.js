@@ -51,7 +51,7 @@ describe("renderTerminalQr", () => {
 
   it("renders a ~250-character URI without error", () => {
     const long = buildPairUri({
-      relayBase: "https://relay-eu-west-1.syncky.example.com:8443",
+      relayBase: "https://relay-eu-west-1.syncky.example.com:9443",
       hubId: `hub_${"Z".repeat(22)}`,
       pairingToken: `pt_${"q".repeat(43)}`,
       agentPublicKey: "--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU",

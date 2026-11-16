@@ -85,8 +85,8 @@ export function errorDetail(error) {
   return { detail: error.detail, ...(types && { types }) };
 }
 
-export function validateUrlScheme(value) {
-  if (!isUrlScheme(value)) throw new LocalStateError("invalid_url_scheme", "url scheme must be syncky, syncky-dev or syncky-staging");
+export function validateUrlScheme(value, relayUrl) {
+  if (!isUrlScheme(value, relayUrl === undefined ? undefined : new URL(relayOrigin(relayUrl)).hostname)) throw new LocalStateError("invalid_url_scheme", "unsupported URL scheme");
   return value;
 }
 

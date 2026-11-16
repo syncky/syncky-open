@@ -6,11 +6,20 @@ import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { Readable } from 'node:stream';
 import { test } from 'node:test';
-import { createMcpServer, runMcp, MCP_MAX_BYTES, TOOLS } from '../../src/mcp.js';
-import { setup, now } from '../support/thin-transport.js';
+import Ajv from 'ajv/dist/2020.js';
+import { createMcpServer, runMcp, MCP_MAX_BYTES, MCP_PROTOCOL_VERSIONS, TOOLS } from '../../src/mcp.js';
+import { setup, self, now } from '../support/thin-transport.js';
 import { scopedRequest, requestedScope } from '../support/pairing-scope.js';
 import { localStatus, readSkill } from '../../src/runtime.js';
-import { sendReceipt } from '../../src/outbox.js';
+import { createOutbox, sendReceipt } from '../../src/outbox.js';
+import { createGenericSender } from '../../src/send.js';
+import { createCipherFiles, updateHomeState } from '../../src/home-state.js';
+
+const sendTool = TOOLS.find(tool => tool.name === 'syncky_send');
+const validateSendReceipt = new Ajv({ strict: false, validateFormats: false }).compile(sendTool.outputSchema);
+function assertSendReceipt(receipt) {
+  assert.equal(validateSendReceipt(receipt), true, JSON.stringify(validateSendReceipt.errors));
+}
 
 function assertInputDescriptions(tools) {
   for (const tool of tools) {
@@ -29,18 +38,144 @@ test('every MCP input property has a non-empty description, including nested pro
 const RESULT_FIELDS = {
   syncky_status: ['hub_id', 'member_id', 'public_key', 'members', 'transport', 'held', 'outbox', 'sends', 'pairings', 'skill', 'operator_notice', 'legacy_files'],
   syncky_inbox: ['records', 'next_after_seq', 'has_more', 'from', 'received_at', 'seq', 'cursor'],
-  syncky_send: ['msg_id', 'kind', 'type', 'to', 'state', 'seq', 'attempts', 'next_attempt_at', 'retry_after_until', 'code', 'relay_code', 'relay_status', 'hint'],
   syncky_ack: ['acked_up_to', 'deferred', 'reason', 'next_poll_at', 'seq', 'cursor'],
   syncky_skill: ['skill_version', 'skill', 'previous_version', 'diff'],
 };
 
-test('MCP result-field allowlists match skill modes and send receipt keys', async () => {
+const resultFields = tool => tool.name === 'syncky_send' ? Object.keys(tool.outputSchema.properties) : RESULT_FIELDS[tool.name];
+const SEND_RETRY_GUIDANCE = 'Pending sends retry while receive runs; check `state` and `hint`, then `outbox` counts and `sends` receipts in syncky_status.';
+
+test('MCP result-field allowlists match skill modes', async () => {
   const updater = { read: () => ({ document: { skill_version: 2, skill: 'current' }, previous: { document: { skill_version: 1, skill: 'previous' } } }) };
   const skill = await readSkill(updater), diff = await readSkill(updater, { diff: true });
   assert.deepEqual([...new Set([...Object.keys(skill), ...Object.keys(diff)])].sort(), [...RESULT_FIELDS.syncky_skill].sort());
-  const receipt = sendReceipt({ msg_id: 'message', kind: 'data', type: 'future', to: ['m_dev_1'], state: 'pending', seq: 42, attempts: 1,
-    next_attempt_at: 1, retry_after_until: 1, code: 'rate_limited', relay_code: 'rate_limited', relay_status: 429 });
-  assert.deepEqual(Object.keys(receipt).sort(), [...RESULT_FIELDS.syncky_send].sort());
+});
+
+function assertSendOutputSchema(tool) {
+  assert.equal(tool.outputSchema.type, 'object');
+  for (const { name, description } of inputProperties(tool.outputSchema, `${tool.name}.outputSchema`)) {
+    assert.ok(typeof description === 'string' && description.trim(), `${name} needs an output description`);
+  }
+  assert.deepEqual(tool.outputSchema.anyOf.map(branch => branch.required), [['msg_id', 'kind', 'type', 'to', 'state'], ['code']]);
+  assert.equal(tool.outputSchema.additionalProperties, true);
+}
+
+test('send alone declares an open receipt or error object with descriptions on every property', () => {
+  assertSendOutputSchema(sendTool);
+  for (const tool of TOOLS.filter(tool => tool !== sendTool)) assert.equal(Object.hasOwn(tool, 'outputSchema'), false);
+});
+
+test('send output schema conforms to real sender, outbox and receipt projections across delivery states and tool errors', async t => {
+  const projectedKeys = new Set();
+  const collect = receipt => {
+    assertSendReceipt(receipt);
+    for (const key of Object.keys(receipt)) projectedKeys.add(key);
+    assert.doesNotMatch(JSON.stringify(receipt), /PRIVATE_INNER|ciphertext|lease_|response_waits/);
+    return receipt;
+  };
+  for (const scenario of [
+    { name: 'data rate limit, server retry and eventual delivery', type: 'commands', outcomes: [
+      { status: 429, code: 'rate_limited', retryAfterS: 120 }, { status: 503, code: 'internal_error', retryAfterS: 5 }, { seq: 8 },
+    ], states: ['pending', 'pending', 'sent'], codes: ['rate_limited', 'send_retry', null] },
+    { name: 'unknown control type and network retry', type: 'future', outcomes: [{ status: 0, code: 'network_error' }], states: ['pending'], codes: ['send_retry'] },
+    { name: 'terminal relay refusal', type: 'future', outcomes: [{ status: 401, code: 'invalid_token' }], states: ['failed'], codes: ['send_failed'] },
+    { name: 'exhausted retry', type: 'commands', maxAttempts: 1, outcomes: [{ status: 503, code: 'internal_error' }], states: ['failed'], codes: ['send_retry'] },
+    { name: 'immediate delivery', type: 'commands', outcomes: [{ seq: 0 }], states: ['sent'], codes: [null] },
+    { name: 'stored string deadline', type: 'future', storedDeadline: true, outcomes: [{ seq: 9 }], states: ['sent'], codes: [null] },
+    { name: 'revoked target', type: 'future', revoked: true, outcomes: [], states: ['failed'], codes: ['target_revoked'] },
+  ]) await t.test(scenario.name, async t => {
+    const { home, transport } = setup(t), queue = createCipherFiles(home, 'outbox');
+    let at = now().getTime(), calls = 0;
+    const send = createGenericSender({ home, transport, self, now: () => new Date(at) });
+    const admitted = collect(await send({ type: scenario.type, innerText: JSON.stringify({ type: scenario.type, private: 'PRIVATE_INNER' }) }));
+    assert.deepEqual(Object.keys(admitted).sort(), [...sendTool.outputSchema.anyOf[0].required].sort());
+    assert.equal(admitted.kind, scenario.type === 'commands' ? 'data' : 'control');
+    const box = createOutbox({ home, now: () => new Date(at), maxAttempts: scenario.maxAttempts, relay: { postMessage: async () => {
+      const outcome = scenario.outcomes[calls++];
+      assert.ok(outcome, 'unexpected relay attempt');
+      if (outcome.status !== undefined) throw outcome;
+      return outcome;
+    } } });
+    const fresh = collect(sendReceipt(queue.list()[0]));
+    assert.equal(fresh.state, 'pending'); assert.equal(fresh.attempts, 0); assert.equal(fresh.next_attempt_at, 0);
+    for (const key of ['hint', 'code', 'seq', 'retry_after_until', 'relay_code', 'relay_status']) assert.equal(Object.hasOwn(fresh, key), false);
+    assert.deepEqual(box.receipts(), [fresh]);
+    if (scenario.storedDeadline) {
+      const deadline = new Date(at + 1000).toISOString();
+      queue.update(admitted.msg_id, { next_attempt_at: deadline });
+      const stored = collect(sendReceipt(queue.list()[0]));
+      assert.equal(stored.next_attempt_at, deadline);
+      await box.flush(); assert.equal(calls, 0); assert.deepEqual(box.receipts(), [stored]);
+      at += 1000;
+    }
+    if (scenario.revoked) updateHomeState(home, state => { state.members.m_dev_1.state = 'revoked'; });
+    for (const [index, state] of scenario.states.entries()) {
+      await box.flush();
+      const receipt = collect(box.receipts()[0]);
+      assert.deepEqual(receipt, sendReceipt(queue.list()[0]));
+      assert.equal(receipt.state, state); assert.equal(receipt.code, scenario.codes[index]);
+      assert.equal(receipt.attempts, scenario.revoked ? 0 : index + 1);
+      if (state === 'sent') {
+        assert.equal(receipt.seq, scenario.outcomes[index].seq);
+        assert.equal(receipt.code, null);
+        for (const key of ['hint', 'relay_code', 'relay_status']) assert.equal(Object.hasOwn(receipt, key), false);
+      } else {
+        assert.equal(typeof receipt.hint, 'string');
+        if (scenario.revoked) {
+          for (const key of ['relay_code', 'relay_status']) assert.equal(Object.hasOwn(receipt, key), false);
+        } else {
+          assert.equal(receipt.relay_code, scenario.outcomes[index].code);
+          assert.equal(receipt.relay_status, scenario.outcomes[index].status);
+          assert.equal(receipt.retry_after_until, receipt.code === 'rate_limited' ? at + 120000 : 0);
+        }
+        if (state === 'failed') assert.match(receipt.hint, /will not retry/);
+      }
+      at = receipt.next_attempt_at;
+    }
+    assert.equal(calls, scenario.outcomes.length);
+  });
+  for (const { name, handler, expected } of [
+    { name: 'uncoded handler failure', handler: () => { throw Error('PRIVATE_ERROR'); }, expected: { code: 'tool_failed' } },
+    { name: 'oversized send result', handler: () => 'x'.repeat(MCP_MAX_BYTES * 3), expected: { code: 'result_too_large' } },
+    { name: 'coded local failure with safe details', handler: () => { throw new LocalStateError('schema_invalid', 'PRIVATE_ERROR', { detail: 'not_writable', types: ['steps'] }); }, expected: { code: 'schema_invalid', detail: 'not_writable', types: ['steps'] } },
+    { name: 'send handler failure with fixed hint', handler: () => { throw Object.assign(Error('PRIVATE_ERROR'), { code: 'target_not_confirmed', hint: 'PRIVATE_ERROR' }); }, expected: { code: 'target_not_confirmed' } },
+  ]) await t.test(name, async () => {
+    const server = createMcpServer({ handlers: { syncky_send: handler } });
+    const { result } = await server.handle(request('tools/call', { name: 'syncky_send', arguments: { type: 'future', inner: { type: 'future' } } }));
+    assert.equal(result.isError, true);
+    const value = collect(result.structuredContent), original = structuredClone(value);
+    assert.deepEqual(value, { ...expected, hint: errorHint(expected.code) });
+    assert.deepEqual(JSON.parse(result.content[0].text), value);
+    assert.doesNotMatch(JSON.stringify(result), /PRIVATE_ERROR/);
+    for (const mutate of [
+      error => { delete error.code; }, error => { error.code = null; }, error => { error.code = 42; },
+      error => { error.hint = false; }, error => { error.detail = 42; }, error => { error.types = 'steps'; },
+      error => { error.detail = 'PRIVATE_ERROR'; }, error => { error.types = ['PRIVATE_ERROR']; },
+    ]) {
+      const invalid = structuredClone(value); mutate(invalid);
+      assert.throws(() => assertSendReceipt(invalid), assert.AssertionError);
+    }
+    assertSendReceipt(value); assert.deepEqual(value, original);
+  });
+  assert.deepEqual([...projectedKeys].sort(), Object.keys(sendTool.outputSchema.properties).sort());
+});
+
+test('shared send conformance assertion rejects cloned invalid receipts and accepts extra metadata', async t => {
+  const { home, transport } = setup(t);
+  await createGenericSender({ home, transport, self, now })({ type: 'future', innerText: '{"type":"future"}' });
+  const box = createOutbox({ home, now, relay: { postMessage: async () => ({ seq: 1 }) } });
+  await box.flush();
+  const receipt = box.receipts()[0], original = structuredClone(receipt);
+  assertSendReceipt(receipt);
+  for (const mutate of [
+    value => { delete value.msg_id; }, value => { value.state = 'delivered'; }, value => { value.to = 'm_dev_1'; },
+    value => { value.seq = '1'; }, value => { value.attempts = '1'; },
+  ]) {
+    const invalid = structuredClone(receipt); mutate(invalid);
+    assert.throws(() => assertSendReceipt(invalid), assert.AssertionError);
+  }
+  assertSendReceipt({ ...structuredClone(receipt), extra_metadata: { source: 'fixture' } });
+  assertSendReceipt(receipt); assert.deepEqual(receipt, original);
 });
 
 function* inputProperties(schema, path) {
@@ -58,14 +193,17 @@ function* inputProperties(schema, path) {
 function assertDescriptionIdentifiers(tools) {
   for (const tool of tools) {
     const properties = [...inputProperties(tool.inputSchema, `${tool.name}.inputSchema`)];
-    const allowed = new Set([...properties.map(property => property.name), ...RESULT_FIELDS[tool.name]]);
+    const allowed = new Set([...properties.map(property => property.name), ...resultFields(tool)]);
     for (const { description, location } of [{ description: tool.description, location: `${tool.name}.description` }, ...properties]) {
       const parts = description.split('`');
       assert.equal(parts.length % 2, 1, `${location} has unmatched backticks`);
-      for (let index = 1; index < parts.length; index += 2) {
-        const name = parts[index];
+      const retryStart = tool.name === 'syncky_send' && location === `${tool.name}.description` ? description.indexOf(SEND_RETRY_GUIDANCE) : -1;
+      for (const match of description.matchAll(/`([^`]*)`/g)) {
+        const name = match[1];
         assert.match(name, /^[a-z_][a-z0-9_]*$/, `${location} needs a single field identifier`);
-        assert.ok(allowed.has(name), `${location} has unknown backticked field ${name}`);
+        const statusField = ['outbox', 'sends'].includes(name) && RESULT_FIELDS.syncky_status.includes(name) && retryStart >= 0
+          && match.index === retryStart + SEND_RETRY_GUIDANCE.indexOf('`' + name + '`');
+        assert.ok(allowed.has(name) || statusField, `${location} has unknown backticked field ${name}`);
       }
     }
   }
@@ -79,7 +217,15 @@ function assertToolGuidance(tools) {
     const returns = [...tool.description.matchAll(/\bReturns [^.]*\./g)];
     assert.equal(returns.length, 1, `${tool.name} needs one return-shape sentence`);
     const shape = returns[0][0];
-    assert.match(shape, /^Returns (?:an object|a receipt object) with /);
+    if (tool.name === 'syncky_send') {
+      assert.equal(shape, 'Returns a send receipt.');
+      const sentences = tool.description.split(/(?<=\.) /);
+      assert.equal(sentences.at(-1), SEND_RETRY_GUIDANCE, 'syncky_send needs the exact retry guidance');
+      assert.equal(sentences.length, 7, 'syncky_send needs five purpose/safety sentences, one return sentence and one retry sentence');
+      assertSendOutputSchema(tool);
+      continue;
+    }
+    assert.match(shape, /^Returns an object with /);
     const recordFields = tool.name === 'syncky_inbox' ? ['from', 'received_at', 'seq', 'cursor'] : tool.name === 'syncky_ack' ? ['seq', 'cursor'] : [];
     for (const name of RESULT_FIELDS[tool.name].filter(name => !recordFields.includes(name))) {
       assert.ok(shape.includes('`' + name + '`'), `${tool.name} return shape needs ${name}`);
@@ -112,8 +258,10 @@ function assertInboxPagination(tool) {
   assert.ok(tool.inputSchema.properties.after_seq.description.includes("taken from the previous page's `next_after_seq`; omit for the first page."), 'after_seq needs previous-page cursor and first-page omission');
 }
 
-test('MCP definitions use only their own input and explicit result-field names', () => {
+test('MCP definitions use their own fields and only the qualified send references to status outbox and sends', () => {
   assertDescriptionIdentifiers(TOOLS);
+  assert.equal(resultFields(sendTool).includes('outbox'), false);
+  assert.equal(resultFields(sendTool).includes('sends'), false);
 });
 
 test('MCP definitions explain tool choice, successful return shapes and safety', () => {
@@ -124,7 +272,30 @@ test('MCP definitions explain tool choice, successful return shapes and safety',
 
 for (const [label, toolName, mutate, check, expected] of [
   ['missing nested description', 'syncky_send', tool => { delete tool.inputSchema.properties.inner.properties.type.description; }, tool => assertInputDescriptions([tool]), /inner\.properties\.type needs a description/],
+  ['missing output description', 'syncky_send', tool => { delete tool.outputSchema.properties.state.description; }, assertSendOutputSchema, /state needs an output description/],
+  ['blank output description', 'syncky_send', tool => { tool.outputSchema.properties.hint.description = ' '; }, assertSendOutputSchema, /hint needs an output description/],
+  ['unmodeled send result field', 'syncky_send', tool => { delete tool.outputSchema.properties.hint; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field hint/],
+  ['unknown result field', 'syncky_send', tool => { tool.description += ' Use `unknown_field`.'; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field unknown_field/],
   ['cross-tool result field', 'syncky_send', tool => { tool.inputSchema.properties.validate.description += ' Use `next_after_seq`.'; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field next_after_seq/],
+  ['cross-tool result field in send prose', 'syncky_send', tool => { tool.description += ' Use `next_after_seq`.'; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field next_after_seq/],
+  ['unqualified outbox reference', 'syncky_send', tool => { tool.description += ' Check `outbox`.'; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field outbox/],
+  ['outbox reference to the wrong sibling', 'syncky_send', tool => { tool.description = tool.description.replace('in syncky_status.', 'in syncky_inbox.'); }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field outbox/],
+  ['qualified outbox reference in an input description', 'syncky_send', tool => { tool.inputSchema.properties.validate.description += ` ${SEND_RETRY_GUIDANCE}`; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field outbox/],
+  ['qualified outbox reference from another tool', 'syncky_ack', tool => { tool.description += ' Check `outbox` in syncky_status.'; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field outbox/],
+  ['second qualified outbox occurrence', 'syncky_send', tool => { tool.description += ` ${SEND_RETRY_GUIDANCE}`; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field outbox/],
+  ['unqualified sends reference', 'syncky_send', tool => { tool.description += ' Check `sends`.'; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field sends/],
+  ['sends reference to the wrong sibling', 'syncky_send', tool => { tool.description += ' Check `sends` in syncky_inbox.'; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field sends/],
+  ['qualified sends reference in an input description', 'syncky_send', tool => { tool.inputSchema.properties.validate.description += ' Check `sends` in syncky_status.'; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field sends/],
+  ['qualified sends reference from another tool', 'syncky_ack', tool => { tool.description += ' Check `sends` in syncky_status.'; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field sends/],
+  ['second qualified sends occurrence', 'syncky_send', tool => { tool.description += ' Check `sends` receipts in syncky_status.'; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field sends/],
+  ['old send receipt tail', 'syncky_send', tool => { tool.description = tool.description.replace('Returns a send receipt.', 'Returns a receipt object with `msg_id`.'); }, tool => assertToolGuidance([tool]), /Returns a send receipt/],
+  ['missing retry guidance', 'syncky_send', tool => { tool.description = tool.description.replace(` ${SEND_RETRY_GUIDANCE}`, ''); }, tool => assertToolGuidance([tool]), /exact retry guidance/],
+  ['altered retry guidance', 'syncky_send', tool => { tool.description = tool.description.replace('Pending sends retry while receive runs', 'The caller retries manually'); }, tool => assertToolGuidance([tool]), /exact retry guidance/],
+  ['missing receiver condition', 'syncky_send', tool => { tool.description = tool.description.replace(' while receive runs', ''); }, tool => assertToolGuidance([tool]), /exact retry guidance/],
+  ['missing retry state', 'syncky_send', tool => { tool.description = tool.description.replace('check `state` and `hint`', 'check `hint`'); }, tool => assertToolGuidance([tool]), /exact retry guidance/],
+  ['missing retry hint', 'syncky_send', tool => { tool.description = tool.description.replace('check `state` and `hint`', 'check `state`'); }, tool => assertToolGuidance([tool]), /exact retry guidance/],
+  ['altered retry status reference', 'syncky_send', tool => { tool.description = tool.description.replace('then `outbox` counts and `sends` receipts in syncky_status', 'then `outbox` counts and `sends` receipts'); }, tool => assertToolGuidance([tool]), /exact retry guidance/],
+  ['duplicate retry guidance', 'syncky_send', tool => { tool.description += ` ${SEND_RETRY_GUIDANCE}`; }, tool => assertToolGuidance([tool]), /one retry sentence/],
   ['next_after_seq named as an inbox input', 'syncky_inbox', tool => { tool.description = tool.description.replace('as `after_seq`', 'as the `next_after_seq` input'); }, assertInboxPagination, /directed continuation/],
 ]) {
   test(`MCP definition checks reject ${label}`, () => {
@@ -179,6 +350,18 @@ test('MCP status carries safe pairing request metadata without adding a pair too
 });
 
 const request = (method, params, id = 1) => ({ jsonrpc: '2.0', id, method, params });
+
+test('both MCP protocols list complete definitions', async () => {
+  assert.deepEqual(MCP_PROTOCOL_VERSIONS, ['2025-06-18', '2024-11-05']);
+  for (const protocolVersion of MCP_PROTOCOL_VERSIONS) {
+    const server = createMcpServer({ handlers: {}, version: 'test' });
+    const initialized = await server.handle(request('initialize', { protocolVersion }));
+    assert.equal(initialized.result.protocolVersion, protocolVersion);
+    const tools = JSON.parse(JSON.stringify(await server.handle(request('tools/list')))).result.tools;
+    assert.deepEqual(tools, TOOLS);
+  }
+});
+
 test('stdio handles chunk boundaries, notifications, CRLF, UTF-8 and trailing lines without side effects', async () => {
   let calls = 0, output = '';
   const input = Buffer.from([JSON.stringify(request('initialize')), JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }), JSON.stringify(request('resources/read', { uri: 'syncky://skill' }, 2)), JSON.stringify(request('ping', {}, 3))].join('\r\n'));
@@ -204,7 +387,11 @@ test('invalid RPC, retired tools, schemas, resource errors and handler failures 
     const reply = await server.handle(message); assert.equal(reply.error.code, code); assert.ok(!JSON.stringify(reply).includes('PRIVATE'));
   }
   assert.equal((await server.handleLine('{PRIVATE')).error.code, -32700);
-  assert.equal((await server.handle(request('tools/call', { name:'syncky_send', arguments:{ type:'future', inner:{ type:'future' } } }))).result.structuredContent.code, 'tool_failed');
+  const failure = (await server.handle(request('tools/call', { name:'syncky_send', arguments:{ type:'future', inner:{ type:'future' } } }))).result;
+  assert.equal(failure.isError, true); assert.equal(failure.structuredContent.code, 'tool_failed');
+  assert.deepEqual(JSON.parse(failure.content[0].text), failure.structuredContent);
+  assertSendReceipt(failure.structuredContent);
+  assert.ok(!JSON.stringify(failure).includes('PRIVATE'));
   assert.equal(calls, 1);
   assert.equal((await server.handle(request('tools/call', { name:'syncky_inbox', arguments:{} }))).result.structuredContent.code, 'result_too_large');
   for (const args of [{ limit:1001 }, { after_seq:-1 }, { since:'' }, { until:'' }, { since:'invalid' }, { since:'2026-11-05', until:'2026-11-01' }, { member:'bad' }, { extra:true }]) assert.equal((await server.handle(request('tools/call', { name:'syncky_inbox', arguments:args }))).error.code, -32602);

@@ -48,7 +48,8 @@ function manifests(root) {
   const skill = readFileSync(join(root, "SKILL.md"), "utf8");
   assert.equal(/^description: (.+)$/m.exec(skill)[1], description);
   assert.equal(readFileSync(join(pluginRoot, plugin.skills, "syncky/SKILL.md"), "utf8"), skill);
-  for (const phrase of ['npx -y @syncky/agent mcp','Use Syncky and start onboarding with a QR code.','SYNCKY_INVITE','Scanning alone does not confirm trust','one receiver per home','untrusted data','Never force registration','exclusive creation','relay sees delivery metadata','Needs attention','uploads wait']) assert.ok(skill.includes(phrase), `skill missing ${phrase}`);
+  for (const phrase of ['npx -y @syncky/agent mcp','Use Syncky and start onboarding with a QR code.','Scanning alone does not confirm trust','one receiver per home','untrusted data','Never force registration','exclusive creation','relay sees delivery metadata','Needs attention','uploads wait']) assert.ok(skill.includes(phrase), `skill missing ${phrase}`);
+  assert.doesNotMatch(skill, /SYNCKY_INVITE|\binvites?\b/i);
   for (const pattern of [/Without an answer, wait before installing services or schedules/, /continuous explicitly authorizes installation\/start/, /login startup and restart on failure/, /receive --once/, /Do not automatically schedule writes or reports/, /never quote the token-bearing URI/, /explicit owner approval/, /Never overwrite or append/, /permission to write Health values/i]) assert.match(skill,pattern);
   const recipe = /```sh\nset -eu\n([\s\S]*?)\n```/.exec(skill)?.[1];
   assert.ok(recipe); assert.match(recipe, /syncky_run pair/); assert.doesNotMatch(recipe, /SYNCKY_RUNNER|--force|--wait|--no-qr|--json|--v1/);

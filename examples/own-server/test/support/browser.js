@@ -6,7 +6,7 @@ export const origin = "https://receiver.example";
 export const callback = "https://claude.ai/api/mcp/auth_callback";
 export const challenge = (v) => createHash("sha256").update(v).digest("base64url");
 export const hidden = (html, name) => html.match(new RegExp(`name="${name}" value="([^"]+)"`))?.[1];
-export const setup = (html) => html.match(/href="(syncky(?:-dev|-staging)?:[^\"]+)"/)?.[1].replaceAll("&amp;", "&");
+export const setup = (html) => html.match(/href="(syncky(?:-[a-z][a-z0-9]{0,31})?:[^\"]+)"/)?.[1].replaceAll("&amp;", "&");
 export const cookie = (response) => response.headers.get("set-cookie")?.split(";", 1)[0];
 
 export async function browser(t, options = {}) {

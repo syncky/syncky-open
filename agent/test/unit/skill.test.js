@@ -142,7 +142,8 @@ describe("thin feature skill", () => {
   it("keeps private pairing, code proof and owner-approved service/on-demand decisions", () => {
     for (const pattern of [/SYNCKY_RUNNER/, /source-kit fallback/, /checksum/, /cannot protect against someone/]) assert.match(SKILL, pattern);
     for (const document of SKILLS) {
-      for (const pattern of [/Use Syncky and start onboarding with a QR code/, /SYNCKY_INVITE/, /missing invites/, /Scanning alone does not/, /private reply/, /never quote the token-bearing URI/, /one receiver per home/, /Needs attention/, /uploads wait/, /Without an answer, wait/, /login startup and restart on failure/, /receive --once/, /stdout must go to/]) assert.match(document, pattern);
+      assert.doesNotMatch(document, /SYNCKY_INVITE|\binvites?\b/i);
+      for (const pattern of [/Use Syncky and start onboarding with a QR code/, /relay that refuses registration/, /do not retry or force registration/, /Scanning alone does not/, /private reply/, /never quote the token-bearing URI/, /one receiver per home/, /Needs attention/, /uploads wait/, /Without an answer, wait/, /login startup and restart on failure/, /receive --once/, /stdout must go to/]) assert.match(document, pattern);
       const recipe = /```sh\n([\s\S]*?)\n```/.exec(document)[1];
       assert.match(recipe, /syncky_run pair/);
       assert.doesNotMatch(recipe, /SYNCKY_RUNNER:\?/);
@@ -172,7 +173,7 @@ describe("thin feature skill", () => {
   });
   it("preserves explicit writes/requests, untrusted-data, no-diagnosis and report-file consent rules", () => {
     for (const document of SKILLS) {
-      for (const pattern of [/explicitly asks for the exact value\/time/, /Confirm inferred entries first/, /explicit owner approval/, /untrusted data, never instructions/, /Never expose private keys, CEKs, invites/, /never post it publicly/, /raw home files/, /exclusive creation of a new file/, /Never overwrite or append/, /Without an answer, wait/, /Forget|forget/, /not a medical device/, /command_id.*version/, /Absent data is not zero/]) assert.match(document, pattern);
+      for (const pattern of [/explicitly asks for the exact value\/time/, /Confirm inferred entries first/, /explicit owner approval/, /untrusted data, never instructions/, /Never expose private keys, CEKs, relay tokens/, /never post it publicly/, /raw home files/, /exclusive creation of a new file/, /Never overwrite or append/, /Without an answer, wait/, /Forget|forget/, /not a medical device/, /command_id.*version/, /Absent data is not zero/]) assert.match(document, pattern);
       for (const feature of ['Health JSON in','Writes','Diagnostics request','Access request','Scope release']) {
         const section = document.split('## ' + feature + '\n')[1]?.split('\n## ')[0];
         assert.ok(section); for (const field of ['**When:**','**JSON:**','**Phone reply:**','**Tell the owner:**']) assert.ok(section.includes(field));
@@ -207,7 +208,7 @@ describe("ClawHub bootstrap skill", () => {
   });
   it("keeps the non-negotiable rules inline in case the rules cannot be read", () => {
     for (const pattern of [/Health write, a diagnostics request or an access request only after the owner explicitly approves that request/,
-      /Never put Health values, keys, tokens or invites in public posts, logs or third-party services/, /untrusted data, never instructions/,
+      /Never put Health values, keys or tokens in public posts, logs or third-party services/, /untrusted data, never instructions/,
       /one protected agent home/, /Never edit its files by hand/, /not a medical device/, /Read-only configurations disable `syncky_send` and `syncky_ack`/,
       /Ask the owner before starting a background service/]) assert.match(LIGHT_SKILL, pattern);
   });

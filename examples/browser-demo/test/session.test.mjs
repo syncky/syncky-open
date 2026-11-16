@@ -17,7 +17,7 @@ async function started(options = {}, sessionOptions = {}) {
   const sleeps = [];
   const session = new DemoSession({
     relay: RELAY,
-    scheme: "syncky-dev",
+    scheme: "syncky-alpha",
     fetch: relay.fetch,
     sleep: (ms) => {
       sleeps.push(ms);
@@ -328,9 +328,9 @@ describe("DemoSession hub state", () => {
 
 describe("DemoSession pairing", () => {
   for (const [relayUrl, site] of [
-    ["https://relay-dev.syncky.app:8443", "dev.syncky.app"],
-    ["https://relay-staging.syncky.app:8443", "staging.syncky.app"],
-    ["https://relay-dev.syncky.app.example", "syncky.app"],
+    ["https://relay-alpha.syncky.app:9443", "alpha.syncky.app"],
+    ["https://relay-beta.syncky.app:9443", "beta.syncky.app"],
+    ["https://relay-alpha.syncky.app.example", "syncky.app"],
     ["http://127.0.0.1:8790", "syncky.app"],
   ]) it(`infers ${site} and completes proof pairing independently of legacy metadata`, async () => {
     const { relay, session } = await started({}, { relay: relayUrl, scheme: "syncky" });

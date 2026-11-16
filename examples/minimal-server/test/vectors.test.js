@@ -8,7 +8,7 @@ import { caseOptions, exchangeCase, hmacHex, inbox, lines, queue, requestCase, r
 
 const GENERATED_REQUESTS = vectors("webhook-requests");
 const base = GENERATED_REQUESTS.find((c) => c.requests.length > 0 && !c.follows);
-const REQUESTS = [...GENERATED_REQUESTS, ...["syncky-dev", "syncky-staging"].map((url_scheme) => ({
+const REQUESTS = [...GENERATED_REQUESTS, ...["syncky-lab", "syncky-preview"].map((url_scheme) => ({
   ...base, name: `${url_scheme} local replay`, url_scheme, link: base.link.replace(/^[^:]+:/, `${url_scheme}:`),
 }))];
 const EXCHANGES = vectors("webhook-exchanges");
@@ -81,7 +81,8 @@ describe("webhook-requests.json", () => {
     });
 
     it(`${c.name}: buildLink reproduces the link`, () => {
-      assert.ok(buildLink(c.destination, c.secrets, c.url_scheme) === c.link, "built link differs from the vector bytes");
+      if ((c.url_scheme ?? "syncky") === "syncky") assert.ok(buildLink(c.destination, c.secrets, c.url_scheme) === c.link, "built link differs from the vector bytes");
+      else assert.throws(() => buildLink(c.destination, c.secrets, c.url_scheme), { message: "unsupported URL scheme" });
     });
   }
 

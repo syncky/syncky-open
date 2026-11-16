@@ -6,8 +6,8 @@ import { join } from "node:path";
 import { buildLink } from "../server.mjs";
 import { run, tempDir } from "./helpers.js";
 
-const SCHEMES = ["syncky", "syncky-dev", "syncky-staging"];
-const ERROR = "url_scheme must be syncky, syncky-dev or syncky-staging";
+const SCHEMES = ["syncky"];
+const ERROR = "unsupported URL scheme";
 const destination = { name: "Minimal server", url: "http://box.local:3000/syncky", format: "native", auth: { kind: "none" }, signing: false, types: null };
 const query = "webhook?v=1&name=Minimal%20server&url=http%3A%2F%2Fbox.local%3A3000%2Fsyncky&format=native&auth=none";
 const args = (dir) => ["link", "--data", dir, "--auth", "none", "--host", "box.local"];
@@ -39,13 +39,13 @@ describe("URL scheme builder", () => {
   }
 
   it("rejects every unsupported shape with a fixed error", () => {
-    for (const value of [null, "", "auto", "SYNCKY", "syncky://", " syncky", "syncky ", "syncky-dev-extra", "syncky-staging.evil", "https://do-not-print.invalid/?token=do-not-print", 0, false, [], {}]) {
+    for (const value of [null, "", "auto", "SYNCKY", "syncky://", " syncky", "syncky ", "syncky-alpha", "syncky-lab", "syncky-preview", "syncky-lab-extra", "syncky-preview.evil", "https://do-not-print.invalid/?token=do-not-print", 0, false, [], {}]) {
       assert.throws(() => buildLink(destination, {}, value), { message: ERROR });
     }
   });
 
-  it("does not infer an environment from the receiver hostname", () => {
-    for (const host of ["relay-dev.syncky.app", "relay-staging.syncky.app", "relay.syncky.app", "localhost", "custom.invalid"]) {
+  it("does not infer a scheme from the receiver hostname", () => {
+    for (const host of ["relay-alpha.syncky.app", "relay-beta.syncky.app", "relay.syncky.app", "localhost", "custom.invalid"]) {
       const d = { ...destination, url: `http://${host}:3000/syncky` };
       assert.equal(new URL(buildLink(d)).protocol, "syncky:");
       for (const scheme of SCHEMES) assert.equal(new URL(buildLink(d, {}, scheme)).protocol, `${scheme}:`);
@@ -67,16 +67,13 @@ describe("link URL scheme selection", () => {
   it("selects flag before environment before config before production", (t) => {
     const dir = tempDir(t);
     output(run(args(dir)), "syncky");
-    output(run([...args(dir), "--url-scheme", "syncky-dev"]), "syncky-dev");
-    output(run(args(dir), { env: { SYNCKY_URL_SCHEME: "syncky-staging" } }), "syncky-staging");
-    output(run(args(dir), { env: { SYNCKY_URL_SCHEME: "" } }), "syncky");
+    refused(run(args(dir), { env: { SYNCKY_URL_SCHEME: "syncky-alpha" } }));
     assert.equal(existsSync(join(dir, "config.json")), false);
-    config(dir, { url_scheme: "syncky-staging" });
-    output(run(args(dir)), "syncky-staging");
-    const env = { SYNCKY_URL_SCHEME: "syncky-dev" };
-    output(run(args(dir), { env }), "syncky-dev");
-    output(run([...args(dir), "--url-scheme", "syncky"], { env }), "syncky");
-    output(run(args(dir), { env: { SYNCKY_URL_SCHEME: "" } }), "syncky-staging");
+    config(dir, { url_scheme: "syncky-alpha" });
+    refused(run(args(dir)));
+    output(run(args(dir), { env: { SYNCKY_URL_SCHEME: "syncky" } }), "syncky");
+    refused(run(args(dir), { env: { SYNCKY_URL_SCHEME: "" } }));
+    output(run([...args(dir), "--url-scheme", "syncky"], { env: { SYNCKY_URL_SCHEME: "syncky-other" } }), "syncky");
   });
 
   it("treats absent and null config settings as unset", (t) => {
@@ -89,7 +86,7 @@ describe("link URL scheme selection", () => {
 
   it("uses production for every receiver host without an override", (t) => {
     const dir = tempDir(t);
-    for (const host of ["relay-dev.syncky.app", "relay-staging.syncky.app", "relay.syncky.app", "localhost", "custom.invalid"]) {
+    for (const host of ["relay-alpha.syncky.app", "relay-beta.syncky.app", "relay.syncky.app", "localhost", "custom.invalid"]) {
       const result = run(["link", "--data", dir, "--auth", "none", "--host", host]);
       assert.equal(result.status, 0, result.stderr);
       const link = new URL(result.stdout.trim());
@@ -101,7 +98,7 @@ describe("link URL scheme selection", () => {
   it("rejects invalid flag and environment values without echoing inputs", (t) => {
     const dir = tempDir(t);
     const env = { SYNCKY_SERVER_TOKEN: "srv_do-not-print", SYNCKY_SERVER_HMAC: "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c" };
-    for (const value of ["", "auto", "SYNCKY", "syncky://", " syncky", "syncky ", "syncky-dev-extra", "syncky-staging.evil", "https://do-not-print.invalid/?token=do-not-print", "--do-not-print"]) {
+    for (const value of ["", "auto", "SYNCKY", "syncky://", " syncky", "syncky ", "syncky-alpha", "syncky-lab", "syncky-preview", "syncky-lab-extra", "syncky-preview.evil", "https://do-not-print.invalid/?token=do-not-print", "--do-not-print"]) {
       refused(run([...args(dir), "--url-scheme", value], { env }));
       if (value !== "") refused(run(args(dir), { env: { ...env, SYNCKY_URL_SCHEME: value } }));
     }
@@ -110,7 +107,7 @@ describe("link URL scheme selection", () => {
 
   it("rejects invalid config settings without echoing inputs", (t) => {
     const dir = tempDir(t);
-    for (const value of ["", "auto", "SYNCKY", "syncky://", "syncky-dev-extra", "https://do-not-print.invalid/?token=do-not-print", 1, false, [], {}]) {
+    for (const value of ["", "auto", "SYNCKY", "syncky://", "syncky-alpha", "syncky-lab", "syncky-preview", "syncky-lab-extra", "https://do-not-print.invalid/?token=do-not-print", 1, false, [], {}]) {
       config(dir, { url_scheme: value });
       refused(run(args(dir)));
     }
@@ -130,15 +127,15 @@ describe("link URL scheme selection", () => {
     const env = { SYNCKY_URL_SCHEME: "do-not-print" };
     for (const command of ["init", "status"]) assert.equal(run([command, "--data", dir], { env }).status, 0);
     for (const command of ["init", "serve", "status", "write", "delete"]) {
-      refused(run([command, "--data", dir, "--url-scheme", "syncky-dev"], { env }), "--url-scheme is only valid for link");
+      refused(run([command, "--data", dir, "--url-scheme", "syncky-lab"], { env }), "--url-scheme is only valid for link");
     }
   });
 
-  it("documents the override, precedence and an explicit Dev example in usage", () => {
+  it("documents the override, precedence and a public example in usage", () => {
     const result = run([]);
     assert.equal(result.status, 2);
-    assert.match(result.stderr, /--url-scheme syncky\|syncky-dev\|syncky-staging/);
+    assert.match(result.stderr, /--url-scheme <scheme>/);
     assert.match(result.stderr, /--url-scheme > SYNCKY_URL_SCHEME > .*config\.json.*url_scheme.* > syncky/);
-    assert.match(result.stderr, /link --url-scheme syncky-dev/);
+    assert.match(result.stderr, /example: server.mjs link/);
   });
 });

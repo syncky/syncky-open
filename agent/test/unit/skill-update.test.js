@@ -53,7 +53,7 @@ test('gated receiver clock drains effective cadence and Retry-After waits then p
 const bootstrap = fs.readFileSync(new URL('../../skills/syncky/bootstrap.json', import.meta.url));
 const initial = JSON.parse(Buffer.from(JSON.parse(bootstrap).payload, 'base64'));
 const encode = value => Buffer.from(JSON.stringify(value));
-const FEED_URL = 'https://dev.syncky.app/agent-skill.json';
+const FEED_URL = 'https://syncky.app/agent-skill.json';
 const hint = (version = initial.skill_version + 1, url = FEED_URL) => ({ skill_update: { skill_version: version, url, whats_new: 'UNTRUSTED_HINT <script>run()</script>\u001b[2J' } });
 function signedFixture(t) {
   const home = fixture(t), pair = generateKeyPairSync('ed25519');
@@ -284,7 +284,7 @@ for (const failed of [false, true]) test(`bad high-version hint followed by a go
   const worker = createSkillUpdater({ ...f, fetch: async url => {
     calls.push(url); return url.endsWith('/bad.json') ? new Response(null, { status: 404 }) : new Response(f.feed());
   } });
-  worker.observeHeartbeat(hint(initial.skill_version + 30, 'https://dev.syncky.app/bad.json'));
+  worker.observeHeartbeat(hint(initial.skill_version + 30, 'https://syncky.app/bad.json'));
   if (failed) assert.equal((await worker.tick()).state, 'failed');
   worker.observeHeartbeat(hint());
   assert.equal(worker.status().attempts, 0); assert.equal(worker.status().hint_version, initial.skill_version + 1);
@@ -408,7 +408,7 @@ for (const url of ['http://syncky.app/agent-skill.json', 'https://syncky.app.evi
   assert.deepEqual(worker.read().envelopeBytes, bootstrap);
 });
 
-for (const url of ['https://syncky.app/agent-skill.json', 'https://dev.syncky.app:443/agent-skill.json']) test('accepts pinned HTTPS default-port URLs', async t => {
+for (const url of ['https://syncky.app/agent-skill.json', 'https://syncky.app:443/agent-skill.json']) test('accepts pinned HTTPS default-port URLs', async t => {
   const f = signedFixture(t), worker = createSkillUpdater({ ...f, fetch: async () => new Response(f.feed()) });
   worker.observeHeartbeat(hint(undefined, url)); assert.equal((await worker.tick()).state, 'applied');
 });
@@ -521,4 +521,20 @@ test('pending fetch and failure backoff do not block encrypted receive, ACK, gen
   at += 86400000; await poller.once(); assert.equal(beats, 2);
   assert.equal((await worker.tick()).state, 'failed');
   assert.equal(readHomeState(home).transport.acked_seq, 1);
+});
+
+test('pins updates to the configured relay site and rejects other origins before fetch', async t => {
+  for (const label of ['alpha', 'beta-2']) {
+    const f = signedFixture(t), origin = `https://${label}.syncky.app`;
+    let calls = 0;
+    const worker = createSkillUpdater({ ...f, relayUrl: `https://relay-${label}.syncky.app:9443`, fetch: async url => {
+      calls++; assert.equal(new URL(url).origin, origin); return new Response(f.feed());
+    } });
+    worker.observeHeartbeat(hint(undefined, `${origin}/agent-skill.json`));
+    assert.equal((await worker.tick()).state, 'applied'); assert.equal(calls, 1);
+    for (const other of ['https://syncky.app/agent-skill.json', `${origin}.evil.test/agent-skill.json`, `${origin}:444/agent-skill.json`]) {
+      worker.observeHeartbeat(hint(undefined, other));
+      assert.equal((await worker.tick()).code, 'skill_url_invalid'); assert.equal(calls, 1);
+    }
+  }
 });

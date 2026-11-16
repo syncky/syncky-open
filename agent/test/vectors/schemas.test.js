@@ -5,6 +5,7 @@ import { readdirSync } from "node:fs";
 import { SCHEMA_ID_BASE, loadSchemas, protocolPath } from "../../src/protocol-files.js";
 import { loadJson, loadVectors } from "../support/protocol-files.js";
 import { createValidator } from "../support/validator.js";
+import { diagnosticsFixture } from "../support/diagnostics.js";
 
 const FILE_DEFS = {
   "types.json": ["types.schema.json", "types_file"],
@@ -75,6 +76,32 @@ describe("protocol files validate against protocol/schemas", () => {
       assert.equal(result.ok, true);
     });
   }
+
+  it("published pairing and webhook schemas use neutral label grammar", () => {
+    const pairing = loadVectors("pair-uris").cases.find(c => c.input && c.input.url_scheme === "syncky");
+    const webhook = loadVectors("webhook-requests").cases[0];
+    for (const scheme of ["syncky", "syncky-alpha", "syncky-beta-2", "syncky-a0"]) {
+      const pair = { ...pairing, input: { ...pairing.input, url_scheme: scheme }, uri: pairing.uri.replace(/^syncky:/, `${scheme}:`) };
+      const hook = { ...webhook, url_scheme: scheme, link: webhook.link.replace(/^syncky:/, `${scheme}:`) };
+      assert.equal(validator.validate("test-vectors.schema.json", "pair_uris_file", { ...loadVectors("pair-uris"), cases: [pair] }).ok, true);
+      assert.equal(validator.validate("test-vectors.schema.json", "webhook_request_case", hook).ok, true);
+    }
+    for (const scheme of ["syncky-", "syncky-2alpha", "syncky-alpha--beta", "syncky-Alpha", "syncky-alpha.beta"]) {
+      const hook = { ...webhook, url_scheme: scheme, link: webhook.link.replace(/^syncky:/, `${scheme}:`) };
+      assert.equal(validator.validate("test-vectors.schema.json", "webhook_request_case", hook).ok, false);
+    }
+  });
+
+  it("published diagnostics schemas bound opaque channel labels", () => {
+    for (const channel of ["release", "unknown", "alpha", "beta-2"]) {
+      const value = diagnosticsFixture(); value.app.channel = channel;
+      assert.equal(validator.validate("inner-diagnostics.schema.json", "diagnostics", value).ok, true);
+    }
+    for (const channel of ["", "Alpha", "alpha--beta", "alpha\n", "a".repeat(33)]) {
+      const value = diagnosticsFixture(); value.app.channel = channel;
+      assert.equal(validator.validate("inner-diagnostics.schema.json", "diagnostics", value).ok, false);
+    }
+  });
 
   it("a broken vector copy fails with an error naming the path and the problem", () => {
     const broken = structuredClone(loadVectors("fingerprints"));

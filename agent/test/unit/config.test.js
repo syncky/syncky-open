@@ -182,8 +182,8 @@ describe("config", () => {
     it("defaults the relay to production and lets the flag or the env pick another env", () => {
       assert.equal(CONFIG_DEFAULTS.relay_url, "https://relay.syncky.app");
       assert.equal(resolveConfig({ env: {} }).relay_url, "https://relay.syncky.app");
-      assert.equal(resolveConfig({ env: { SYNCKY_RELAY_URL: "https://relay-staging.syncky.app" } }).relay_url, "https://relay-staging.syncky.app");
-      assert.equal(resolveConfig({ env: {}, flags: { relay_url: "https://relay-dev.syncky.app" } }).relay_url, "https://relay-dev.syncky.app");
+      assert.equal(resolveConfig({ env: { SYNCKY_RELAY_URL: "https://relay-beta.syncky.app" } }).relay_url, "https://relay-beta.syncky.app");
+      assert.equal(resolveConfig({ env: {}, flags: { relay_url: "https://relay-alpha.syncky.app" } }).relay_url, "https://relay-alpha.syncky.app");
     });
 
     it("applies precedence flag > env > config file > default per key", () => {
@@ -288,16 +288,16 @@ describe("URL scheme configuration", () => {
     assert.equal(CONFIG_DEFAULTS.url_scheme, null);
     assert.equal(resolveConfig({ env: {} }).url_scheme, null);
     assert.equal(resolveConfig({ env: {}, file: { url_scheme: null } }).url_scheme, null);
-    assert.equal(resolveConfig({ env: { SYNCKY_URL_SCHEME: "" }, file: { url_scheme: "syncky-dev" } }).url_scheme, "syncky-dev");
+    assert.equal(resolveConfig({ env: { SYNCKY_URL_SCHEME: "" }, file: { url_scheme: "syncky-alpha" } }).url_scheme, "syncky-alpha");
     assert.throws(() => resolveConfig({ env: {}, flags: { url_scheme: null } }), { code: "invalid_url_scheme" });
     assert.throws(() => resolveConfig({ env: { SYNCKY_URL_SCHEME: null } }), { code: "invalid_url_scheme" });
   });
 
   it("selects flag over environment over file without inferring from the relay", () => {
-    const file = { url_scheme: "syncky", relay_url: "https://relay-dev.syncky.app" };
-    const env = { SYNCKY_URL_SCHEME: "syncky-staging" };
-    assert.equal(resolveConfig({ flags: { url_scheme: "syncky-dev" }, env, file }).url_scheme, "syncky-dev");
-    assert.equal(resolveConfig({ env, file }).url_scheme, "syncky-staging");
+    const file = { url_scheme: "syncky", relay_url: "https://relay-alpha.syncky.app" };
+    const env = { SYNCKY_URL_SCHEME: "syncky-beta" };
+    assert.equal(resolveConfig({ flags: { url_scheme: "syncky-alpha" }, env, file }).url_scheme, "syncky-alpha");
+    assert.equal(resolveConfig({ env, file }).url_scheme, "syncky-beta");
     assert.equal(resolveConfig({ env: {}, file }).url_scheme, "syncky");
     assert.equal(resolveConfig({ env: {}, file: { relay_url: file.relay_url } }).url_scheme, null);
   });
@@ -306,15 +306,15 @@ describe("URL scheme configuration", () => {
     const t = tempHome();
     try {
       ensureHome(t.home);
-      for (const value of ["", "auto", "syncky://", "Syncky", "syncky-dev ", "syncky-staging-extra", 1, true, [], {}]) {
+      for (const value of ["", "auto", "syncky://", "Syncky", "syncky-alpha ", "syncky-beta--extra", 1, true, [], {}]) {
         for (const source of ["flags", "file", ...(value === "" ? [] : ["env"])]) {
           const input = source === "env" ? { env: { SYNCKY_URL_SCHEME: value } } : { env: {}, [source]: { url_scheme: value } };
-          assert.throws(() => resolveConfig(input), { code: "invalid_url_scheme", message: "url scheme must be syncky, syncky-dev or syncky-staging" });
+          assert.throws(() => resolveConfig(input), { code: "invalid_url_scheme", message: "unsupported URL scheme" });
         }
         assert.throws(() => saveConfig(t.home, { url_scheme: value }), { code: "invalid_url_scheme" });
         assert.deepEqual(fs.readdirSync(t.home), []);
       }
-      for (const value of [null, "syncky", "syncky-dev", "syncky-staging"]) {
+      for (const value of [null, "syncky", "syncky-alpha", "syncky-beta"]) {
         saveConfig(t.home, { url_scheme: value });
         assert.equal(loadConfig(t.home, { env: {} }).url_scheme, value);
       }
@@ -334,4 +334,16 @@ describe("isLoopbackHost", () => {
       assert.equal(isLoopbackHost(host), false, String(host));
     }
   });
+});
+
+it("validates scheme grammar and binds labels only for syncky.app relays", async () => {
+  const { validateUrlScheme } = await import('../../src/config.js');
+  assert.equal(validateUrlScheme('syncky-alpha'), 'syncky-alpha');
+  for (const relay of ['https://relay-alpha.syncky.app:9443', 'http://127.0.0.1:8787', 'http://[::1]:8787', 'https://relay.example.test', 'https://relay-alpha.syncky.app.evil.example']) {
+    assert.equal(validateUrlScheme('syncky-alpha', relay), 'syncky-alpha');
+  }
+  for (const relay of ['https://syncky.app', 'https://relay.syncky.app', 'https://relay-beta.syncky.app', 'https://relay-alpha.syncky.app.']) {
+    assert.throws(() => validateUrlScheme('syncky-alpha', relay), { code: 'invalid_url_scheme' });
+    assert.equal(validateUrlScheme('syncky', relay), 'syncky');
+  }
 });

@@ -75,13 +75,13 @@ it("restart preserves secrets; two deployments differ; concurrent initialization
 it("rotation explicitly replaces upload credentials and respects auth, HMAC and scheme settings", async (t) => {
   const b = await browser(t);
   const first = new URL((await b.login()).link);
-  const settings = { auth_kind: "basic", auth_user: "phone", hmac_enabled: "false", scheme: "syncky-dev", writes_enabled: "false" };
+  const settings = { auth_kind: "basic", auth_user: "phone", hmac_enabled: "false", scheme: "syncky-lab", writes_enabled: "false" };
   assert.equal((await b.post("/admin/settings", settings)).status, 200);
   const response = await b.post("/admin/rotate-upload", { confirm: "rotate" });
   const html = await response.text();
   const { setup } = await import("../support/browser.js");
   const next = new URL(setup(html));
-  assert.equal(next.protocol, "syncky-dev:");
+  assert.equal(next.protocol, "syncky-lab:");
   assert.equal(next.searchParams.get("auth"), "basic");
   assert.equal(next.searchParams.get("user"), "phone");
   assert.equal(next.searchParams.has("hmac"), false);

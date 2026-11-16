@@ -33,13 +33,13 @@ describe("stores nothing and calls only the relay", () => {
   });
 
   it("the bundle names no origin but the relay it was built for, and runs no eval", async (t) => {
-    const { file } = await built(t, { relay: "https://relay-dev.syncky.app" });
+    const { file } = await built(t, { relay: "https://relay.example.test" });
     const js = file("demo.js");
-    assert.match(js, /"https:\/\/relay-dev\.syncky\.app"/);
-    assert.match(js, /"syncky-dev"/);
+    assert.match(js, /"https:\/\/relay\.example\.test"/);
+    assert.match(js, /\/\^syncky\(\?:-/);
     assert.doesNotMatch(js, /__SYNCKY_/);
     const urls = new Set(js.match(/https?:\/\/[A-Za-z0-9.-]+/g));
-    assert.deepEqual([...urls].sort(), ["https://relay-dev.syncky.app", "http://www.w3.org"].sort());
+    assert.deepEqual([...urls].sort(), ["https://relay.example.test", "http://www.w3.org"].sort());
     assert.doesNotMatch(js, /\beval\(|new Function\(/);
     assert.doesNotMatch(js, STORAGE);
   });
@@ -81,7 +81,7 @@ describe("build options", () => {
   it("refuses the removed URL scheme option for every scheme value", (t) => {
     const out = mkdtempSync(join(tmpdir(), "syncky-demo-option-"));
     t.after(() => rmSync(out, { recursive: true, force: true }));
-    for (const scheme of ["syncky", "syncky-dev", "syncky-staging", "https"]) {
+    for (const scheme of ["syncky", "syncky-alpha", "syncky-beta", "https"]) {
       const result = spawnSync(process.execPath, [fileURLToPath(new URL("../build.mjs", import.meta.url)), "--scheme", scheme, "--out", out], { encoding: "utf8" });
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, /Unknown option '--scheme'/);
