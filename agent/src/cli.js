@@ -245,7 +245,7 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
       } catch { logger.info('pair_waiter_stopped'); }
       finally {
         timers.clearTimeout(timer);
-        if (scoped) await retryHomeLock(() => pairing.currentPairing({ includeCompleted: true }));
+        await retryHomeLock(() => pairing.currentPairing({ includeCompleted: true }));
       }
       return 0;
     }
@@ -260,15 +260,19 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
       } catch (error) { hint = pairingErrorHint(error, { command, home, id }); throw error; }
       return 0;
     }
-    const started = command === 'pair' ? await pairing.startPairing({ v1: flags.v1,
-      ...(flags.read !== undefined && { read: flags.read.split(',') }), ...(flags.write !== undefined && { write: flags.write.split(',') }) }) : pairing.currentPairing({ includeCompleted: true });
+    if (flags['show-qr'] && (flags.v1 || flags.read !== undefined || flags.write !== undefined)) throw new UsageError('--show-qr cannot change pairing version or scope');
+    const images = { qrPng: flags['qr-png'], qrSvg: flags['qr-svg'] };
+    const started = command === 'pair' ? flags['show-qr'] ? await retryHomeLock(() => pairing.showPairing(images)) : await pairing.startPairing({ ...images, v1: flags.v1,
+      ...(flags.read !== undefined && { read: flags.read.split(',') }), ...(flags.write !== undefined && { write: flags.write.split(',') }) }) : await retryHomeLock(() => pairing.currentPairing({ includeCompleted: true }));
     if (!started) throw new LocalStateError('pairing_expired','no pending pairing');
     if (command === 'pair') print(pairOutput(started, { json: flags.json, noQr: flags['no-qr'] }));
     if (command === 'pair' && !flags.wait) {
-      if (started.version === 2) spawnPairWaiter(home, started.pairing_id, { spawn, env, logger, flags });
+      if (!flags['show-qr'] && started.version === 2) spawnPairWaiter(home, started.pairing_id, { spawn, env, logger, flags });
       return 0;
     }
-    json(await waitPair(runtime, pairing, started, { timeout: flags.timeout === undefined ? 900 : integer(flags.timeout, 1, 86400), now, sleep, signal })); return 0;
+    try { json(await waitPair(runtime, pairing, started, { timeout: flags.timeout === undefined ? 900 : integer(flags.timeout, 1, 86400), now, sleep, signal })); }
+    finally { await retryHomeLock(() => pairing.currentPairing({ includeCompleted: true, includeExpired: true })); }
+    return 0;
   } catch (error) {
     const usage = error instanceof UsageError, relay = error instanceof RelayError;
     const code = usage ? 'invalid_arguments' : typeof error.code === 'string' && /^[a-z_]{1,64}$/.test(error.code) ? agentErrorCode(error.code) : 'local_error';

@@ -11,6 +11,7 @@ import { parsePrivateJson, privateStat, readPrivateFile, removePrivateFile, sync
 import { joinGraceUntil } from "./transport-time.js";
 import { isStoredRequestedScope } from './access-scope.js';
 import { cancelPairingAccess, maintainPairingAccess, PAIRING_REPLY_MS } from './pairing-access.js';
+import { cleanupPairingQr } from './pair-qr.js';
 
 export function validateMemberPairing(fields) {
   if (fields?.pairing_id != null && !isPairingId(fields.pairing_id)) throw new LocalStateError("invalid_response", "invalid member pairing");
@@ -129,7 +130,10 @@ export function createThinPairing(home, { fs = nodeFs, now = () => new Date() } 
       }, options);
       withHomeLock(home, () => {
         const path = join(home, "pairing.json"), bytes = readPrivateFile(path, { ...options, optional: true });
-        if (bytes && fields.pairing_id && parsePrivateJson(bytes).pairing_id === fields.pairing_id) removePrivateFile(path, options);
+        if (bytes && fields.pairing_id) {
+          const doc = parsePrivateJson(bytes);
+          if (doc.pairing_id === fields.pairing_id) { cleanupPairingQr(home, null, options); removePrivateFile(path, options); }
+        }
       }, options);
       return result;
     },

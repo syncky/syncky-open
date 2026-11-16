@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import qrcode from 'qrcode-terminal';
-import QRErrorCorrectLevel from 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js';
+import { renderTerminalQr } from '../../src/pair-qr.js';
 import { saveConfig } from '../../src/config.js';
 import { createHomeState } from '../../src/home-state.js';
 import { saveSecrets } from '../../src/secrets.js';
@@ -46,11 +45,12 @@ test('every pair presentation labels hosted defaults without inventing a new reg
       assert.deepEqual(output.limits, limits);
       assert.equal(output.expires_at, expires);
       assert.ok(output.uri === pairing.uri, 'private URI changed');
-      assert.deepEqual(Object.keys(output).sort(), ['pairing_id', 'uri', 'expires_at', 'version', 'limits', ...(v1 ? [] : ['code'])].sort());
+      assert.equal(output.qr_text, noQr ? null : renderTerminalQr(pairing.uri));
+      assert.deepEqual(Object.keys(output).sort(), ['pairing_id', 'uri', 'expires_at', 'version', 'limits', 'qr_text', ...(v1 ? [] : ['code'])].sort());
     } else {
-      assert.ok(result.stdout.startsWith(pairing.uri + '\n'), 'private URI changed');
-      let qr = ''; if (!noQr) { qrcode.error = QRErrorCorrectLevel.M; qrcode.generate(pairing.uri, { small: true }, text => { qr = text; }); }
-      assert.ok(result.stdout === `${pairing.uri}\n${qr}${v1 ? '' : 'Pairing code: ' + pairCode(pairing.pair_secret) + '\n'}${limitsNotice}Link expires_at: ${expires}\n`, 'pair presentation changed');
+      assert.ok(result.stdout.split('\n')[1] === pairing.uri, 'private URI changed');
+      const qr = noQr ? '' : renderTerminalQr(pairing.uri);
+      assert.ok(result.stdout === `Pairing link (open on the iPhone with Syncky Health, single use, expires ${expires}):\n${pairing.uri}\n${qr}${v1 ? '' : 'Pairing code: ' + pairCode(pairing.pair_secret) + '\n'}${limitsNotice}Link expires_at: ${expires}\n`, 'pair presentation changed');
     }
     for (const secret of [pairing.uri, parsed.value.pairingToken, parsed.value.pairSecret].filter(Boolean)) {
       assert.ok(!result.stderr.includes(secret), 'credential leaked into logs');
@@ -108,12 +108,10 @@ test('pair output follows flag > environment > saved config, leaving config inta
       assert.equal(parsed.value.relayBase, origin);
       if (json) assert.ok(JSON.parse(result.stdout).uri === uri, 'JSON differs from persisted link');
       else {
-        assert.ok(result.stdout.split('\n')[0] === uri, 'printed link differs from persisted link');
-        let qr = '';
-        qrcode.error = QRErrorCorrectLevel.M;
-        qrcode.generate(uri, { small: true }, text => { qr = text; });
+        assert.ok(result.stdout.split('\n')[1] === uri, 'printed link differs from persisted link');
+        const qr = renderTerminalQr(uri);
         assert.ok(qr.length > 0, 'expected QR is empty');
-        assert.ok(result.stdout === `${uri}\n${qr}Pairing code: ${pairCode(pairing.pair_secret)}\n${limitsNotice}Link expires_at: ${pairing.expires_at}\n`, 'QR differs from printed link');
+        assert.ok(result.stdout === `Pairing link (${uri.startsWith('https://') ? 'open on the iPhone with Syncky Health' : 'scan inside Syncky Health or paste there'}, single use, expires ${pairing.expires_at}):\n${uri}\n${qr}Pairing code: ${pairCode(pairing.pair_secret)}\n${limitsNotice}Link expires_at: ${pairing.expires_at}\n`, 'QR differs from printed link');
       }
       assert.equal(fs.readFileSync(path, 'utf8'), before);
       for (const credential of [uri, parsed.value.pairingToken, parsed.value.pairSecret]) assert.ok(!result.stderr.includes(credential), 'credential leaked into logs');

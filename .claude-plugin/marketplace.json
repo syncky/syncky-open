@@ -1,6 +1,8 @@
 {
   "name": "syncky",
-  "owner": { "name": "Syncky" },
+  "owner": {
+    "name": "Syncky"
+  },
   "plugins": [
     {
       "name": "syncky",

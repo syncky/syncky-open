@@ -321,12 +321,14 @@ test('invalid scoped pair inputs fail before any relay pairing is created and do
 });
 
 for (const v1 of [true, false]) test(`registration, pair, hold, ${v1 ? 'fingerprint' : 'proof'}, confirmation and revocation keep raw history`, async t => {
-  const f = await fixture(t), started = await f.pairing.startPairing({ v1 });
+  const f = await fixture(t), started = await f.pairing.startPairing({ v1, qrPng: true, qrSvg: true }), png = started.qr_png, svg = started.qr_svg;
+  assert.ok(fs.existsSync(png) && fs.existsSync(svg));
   assert.ok(started.uri.startsWith(`https://syncky.app/pair#v=${v1 ? 1 : 2}&`));
   assert.equal(fs.statSync(join(f.home, 'pairing.json')).mode & 0o777, 0o600);
   const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
   const completed = await f.pairing.refreshPairing(started.pairing_id); assert.equal(completed.status, 'completed');
   assert.ok(readPairingFile(f.home) === null, 'completed pairing credentials retained');
+  assert.ok(!fs.existsSync(png) && !fs.existsSync(svg), 'completed pairing images retained');
   assert.equal(f.pairing.currentPairing({ includeCompleted: true }).version, v1 ? 1 : 2);
   await phone.sendSync({ acks: [{ command_id: 'c_158', version: 1, status: 'applied' }] });
   await f.runtime.poller.once(); assert.equal(f.runtime.status().held, 1);
@@ -765,10 +767,11 @@ for (const route of ['getPairing', 'listMembers']) test(`pairing refresh forward
 });
 
 test('receiver completion erases credentials after durable proof derivation and wait resumes offline metadata', async t => {
-  const f = await fixture(t), started = await f.pairing.startPairing();
+  const f = await fixture(t), started = await f.pairing.startPairing({ qrPng: true, qrSvg: true }), png = started.qr_png, svg = started.qr_svg;
   const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
   await f.runtime.poller.once();
   assert.ok(readPairingFile(f.home) === null, 'completed pairing credentials retained');
+  assert.ok(!fs.existsSync(png) && !fs.existsSync(svg), 'completed pairing images retained');
   assert.ok(readHomeState(f.home).members[phone.memberId].pair_proof);
   await phone.sendPairProof(); f.advance(); await f.runtime.poller.once();
   const result = await runCli(['--home', f.home, 'wait', '--timeout', '10']);

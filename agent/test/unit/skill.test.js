@@ -1,7 +1,7 @@
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,6 +15,7 @@ import { runCli, tempHome } from '../support/helpers.js';
 const AGENT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const SKILL_DIR = join(AGENT_DIR, "skills/syncky");
 const SKILL = readFileSync(join(SKILL_DIR, "SKILL.md"), "utf8");
+const POINTER = readFileSync(join(AGENT_DIR, "skills/pointer.md"), "utf8");
 const LIGHT_SKILL_DIR = join(AGENT_DIR, "clawhub");
 const LIGHT_SKILL = readFileSync(join(LIGHT_SKILL_DIR, "SKILL.md"), "utf8");
 const SKILLS = [SKILL];
@@ -38,6 +39,10 @@ describe("thin feature skill", () => {
       return existsSync(file) && frontmatter(readFileSync(file, "utf8")).name === "syncky";
     });
     assert.deepEqual(skills, ["syncky"]);
+    for (const name of ["pointer.md", "safety.md"]) {
+      assert.ok(readdirSync(join(AGENT_DIR, "skills"), { withFileTypes: true }).some(entry => entry.name === name && entry.isFile()));
+    }
+    assert.deepEqual(readdirSync(join(AGENT_DIR, "skills"), { recursive: true }).filter(name => name.endsWith("SKILL.md")), ["syncky/SKILL.md"]);
   });
   it('explains per-type refusals, bounded amendments and canonical root replies', () => {
     for (const document of SKILLS) {
@@ -143,7 +148,7 @@ describe("thin feature skill", () => {
     for (const pattern of [/SYNCKY_RUNNER/, /source-kit fallback/, /checksum/, /cannot protect against someone/]) assert.match(SKILL, pattern);
     for (const document of SKILLS) {
       assert.doesNotMatch(document, /SYNCKY_INVITE|\binvites?\b/i);
-      for (const pattern of [/Use Syncky and start onboarding with a QR code/, /relay that refuses registration/, /do not retry or force registration/, /Scanning alone does not/, /private reply/, /never quote the token-bearing URI/, /one receiver per home/, /Needs attention/, /uploads wait/, /Without an answer, wait/, /login startup and restart on failure/, /receive --once/, /stdout must go to/]) assert.match(document, pattern);
+      for (const pattern of [/Use Syncky and start onboarding with a QR code/, /relay that refuses registration/, /do not retry or force registration/, /Scanning alone does not/, /private reply/, /HTTPS pairing link/, /QR copied verbatim inside a ```text fenced block/, /pairing code and the expiry/, /only in the private reply to the requesting owner/, /never in public posts, group chats, logs, reports, memory\/notes or any other service or tool outside that private conversation/, /pair --qr-png/, /pair --show-qr/, /a private QR image in the protected home/, /one receiver per home/, /Needs attention/, /uploads wait/, /Without an answer, wait/, /login startup and restart on failure/, /receive --once/, /stdout must go to/]) assert.match(document, pattern);
       const recipe = /```sh\n([\s\S]*?)\n```/.exec(document)[1];
       assert.match(recipe, /syncky_run pair/);
       assert.doesNotMatch(recipe, /SYNCKY_RUNNER:\?/);
@@ -156,18 +161,49 @@ describe("thin feature skill", () => {
       const bin = join(root, "bin");
       mkdirSync(bin);
       const launcher = join(root, "carried launcher");
-      const stub = '#!/bin/sh\nprintf "%s\\n" "$@" >> "$SYNCKY_RECIPE_CALLS"\n';
+      const stub = `#!/bin/sh
+printf "%s\\n" "$@" >> "$SYNCKY_RECIPE_CALLS"
+[ "$SYNCKY_AGENT_HOME" = "$SYNCKY_EXPECTED_HOME" ] || exit 90
+[ "$SYNCKY_RELAY_URL" = "https://recipe.invalid" ] || exit 91
+[ "$SYNCKY_INVITE" = "recipe-fixture" ] || exit 92
+if [ "$1" = "-y" ]; then shift 2; fi
+if [ "$1" = "\${SYNCKY_FAIL_AT:-}" ]; then exit "$SYNCKY_FAIL_CODE"; fi
+exit 0
+`;
       writeFileSync(join(bin, "npx"), stub, { mode: 0o755 });
       writeFileSync(launcher, stub, { mode: 0o755 });
-      for (const [index, [document, carried]] of [[SKILL, false], [SKILL, true]].entries()) {
+      for (const [index, [document, carried]] of [[SKILL, false], [SKILL, true], [POINTER, false], [POINTER, true]].entries()) {
         const recipe = /```sh\n([\s\S]*?)\n```/.exec(document)[1];
-        const calls = join(root, `${index}.calls`);
-        const env = { PATH: bin, HOME: root, SYNCKY_AGENT_HOME: join(root, "fresh home"), SYNCKY_AGENT_NAME: "Recipe agent", SYNCKY_RECIPE_CALLS: calls };
-        if (carried) env.SYNCKY_RUNNER = launcher;
-        const result = spawnSync("/bin/sh", ["-c", recipe], { env, encoding: "utf8" });
-        assert.equal(result.status, 0, result.stderr);
-        const prefix = carried ? [] : ["-y", "@syncky/agent"];
-        assert.deepEqual(readFileSync(calls, "utf8").trim().split("\n"), [...prefix, "selftest", ...prefix, "init", "--name", "Recipe agent", ...prefix, "pair"]);
+        const pointer = document === POINTER;
+        const prefix = carried ? [] : ["-y", `@syncky/agent${pointer ? `@${AGENT_VERSION}` : ""}`];
+        for (const state of ["fresh", "default", "secrets.json", "config.json", "state.json", "pairing.json", "agent.db", "diagnostics.db", "access.db", "dangling-link"]) {
+          const caseRoot = join(root, `${index}-${state}`);
+          const home = join(caseRoot, state === "default" ? ".syncky-agent" : "fresh home");
+          mkdirSync(caseRoot);
+          const initialized = !["fresh", "default"].includes(state);
+          if (initialized) {
+            mkdirSync(home, { mode: 0o700 });
+            if (state === "dangling-link") symlinkSync(join(caseRoot, "missing"), join(home, "state.json"));
+            else writeFileSync(join(home, state), "partial fixture", { mode: 0o600 });
+          }
+          const commands = [...(pointer ? ["skill"] : []), "selftest", ...(initialized ? [] : ["init"]), "pair"];
+          for (const failAt of [undefined, ...commands]) {
+            const calls = join(caseRoot, `${failAt ?? "success"}.calls`);
+            const env = { PATH: bin, HOME: caseRoot, SYNCKY_EXPECTED_HOME: home, SYNCKY_AGENT_NAME: "Recipe agent", SYNCKY_RECIPE_CALLS: calls,
+              SYNCKY_RELAY_URL: "https://recipe.invalid", SYNCKY_INVITE: "recipe-fixture", SYNCKY_FAIL_CODE: "3" };
+            if (state !== "default") env.SYNCKY_AGENT_HOME = home;
+            if (carried) env.SYNCKY_RUNNER = launcher;
+            if (failAt) env.SYNCKY_FAIL_AT = failAt;
+            const result = spawnSync("/bin/sh", ["-c", recipe], { env, encoding: "utf8" });
+            assert.equal(result.status, failAt ? 3 : 0, result.stderr);
+            const actual = readFileSync(calls, "utf8").trim().split("\n");
+            const expectedCommands = failAt ? commands.slice(0, commands.indexOf(failAt) + 1) : commands;
+            assert.deepEqual(actual, expectedCommands.flatMap(command => [...prefix, command, ...(command === "init" ? ["--name", "Recipe agent"] : [])]));
+            if (!pointer && state === "fresh" && !failAt) {
+              assert.deepEqual(actual, [...prefix, "selftest", ...prefix, "init", "--name", "Recipe agent", ...prefix, "pair"]);
+            }
+          }
+        }
       }
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
@@ -181,7 +217,45 @@ describe("thin feature skill", () => {
       assert.match(document, /read-only configurations disable both send and ack/i);
       assert.match(document, /Start receive separately/);
       assert.match(document, /No binary auto-update/);
+      assert.match(document, /ACK only after durable processing, through the durable receive checkpoint/);
+      assert.match(document, /Inbox reads never ACK or delete/);
+      assert.match(document, /Never echo the status fingerprint as proof/);
     }
+  });
+});
+
+describe("agent pointer source", () => {
+  it("has the portable header, canonical description, licence and bounded flat source", () => {
+    checkedHeader(POINTER, false);
+    assert.equal(frontmatter(POINTER).description, frontmatter(SKILL).description);
+    assert.ok(POINTER.split("\n").length - Number(POINTER.endsWith("\n")) <= 60);
+    assert.ok(Buffer.byteLength(POINTER, "utf8") <= 6144);
+    assert.match(POINTER, /^Licence: Apache-2\.0\.$/m);
+    assert.match(POINTER, /Syncky.*Apple Health.*end-to-end encrypt/);
+    assert.match(POINTER, /Node\.js ≥22\.15 and npm/);
+    const references = [...POINTER.matchAll(/@syncky\/agent(@[^\s`]*)?/g)];
+    assert.equal(references.length, 3);
+    for (const [, pin] of references) assert.equal(pin, `@${AGENT_VERSION}`);
+  });
+  it("loads the same runner's rules before guarded actions and keeps inline trust and service boundaries", () => {
+    assert.doesNotMatch(POINTER, /SYNCKY_INVITE|\binvites?\b|\benvironments?\b/i);
+    for (const pattern of [/https:\/\/syncky\.app\/agent\.md/, /`npx -y @syncky\/agent@[^\s`]+ skill`/, /`"\$SYNCKY_RUNNER" skill`/,
+      /same runner\/home/, /before the first send, pairing confirmation, service install or deletion/, /before ACK or saving reports/,
+      /If rules cannot be read, stop/, /inline safety still applies/, /Use Syncky and start onboarding with a QR code\./,
+      /not confirmation, a service, expanded access or deletion/, /private reply to the requesting owner/, /HTTPS pairing link \(single use, expires with the pairing\)/, /QR copied verbatim in a ```text block/,
+      /`pair --qr-png`/, /`pair --show-qr`/, /Never put the link, QR or image in public posts, group chats, logs, reports, memory\/notes or any other service or tool outside that private conversation/, /never quote keys or tokens/,
+      /Scanning alone does not confirm trust/, /owner picks the displayed code/, /V1.*both devices.*explicit `confirm`/,
+      /Never echo the status fingerprint as proof/, /Ask the owner before starting a background service/,
+      /Without an answer, wait/, /Read-only configurations disable `syncky_send` and `syncky_ack`/,
+      /partial\/corrupt state/, /relay that refuses registration/, /do not retry or force registration/, /migration_required/, /Never force registration/]) assert.match(POINTER, pattern);
+    const recipe = /```sh\n([\s\S]*?)\n```/.exec(POINTER)[1];
+    assert.match(recipe, /syncky_run skill\nsyncky_run selftest/);
+    assert.match(recipe, /"\$SYNCKY_RUNNER" "\$@"/);
+    assert.match(recipe, /\[ -e "\$SYNCKY_AGENT_HOME\/\$file" \] \|\| \[ -L "\$SYNCKY_AGENT_HOME\/\$file" \]/);
+    assert.doesNotMatch(recipe, /--force|--wait|--no-qr|--json|--v1|npm|curl|wget|&\s*$/m);
+    const commands = [...POINTER.matchAll(/syncky_run ([a-z]+)/g)].map(m => m[1]);
+    assert.deepEqual(commands, ["skill", "selftest", "init", "pair"]);
+    assert.ok(commands.every(command => commandNames().includes(command)));
   });
 });
 

@@ -210,11 +210,11 @@ for (const json of [false, true]) test(`v2 pair spawns one detached waiter after
   assert.ok(result.stdout.includes(doc.uri));
   if (json) {
     const output = JSON.parse(result.stdout);
-    assert.deepEqual(Object.keys(output).sort(), ['code', 'expires_at', 'limits', 'pairing_id', 'uri', 'version']);
+    assert.deepEqual(Object.keys(output).sort(), ['code', 'expires_at', 'limits', 'pairing_id', 'qr_text', 'uri', 'version']);
     assert.deepEqual(output.limits, { hosted_defaults: { pairing_link_ttl_s: 600, unjoined_hub_ttl_s: 86400 },
       pairing_link_deadline: 'expires_at', unjoined_hub_clock: 'registration' });
   }
-  else assert.ok(result.stdout.startsWith(doc.uri + '\n') && result.stdout.includes('Pairing code: '));
+  else assert.ok(result.stdout.split('\n')[1] === doc.uri && result.stdout.includes('Pairing code: '));
 });
 
 for (const mode of ['v1', 'wait', 'receiver']) test(`pair does not spawn a waiter for ${mode}`, async t => {
@@ -273,7 +273,7 @@ test('pair-waiter stays out of public help and requires exactly one pairing id',
 });
 
 test('waiter confirms a later phone pick and exits without a further command', async t => {
-  const f = await fixture(t), started = await f.pairing.startPairing(), phone = createFakePhone({ relayUrl: f.relay.url });
+  const f = await fixture(t), started = await f.pairing.startPairing({ qrPng: true }), png = started.qr_png, phone = createFakePhone({ relayUrl: f.relay.url });
   let picked = false;
   const result = await runCli(['--home', f.home, 'pair-waiter', started.pairing_id], {
     now: f.now, sleep: async ms => { f.advance(ms); if (!picked) { picked = true; await phone.pair(started.uri); await phone.sendPairProof(); } },
@@ -282,6 +282,7 @@ test('waiter confirms a later phone pick and exits without a further command', a
   assert.equal(readHomeState(f.home).members[phone.memberId].state, 'confirmed');
   const polls = f.relay.state.requests.filter(r => r.route === 'getMessages').length;
   assert.equal(polls, 1);
+  assert.equal(fs.existsSync(png), false);
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(f.relay.state.requests.filter(r => r.route === 'getMessages').length, polls);
   await phone.fetchCommands(); assert.deepEqual(phone.controlReceived.map(r => r.type), ['confirmed', 'agent_info']);
@@ -473,11 +474,12 @@ for (const command of ['wait', 'pair']) test(`foreground ${command} preserves po
 });
 
 for (const scoped of [false, true]) test(`${scoped ? 'scoped' : 'legacy'} waiter exits at the relay expiry plus 60 seconds rather than restarting the TTL`, async t => {
-  const f = await fixture(t), started = await f.pairing.startPairing(scoped ? { read: ['steps'] } : {}), sleeps = [];
+  const f = await fixture(t), started = await f.pairing.startPairing({ qrPng: true, ...(scoped ? { read: ['steps'] } : {}) }), png = started.qr_png, sleeps = [];
   f.advance(Date.parse(started.expires_at) + 59000 - f.now().getTime());
   const result = await runCli(['--home', f.home, 'pair-waiter', started.pairing_id], { now: f.now, sleep: async ms => { sleeps.push(ms); f.advance(ms); } });
   assert.equal(result.code, 0); assert.deepEqual(sleeps, [1000]);
   assert.equal(f.now().getTime(), Date.parse(started.expires_at) + 60000);
+  assert.equal(fs.existsSync(png), false);
   const requests = f.relay.state.requests.length;
   assert.equal((await runCli(['--home', f.home, 'pair-waiter', started.pairing_id], { now: f.now })).code, 0);
   assert.equal(f.relay.state.requests.length, requests);

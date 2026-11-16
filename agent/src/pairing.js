@@ -1,8 +1,6 @@
 import { maintainResponseWaits } from "./response-waits.js";
 import nodeFs from 'node:fs';
-import { join } from 'node:path';
-import qrcodeTerminal from 'qrcode-terminal';
-import QRErrorCorrectLevel from 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js';
+import { join, resolve } from 'node:path';
 import { LocalStateError, validateUrlScheme } from './config.js';
 import { randomBytes } from './crypto.js';
 import { b64uEncode, deviceName, isB64u, isTimestamp } from './encoding.js';
@@ -13,20 +11,14 @@ import { registerSecret } from './log.js';
 import { RelayError } from './relay-client.js';
 import { readHomeState, updateHomeState, forgetThinMember, STATE_FILE, validateHomeState } from './home-state.js';
 import { createThinPairing, validateMemberPairing } from './thin-pairing.js';
-import { atomicPrivateWrite, parsePrivateJson, readPrivateFile, removePrivateFile, withHomeLock } from './protected-files.js';
+import { atomicPrivateWrite, parsePrivateJson, privateStat, readPrivateFile, removePrivateFile, withHomeLock } from './protected-files.js';
 import { retryHomeLock } from './thin-lock.js';
 import { isStoredRequestedScope, validateAccessScope } from './access-scope.js';
 import { cancelPairingAccess, maintainPairingAccess } from './pairing-access.js';
+import { cleanupPairingQr, createPairingQrFiles } from './pair-qr.js';
 
 export const PAIRING_FILE = 'pairing.json';
-export function renderTerminalQr(uri) {
-  let out = "";
-  qrcodeTerminal.error = QRErrorCorrectLevel.M;
-  qrcodeTerminal.generate(uri, { small: true }, (text) => {
-    out = text;
-  });
-  return out;
-}
+export { renderTerminalQr } from './pair-qr.js';
 
 export function readPairingFile(home, { fs = nodeFs } = {}) {
   const doc = (() => { const bytes = readPrivateFile(join(home, PAIRING_FILE), { fs, optional: true }); return bytes ? parsePrivateJson(bytes) : null; })();
@@ -37,14 +29,30 @@ export function readPairingFile(home, { fs = nodeFs } = {}) {
     throw new LocalStateError("corrupt_state", `${PAIRING_FILE} is malformed; run syncky-agent pair again`);
   }
   if (doc.pair_secret !== undefined) registerSecret(doc.pair_secret);
-  registerSecret(doc.pairing_token);
+  registerSecret(doc.pairing_token); registerSecret(doc.uri);
   return doc;
 }
 
 export function createPairingService({ home, relay, publicKey, agentName, urlScheme, now = () => new Date(), fs = nodeFs }) {
   const options = { fs }, pairing = createThinPairing(home, { fs, now });
-  const view = doc => ({ pairing_id: doc.pairing_id, uri: doc.uri, expires_at: doc.expires_at,
-    ...(doc.pair_secret === undefined ? { version: 1 } : { version: 2, code: pairCode(doc.pair_secret) }) });
+  const view = (doc, images = {}) => {
+    const directory = resolve(home, 'pairing-qr'), paths = {};
+    try {
+      if (privateStat(directory, { ...options, directory: true, optional: true })) {
+        for (const format of ['png', 'svg']) {
+          const path = join(directory, `${doc.pairing_id}.${format}`);
+          try { if (privateStat(path, { ...options, optional: true })) paths['qr_' + format] = path; } catch {}
+        }
+      }
+    } catch {}
+    return { pairing_id: doc.pairing_id, uri: doc.uri, expires_at: doc.expires_at, ...paths, ...images,
+      ...(doc.pair_secret === undefined ? { version: 1 } : { version: 2, code: pairCode(doc.pair_secret) }) };
+  };
+  function snapshot() {
+    const state = readHomeState(home, options), doc = readPairingFile(home, options);
+    cleanupPairingQr(home, doc && state.pairings[doc.pairing_id]?.status === 'pending' && Date.parse(doc.expires_at) > now().getTime() ? doc.pairing_id : null, options);
+    return { state, doc };
+  }
   const publicMember = m => m && ({ member_id: m.member_id, role: m.role, name: deviceName(m.name ?? m.device_name), state: m.state, fingerprint: m.fingerprint, pairing_id: m.pairing_id });
   const memberView = id => publicMember(readHomeState(home, options).members[id]);
   function completedMember(state, id) {
@@ -67,11 +75,12 @@ export function createPairingService({ home, relay, publicKey, agentName, urlSch
       maintainResponseWaits(state, now().getTime());
       atomicPrivateWrite(join(home, STATE_FILE), JSON.stringify(validateHomeState(state)) + '\n', options);
       const doc = readPairingFile(home, options);
-      if (doc?.pairing_id === id) removePrivateFile(join(home, PAIRING_FILE), options);
+      if (doc?.pairing_id === id) { cleanupPairingQr(home, null, options); removePrivateFile(join(home, PAIRING_FILE), options); }
     }, options);
   }
   return {
-    async startPairing({ v1 = false, read, write } = {}) {
+    async startPairing({ v1 = false, read, write, qrPng, qrSvg } = {}) {
+      await retryHomeLock(() => withHomeLock(home, snapshot, options));
       if (urlScheme != null) validateUrlScheme(urlScheme, relay.baseUrl);
       if (!isPairUriName(agentName)) throw new LocalStateError('invalid_config', 'agent name cannot fit pairing URI');
       let requestedScope;
@@ -90,7 +99,7 @@ export function createPairingService({ home, relay, publicKey, agentName, urlSch
         pairSecret, requestedScope, urlScheme: urlScheme == null ? null : validateUrlScheme(urlScheme) });
       const doc = { pairing_id: result.pairing_id, pairing_token: result.pairing_token, expires_at: result.expires_at, uri,
         ...(pairSecret && { pair_secret: pairSecret }), ...(requestedScope && { requested_scope: requestedScope }) };
-      await retryHomeLock(() => withHomeLock(home, () => {
+      const images = await retryHomeLock(() => withHomeLock(home, () => {
         const current = readHomeState(home, options);
         for (const row of Object.values(current.pairings)) cancelPairingAccess(row);
         current.pairings[doc.pairing_id] = { pairing_id: doc.pairing_id, status: 'pending', expires_at: doc.expires_at, version: v1 ? 1 : 2,
@@ -98,13 +107,26 @@ export function createPairingService({ home, relay, publicKey, agentName, urlSch
         maintainResponseWaits(current, now().getTime());
         atomicPrivateWrite(join(home, PAIRING_FILE), JSON.stringify(doc) + '\n', options);
         atomicPrivateWrite(join(home, STATE_FILE), JSON.stringify(validateHomeState(current)) + '\n', options);
+        cleanupPairingQr(home, doc.pairing_id, options);
+        return createPairingQrFiles(home, doc, { qrPng, qrSvg }, options);
       }, options));
-      return view(doc);
+      return view(doc, images);
+    },
+    showPairing({ qrPng, qrSvg } = {}) {
+      const pending = this.currentPairing();
+      if (!pending) throw new LocalStateError('pairing_expired', 'no live pending pairing; start a new pairing');
+      return withHomeLock(home, () => {
+        const { doc, state } = snapshot();
+        if (!doc || doc.pairing_id !== pending.pairing_id || state.pairings[doc.pairing_id]?.status !== 'pending' || Date.parse(doc.expires_at) <= now().getTime()) throw new LocalStateError('pairing_expired', 'no live pending pairing');
+        return view(doc, createPairingQrFiles(home, doc, { qrPng, qrSvg }, options));
+      }, options);
     },
     currentPairing({ includeCompleted = false, includeExpired = false, graceMs = 0 } = {}) {
       const original = readHomeState(home, options);
       if (maintainPairingAccess(original, now().getTime())) updateHomeState(home, s => { maintainPairingAccess(s, now().getTime()); }, options);
-      let doc = readPairingFile(home, options);
+      let doc = readPairingFile(home, options), qrDirectory = false;
+      try { qrDirectory = fs.lstatSync(join(home, 'pairing-qr')).isDirectory(); } catch {}
+      if (qrDirectory) ({ doc } = withHomeLock(home, snapshot, options));
       const bound = doc && completedMember(original, doc.pairing_id);
       if (bound) {
         pairing.join(bound, { verified: true });

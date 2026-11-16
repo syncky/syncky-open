@@ -1,12 +1,24 @@
 {
   "name": "syncky",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone.",
   "contextFileName": "SKILL.md",
+  "settings": [
+    {
+      "name": "Syncky agent home",
+      "description": "Use the same absolute agent-home path as setup and the receiver; leave empty only when both use the default home.",
+      "envVar": "SYNCKY_AGENT_HOME",
+      "sensitive": false
+    }
+  ],
   "mcpServers": {
     "syncky": {
       "command": "npx",
-      "args": ["-y", "@syncky/agent", "mcp"]
+      "args": [
+        "-y",
+        "@syncky/agent@0.1.9",
+        "mcp"
+      ]
     }
   }
 }

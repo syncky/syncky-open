@@ -1,6 +1,6 @@
 {
   "name": "@syncky/agent",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "mcpName": "io.github.syncky/syncky-health",
   "description": "Send Apple Health data you choose to your AI agent via MCP, end-to-end encrypted between your iPhone and the local Syncky agent, and write Health entries for the types you allow on your iPhone.",
   "keywords": [

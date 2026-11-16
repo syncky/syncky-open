@@ -13,7 +13,8 @@ const json = (path) => JSON.parse(readFileSync(path, "utf8"));
 const { TOOLS } = await import(pathToFileURL(join(SOURCE, "agent/src/mcp.js")));
 const PUBLISHER_META = "io.modelcontextprotocol.registry/publisher-provided";
 const hash = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
-const config = { command: "npx", args: ["-y", "@syncky/agent", "mcp"] };
+const version = json(join(SOURCE, "agent/package.json")).version;
+const config = { command: "npx", args: ["-y", `@syncky/agent@${version}`, "mcp"] };
 const description = "Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone.";
 const registryDescription = "Apple Health data, end-to-end encrypted between iPhone and local Syncky agent, allowed write-back";
 const offline = { npm_config_offline: "true", npm_config_audit: "false", npm_config_fund: "false", npm_config_update_notifier: "false" };
@@ -48,9 +49,9 @@ function manifests(root) {
   const skill = readFileSync(join(root, "SKILL.md"), "utf8");
   assert.equal(/^description: (.+)$/m.exec(skill)[1], description);
   assert.equal(readFileSync(join(pluginRoot, plugin.skills, "syncky/SKILL.md"), "utf8"), skill);
-  for (const phrase of ['npx -y @syncky/agent mcp','Use Syncky and start onboarding with a QR code.','Scanning alone does not confirm trust','one receiver per home','untrusted data','Never force registration','exclusive creation','relay sees delivery metadata','Needs attention','uploads wait']) assert.ok(skill.includes(phrase), `skill missing ${phrase}`);
+  for (const phrase of [`npx -y @syncky/agent@${version} mcp`,'Use Syncky and start onboarding with a QR code.','Scanning alone does not confirm trust','one receiver per home','untrusted data','Never force registration','exclusive creation','relay sees delivery metadata','Needs attention','uploads wait']) assert.ok(skill.includes(phrase), `skill missing ${phrase}`);
   assert.doesNotMatch(skill, /SYNCKY_INVITE|\binvites?\b/i);
-  for (const pattern of [/Without an answer, wait before installing services or schedules/, /continuous explicitly authorizes installation\/start/, /login startup and restart on failure/, /receive --once/, /Do not automatically schedule writes or reports/, /never quote the token-bearing URI/, /explicit owner approval/, /Never overwrite or append/, /permission to write Health values/i]) assert.match(skill,pattern);
+  for (const pattern of [/Without an answer, wait before installing services or schedules/, /continuous explicitly authorizes installation\/start/, /login startup and restart on failure/, /receive --once/, /Do not automatically schedule writes or reports/, /HTTPS pairing link/, /QR copied verbatim inside a ```text fenced block/, /pairing code and the expiry/, /only in the private reply to the requesting owner/, /never in public posts, group chats, logs, reports, memory\/notes or any other service or tool outside that private conversation/, /pair --qr-png/, /pair --show-qr/, /a private QR image in the protected home/, /explicit owner approval/, /Never overwrite or append/, /permission to write Health values/i]) assert.match(skill,pattern);
   const recipe = /```sh\nset -eu\n([\s\S]*?)\n```/.exec(skill)?.[1];
   assert.ok(recipe); assert.match(recipe, /syncky_run pair/); assert.doesNotMatch(recipe, /SYNCKY_RUNNER|--force|--wait|--no-qr|--json|--v1/);
   assert.match(skill, /syncky_run\(\) \{ npx -y @syncky\/agent/);
@@ -60,6 +61,12 @@ function manifests(root) {
   assert.equal(gemini.version, pkg.version);
   assert.deepEqual(gemini.mcpServers, { syncky: config });
   assert.equal(gemini.contextFileName, "SKILL.md");
+  assert.deepEqual(gemini.settings, [{
+    name: "Syncky agent home",
+    description: "Use the same absolute agent-home path as setup and the receiver; leave empty only when both use the default home.",
+    envVar: "SYNCKY_AGENT_HOME",
+    sensitive: false,
+  }], "Gemini agent-home settings");
   const registry = json(join(root, "server.json"));
   assert.equal(registry.$schema, "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json");
   assert.equal(registry.description, registryDescription);
@@ -92,6 +99,25 @@ describe("public installation manifests", () => {
 
   it("registers contained plugin/skill paths, canonical MCP commands and both Registry distributions", () => manifests(PUBLIC));
 
+  for (const [label, mutate] of [
+    ["missing settings", gemini => { delete gemini.settings; }],
+    ["missing envVar", gemini => { delete gemini.settings[0].envVar; }],
+    ["wrong envVar", gemini => { gemini.settings[0].envVar = "SYNCKY_HOME"; }],
+  ]) {
+    it(`rejects Gemini ${label}`, t => {
+      const root = mkdtempSync(join(tmpdir(), "syncky-gemini-settings-"));
+      t.after(() => rmSync(root, { recursive: true, force: true }));
+      cpSync(PUBLIC, root, { recursive: true, filter: path => !["agent", "protocol", "examples"].map(dir => join(PUBLIC, dir)).includes(path) });
+      const path = join(root, "gemini-extension.json");
+      const original = json(path);
+      const gemini = structuredClone(original);
+      mutate(gemini);
+      assert.notDeepEqual(gemini, original);
+      writeFileSync(path, JSON.stringify(gemini));
+      assert.throws(() => manifests(root), /Gemini agent-home settings/);
+    });
+  }
+
   it("passes command arrays unchanged to a stub npx", (t) => {
     const dir = mkdtempSync(join(tmpdir(), "syncky-command-"));
     t.after(() => rmSync(dir, { recursive: true, force: true }));
@@ -101,7 +127,7 @@ describe("public installation manifests", () => {
     for (const server of [json(join(PUBLIC, "plugins/syncky/.mcp.json")).mcpServers.syncky, json(join(PUBLIC, "gemini-extension.json")).mcpServers.syncky]) {
       const result = spawnSync(join(dir, server.command), server.args, { encoding: "utf8" });
       assert.equal(result.status, 0);
-      assert.deepEqual(JSON.parse(result.stdout), ["-y", "@syncky/agent", "mcp"]);
+      assert.deepEqual(JSON.parse(result.stdout), ["-y", `@syncky/agent@${version}`, "mcp"]);
     }
   });
 

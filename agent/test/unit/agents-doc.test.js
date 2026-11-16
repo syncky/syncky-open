@@ -14,6 +14,7 @@ import { loadSchemas } from '../../src/protocol-files.js';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const files = ['README.md','AGENTS.md','SETUP.md','docs/REFERENCE.md','cookbook/README.md','cookbook/weight.md','cookbook/calories.md','cookbook/workouts.md'];
 const docs = Object.fromEntries(files.map(f => [f, readFileSync(resolve(root,f),'utf8')]));
+const standaloneDocs = { ...docs, ...Object.fromEntries(['skills/pointer.md', 'skills/safety.md'].map(f => [f, readFileSync(resolve(root, f), 'utf8')])) };
 const source = readdirSync(resolve(root,'src')).filter(f => f.endsWith('.js')).map(f => [f, readFileSync(resolve(root,'src',f),'utf8')]);
 const reference = docs['docs/REFERENCE.md'];
 const validate = createLocalValidator(loadSchemas());
@@ -200,20 +201,31 @@ test('operator guides explain partial selection removal and expiry without fabri
 });
 
 test('every relative path and link in the documents exists', () => {
-  for (const [file,text] of Object.entries(docs)) for (const match of text.matchAll(/\]\(([^)\s]+)\)/g)) {
+  for (const [file,text] of Object.entries(standaloneDocs)) for (const match of text.matchAll(/\]\(([^)\s]+)\)/g)) {
     const target = decodeURIComponent(match[1].split('#')[0]);
     if (!target || /^[a-z][\w+.-]*:/i.test(target)) continue;
     assert.ok(existsSync(resolve(root,dirname(file),target)), `${file}: missing relative link`);
   }
 });
+function assertCommandsAndTools(text, file) {
+  if (/\bsyncky_run\b/.test(text)) assert.match(text, /^syncky_run\(\) \{$/m, file);
+  const commandsText = text.replace(/\bsyncky_run(?=\(\) \{| [a-z]+\b)/g, 'syncky-agent');
+  const commands = [...commandsText.matchAll(/\bsyncky(?:-agent)? ([a-z]+)/g)].map(m => m[1]);
+  assert.deepEqual(commands.filter(c => !commandNames().includes(c)), [], file);
+  const tools = [...commandsText.matchAll(/\bsyncky_[a-z_]+\b/g)].map(m => m[0]);
+  assert.deepEqual(tools.filter(c => !TOOLS.some(t => t.name === c)), [], file);
+}
 test('standalone guides stay within 200 lines, cite only public paths and real commands/tools', () => {
   assert.ok(docs['AGENTS.md'].trimEnd().split('\n').length <= 200);
-  for (const [file,text] of Object.entries(docs)) {
-    assert.doesNotMatch(text, /C§|docs\/(?:planning|plans|context)|(?:\.\.\/)*(?:scripts|core|App|relay|e2e|docs-worker)\//, file);
-    const commands = [...text.matchAll(/\bsyncky(?:-agent)? ([a-z]+)/g)].map(m => m[1]);
-    assert.deepEqual(commands.filter(c => !commandNames().includes(c)), [], file);
-    const tools = [...text.matchAll(/\bsyncky_[a-z_]+\b/g)].map(m => m[0]);
-    assert.deepEqual(tools.filter(c => !TOOLS.some(t => t.name === c)), [], file);
+  for (const [file,text] of Object.entries(standaloneDocs)) {
+    assert.doesNotMatch(text, /C§|docs\/(?:planning|plans|context)|(?:\.\.\/)*(?:scripts|core|App|relay|e2e|docs-worker|site|tools)\//, file);
+    assertCommandsAndTools(text, file);
+  }
+});
+test('standalone command guards validate shell runner calls and reject unknown commands and tools', () => {
+  assertCommandsAndTools('syncky_run() {\n  syncky_run skill\n}\nsyncky_skill');
+  for (const text of ['syncky invented', 'syncky-agent invented', 'syncky_run() {\n  syncky_run invented\n}', 'syncky_invented', 'syncky_run', 'syncky_run skill']) {
+    assert.throws(() => assertCommandsAndTools(text), { code: 'ERR_ASSERTION' });
   }
 });
 test('every function AGENTS.md cites as name() exists in the minimal agent', () => {
@@ -363,7 +375,7 @@ test('cookbook checker rejects coordinated widening of tables and JSON permissio
 test('documents never contain credentials or vector private keys', () => {
   const material = Object.values(loadVectors('keys')).flatMap(v => [v?.sk,v?.ikm]).filter(v => typeof v === 'string');
   assert.ok(material.length >= 4);
-  for (const [name,text] of Object.entries(docs)) {
+  for (const [name,text] of Object.entries(standaloneDocs)) {
     assert.doesNotMatch(text,/sk_hub_[\w-]{22}_[\w-]{40}|whsec_[\w-]{43}|pt_[\w-]{43}|(?<![a-f0-9])[a-f0-9]{64}(?![a-f0-9])/i,name);
     for (const key of material) assert.ok(!text.includes(key),name);
   }
