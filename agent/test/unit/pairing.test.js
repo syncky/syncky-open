@@ -13,14 +13,14 @@ import { runCli, tempHome } from '../support/helpers.js';
 import { main } from '../../src/cli.js';
 import { acquireHomeLock } from '../../src/protected-files.js';
 import { RETRY_POLICY } from '../../src/relay-client.js';
-import { parsePairUri } from '../../src/pair-uri.js';
+import { buildPairUri, parsePairUri } from '../../src/pair-uri.js';
 import { loadVectors } from '../../src/protocol-files.js';
 import { b64uDecode } from '../../src/encoding.js';
 import { PAIRING_ACCESS_NOTICE } from '../../src/pairing-access.js';
 
 for (const v1 of [false, true]) for (const kind of ['joined', 'joined_scoped', 'bare', 'resolved', 'no_reply']) test(`CLI wait restores expired ${kind} v${v1 ? 1 : 2} binding after restart without a relay link lookup`, async t => {
   const f = await fixture(t), scoped = ['joined_scoped', 'resolved', 'no_reply'].includes(kind), joined = kind.startsWith('joined');
-  const started = await f.pairing.startPairing({ v1, ...(scoped && { read: ['steps'] }) });
+  const started = v1 && scoped ? await startLegacyV1(f) : await f.pairing.startPairing({ v1, ...(scoped && { read: ['steps'] }) });
   const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
   await f.pairing.refreshPairing(started.pairing_id);
   assert.ok(readHomeState(f.home).pairings[started.pairing_id].public_key === phone.publicKey);
@@ -50,7 +50,7 @@ for (const v1 of [false, true]) for (const kind of ['joined', 'joined_scoped', '
 });
 
 test('wait rechecks confirmation after a scoped receive observes revocation', async t => {
-  const f = await fixture(t), started = await f.pairing.startPairing({ v1: true, read: ['steps'] });
+  const f = await fixture(t), started = await startLegacyV1(f);
   const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
   await f.pairing.refreshPairing(started.pairing_id); f.pairing.confirmWithFingerprint(phone.memberId, phone.fingerprint());
   await phone.revokeSelf();
@@ -156,25 +156,38 @@ async function fixture(t) {
   return { ...tmp, relay, runtime, pairing, now, advance: (ms = 300000) => { at += ms; } };
 }
 
+async function startLegacyV1(f) {
+  const started = await f.pairing.startPairing({ v1: true });
+  const doc = readPairingFile(f.home), parsed = parsePairUri(doc.uri, { allowInsecureRelay: true });
+  const scope = { request_ref: 'a'.repeat(32), read: ['steps'], write: [] };
+  const uri = buildPairUri({ ...parsed.value, requestedScope: scope });
+  fs.writeFileSync(join(f.home, 'pairing.json'), JSON.stringify({ ...doc, uri, requested_scope: scope }), { mode: 0o600 });
+  updateHomeState(f.home, s => Object.assign(s.pairings[started.pairing_id], { requested_scope: scope, access: { state: 'awaiting', deadline_at: doc.expires_at } }));
+  return { ...started, uri };
+}
+
 for (const v1 of [false, true]) test(`scoped v${v1 ? 1 : 2} pairing persists its request and binds it before removing credentials`, async t => {
   const f = await fixture(t), started = await f.pairing.startPairing({ v1, read: ['steps', 'body_mass', 'steps'], write: ['body_mass'] });
-  const scope = parsePairUri(started.uri, { allowInsecureRelay: true }).value.requestedScope;
-  assert.match(scope.request_ref, /^[a-f0-9]{32}$/);
+  assert.equal(parsePairUri(started.uri, { allowInsecureRelay: true }).value.requestedScope, undefined);
+  const scope = readPairingFile(f.home)[v1 ? 'v1_scope' : 'requested_scope'];
+  if (!v1) assert.match(scope.request_ref, /^[a-f0-9]{32}$/);
   assert.deepEqual(scope.read, ['body_mass', 'steps']);
-  assert.deepEqual(readPairingFile(f.home).requested_scope, scope);
-  assert.deepEqual(readHomeState(f.home).pairings[started.pairing_id].requested_scope, scope);
+  assert.deepEqual(readPairingFile(f.home)[v1 ? 'v1_scope' : 'requested_scope'], scope);
+  assert.deepEqual(readHomeState(f.home).pairings[started.pairing_id][v1 ? 'v1_scope' : 'requested_scope'], scope);
   const credentials = readPairingFile(f.home), persisted = fs.readFileSync(join(f.home, 'state.json'), 'utf8');
   for (const secret of [credentials.pair_secret, credentials.pairing_token, credentials.uri].filter(Boolean)) assert.ok(!persisted.includes(secret));
   const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
   await f.pairing.refreshPairing(started.pairing_id);
   assert.equal(readPairingFile(f.home), null);
   const row = readHomeState(f.home).pairings[started.pairing_id];
-  assert.deepEqual(row.requested_scope, scope);
+  assert.deepEqual(row[v1 ? 'v1_scope' : 'requested_scope'], scope);
   assert.equal(row.member_id, phone.memberId); assert.equal(row.public_key, phone.publicKey);
-  assert.equal(row.access.state, 'awaiting');
+  if (v1) assert.ok(!row.v1_request && !row.access);
+  else assert.equal(row.access.state, 'awaiting');
   const next = await f.pairing.startPairing({ read: ['steps'] });
   assert.notEqual(readPairingFile(f.home).requested_scope.request_ref, scope.request_ref);
-  assert.equal(readHomeState(f.home).pairings[started.pairing_id].access.state, 'cancelled');
+  const previous = readHomeState(f.home).pairings[started.pairing_id];
+  assert.equal(v1 ? previous.v1_cancelled : previous.access.state, v1 ? true : 'cancelled');
   assert.equal(readHomeState(f.home).pairings[next.pairing_id].expires_at, next.expires_at);
 });
 
@@ -182,9 +195,10 @@ test('CLI pair flags normalize both sides and keep diagnostics free of pairing c
   const f = await fixture(t);
   const result = await runCli(['--home', f.home, 'pair', '--v1', '--read', 'steps,body_mass,steps', '--write', 'body_mass', '--json']);
   assert.equal(result.code, 0);
-  const doc = readPairingFile(f.home), scope = parsePairUri(JSON.parse(result.stdout).uri, { allowInsecureRelay: true }).value.requestedScope;
+  const doc = readPairingFile(f.home), scope = doc.v1_scope;
+  assert.equal(parsePairUri(JSON.parse(result.stdout).uri, { allowInsecureRelay: true }).value.requestedScope, undefined);
   assert.deepEqual(scope.read, ['body_mass', 'steps']); assert.deepEqual(scope.write, ['body_mass']);
-  for (const value of [doc.pairing_token, doc.uri, scope.request_ref]) assert.ok(!result.stderr.includes(value));
+  for (const value of [doc.pairing_token, doc.uri]) assert.ok(!result.stderr.includes(value));
 });
 
 for (const expired of ['expired', '404']) test(`scoped pairing cleans up only after relay expiry reconciliation (${expired})`, async t => {
@@ -211,7 +225,7 @@ for (const expired of ['expired', '404']) test(`scoped pairing cleans up only af
 });
 
 for (const path of ['refresh', 'receiver']) for (const v1 of [false, true]) test(`scoped v${v1 ? 1 : 2} ${path} recovers a timely join first observed after expiry and restart`, async t => {
-  const f = await fixture(t), started = await f.pairing.startPairing({ v1, read: ['steps'] });
+  const f = await fixture(t), started = v1 ? await startLegacyV1(f) : await f.pairing.startPairing({ read: ['steps'] });
   const scope = readPairingFile(f.home).requested_scope, phone = createFakePhone({ relayUrl: f.relay.url });
   await phone.pair(started.uri);
   const outcomes = { read: [{ type: 'steps', outcome: 'allowed' }], write: [] };
@@ -293,7 +307,7 @@ test('pairing files restore only valid optional scope and keep malformed values 
 });
 
 test('a failed receive after confirmation cannot fabricate a missing-reply notice', async t => {
-  const f = await fixture(t), started = await f.pairing.startPairing({ v1: true, read: ['steps'] });
+  const f = await fixture(t), started = await startLegacyV1(f);
   const phone = createFakePhone({ relayUrl: f.relay.url }); await phone.pair(started.uri);
   await f.pairing.refreshPairing(started.pairing_id); f.pairing.confirmWithFingerprint(phone.memberId, phone.fingerprint());
   f.relay.failNext('getMessages', 503);
@@ -306,8 +320,8 @@ test('invalid scoped pair inputs fail before any relay pairing is created and do
   const f = await fixture(t), count = () => f.relay.state.requests.filter(r => r.route === 'createPairing').length;
   const over = loadVectors('pair-uris').cases.find(c => c.name === 'scope_v1_envelope_3_reply_4097');
   assert.ok(over);
-  const tooLarge = new URLSearchParams(new URL(over.uri).search.slice(1) || new URL(over.uri).hash.slice(1));
-  for (const [args, detail] of [[{ read: [] }, 'empty'], [{ read: [''] }, 'unknown_type'], [{ read: ['PRIVATE_CANARY'] }, 'unknown_type'], [{ write: ['date_of_birth'] }, 'not_writable'], [{ read: JSON.parse(tooLarge.get('read')), write: JSON.parse(tooLarge.get('write')) }, 'too_large']]) {
+  assert.deepEqual(parsePairUri(over.uri, { allowInsecureRelay: true }), { ok: false, code: over.expect.error, param: over.expect.param });
+  for (const [args, detail] of [[{ read: [] }, 'empty'], [{ read: [''] }, 'unknown_type'], [{ read: ['PRIVATE_CANARY'] }, 'unknown_type'], [{ write: ['date_of_birth'] }, 'not_writable']]) {
     const before = count();
     await assert.rejects(f.pairing.startPairing(args), e => e.code === 'invalid_input' && e.detail === detail && !e.message.includes('PRIVATE_CANARY'));
     assert.equal(count(), before); assert.equal(readPairingFile(f.home), null);

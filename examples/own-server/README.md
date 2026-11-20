@@ -32,11 +32,11 @@ The pinned base is `node:22.15.0-bookworm-slim`. The non-root Node user stores `
 
 ## Connect your iPhone
 
-1. Open `/admin/login` on your deployment's HTTPS origin and enter the admin password. The first successful deployment-local login generates distinct upload, HMAC and OAuth/session material. The private native setup link is shown once. Save it privately or open it on your iPhone; never send it to an online QR service, logs or support.
+1. Open `/admin/login` on your deployment's HTTPS origin and enter the admin password. The first successful deployment-local login generates distinct upload, HMAC and OAuth/session material. The private native setup link (`https://syncky.app/connect#…`) is shown once. The fragment carries the upload credentials. Save it privately or open it on your iPhone; never send it to an online QR service, logs or support.
 2. Import/open the link in Syncky Health and confirm the server. It fixes `format=native` and `/server`, defaults to Bearer plus HMAC, and cannot enable writes. Choose Health types in the app. HAE, CSV, Influx and unknown formats receive `415 unsupported_format`.
 3. Use **Check connection**, which sends a probe with no Health data. Then use **Sync now** with selected data. A successful probe proves connection/authentication, not stored Health data or permission to read it.
 
-Authentication can instead use Basic or a validated custom header; unauthenticated internet mode is unsupported. Admin settings changes to upload authentication, HMAC or app scheme take effect on explicit rotation. The default app scheme is `syncky`. After changing link settings, rotate and re-import. Admin, upload and OAuth credentials cannot substitute for each other.
+Authentication can instead use Basic or a validated custom header; unauthenticated internet mode is unsupported. Changes to upload authentication or HMAC take effect on explicit rotation. After rotation, open or paste the new link in Syncky and confirm the import. Admin, upload and OAuth credentials cannot substitute for each other.
 
 The [server contract](../../protocol/server.md) and [public vectors](../../protocol/test-vectors/) define the exact bytes. These request distinctions matter:
 

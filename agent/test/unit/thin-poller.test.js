@@ -727,7 +727,62 @@ test('operator bypasses transient backoff after floor but persists authoritative
   const retry = at + 500000;
   at += 300000;
   assert.deepEqual(await create().once(), { deferred: true, reason: 'retry_after', next_poll_at: retry });
+  at = retry - 1;
+  assert.deepEqual(await create().once(), { deferred: true, reason: 'retry_after', next_poll_at: retry });
   assert.equal(calls, 2); at = retry; await create().once(); assert.equal(calls, 3);
+});
+
+test('operator reports the poll floor when Retry-After expires sooner', async t => {
+  const { home, transport } = setup(t), message = await delivery(transport, 1);
+  const first = now().getTime();
+  let at = first, gets = 0, acks = 0;
+  const relay = {
+    getMessages: async () => ++gets === 1 ? { messages: [message], next_after: 1 } : { messages: [] },
+    ack: async () => { if (++acks === 1) throw { status: 429, retryAfterS: 60 }; },
+  };
+  const create = () => createThinPoller({ home, transport, self, relay, intervalS: 1800, now: () => new Date(at) });
+  await assert.rejects(create().once(), { status: 429 });
+  const deferred = await create().once();
+  assert.deepEqual(deferred, { deferred: true, reason: 'retry_after', next_poll_at: first + 300000 });
+  assert.equal(gets, 1);
+  assert.equal(acks, 1);
+  at = deferred.next_poll_at;
+  assert.equal((await create().once()).pages, 1);
+  assert.equal(gets, 2);
+  assert.equal(acks, 2);
+});
+
+test('operator reports pending ACK eligibility before resuming pagination after reconciliation', async t => {
+  const { home, transport } = setup(t), held = createCipherFiles(home, 'held');
+  const first = now().getTime(), floor = first + 300000, calls = [];
+  let at = first;
+  const message = { seq: 1, kind: 'system', event: 'member_revoked', body: { member_id: 'm_dev_1' } };
+  held.put({ msg_id: messageId(1), seq: 1, from: 'relay', kind: 'system', legacy_state: 'new', body: JSON.stringify(message) });
+  updateHomeState(home, s => {
+    s.transport.cursor = 1;
+    s.transport.pagination_after = 1;
+    s.transport.pending_ack = { up_to_seq: 1 };
+    s.transport.last_poll_at = first;
+  });
+  const relay = {
+    listMembers: async () => {
+      calls.push('list');
+      if (calls.length === 1) throw { status: 503, retryAfterS: 60 };
+      return { members: [] };
+    },
+    ack: async seq => { calls.push(`ack:${seq}`); },
+    getMessages: async ({ after }) => { calls.push(`get:${after}`); return { messages: [] }; },
+  };
+  const create = () => createThinPoller({ home, transport, self, relay, intervalS: 1800, now: () => new Date(at) });
+  await assert.rejects(create().once(), { status: 503 });
+  assert.deepEqual(await create().once(), { deferred: true, reason: 'retry_after', next_poll_at: floor });
+  assert.deepEqual(calls, ['list']);
+  at = first + 60000;
+  assert.deepEqual(await create().once(), { deferred: true, reason: 'poll_floor', next_poll_at: floor });
+  assert.deepEqual(calls, ['list', 'list']);
+  at = floor;
+  assert.equal((await create().once()).pages, 1);
+  assert.deepEqual(calls, ['list', 'list', 'ack:1', 'get:1']);
 });
 
 test('capped pagination resumes after restart without borrowing eligibility from an empty page', async t => {
@@ -791,7 +846,7 @@ test('scoped one-shot receive holds before proof and learns scope only from an e
   const clock = () => new Date(at++), pairingId = 'p_' + 'B'.repeat(22);
   const member = { member_id: keys.dev1.member_id, role: 'device', public_key: keys.dev1.pk, pairing_id: pairingId, joined_at: clock().toISOString() };
   const relay = { baseUrl: 'https://relay.example',
-    createPairing: async () => ({ pairing_id: pairingId, pairing_token: 'pt_' + 'B'.repeat(43), expires_at: new Date(at + 600000).toISOString() }),
+    createPairing: async () => ({ pairing_id: pairingId, pairing_token: 'pt_' + 'B'.repeat(43), expires_at: new Date(at + 600000).toISOString(), pairing_scope_stored: true }),
     getPairing: async () => ({ status: 'completed', member_id: member.member_id, public_key: member.public_key, completed_at: member.joined_at }),
     listMembers: async () => ({ members: [member] }),
     getMessages: async ({ after }) => { const messages = rows.filter(r => r.seq > after); return { messages, next_after: messages.at(-1)?.seq ?? after }; },

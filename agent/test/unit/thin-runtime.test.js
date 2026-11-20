@@ -18,6 +18,12 @@ import { setup, keys, identity, now, delivery, messageId } from '../support/thin
 import { scopedRequest, pairingId, requestedScope, resolvedReply } from '../support/pairing-scope.js';
 import { PAIRING_ACCESS_NOTICE } from '../../src/pairing-access.js';
 import { runCli } from '../support/helpers.js';
+import { createPairingService } from '../../src/pairing.js';
+import { b64uDecode, formatTimestamp } from '../../src/encoding.js';
+import { parsePairUri } from '../../src/pair-uri.js';
+import { LARGE_ACCESS_ACCEPTED_NOTICE, LARGE_ACCESS_EXPIRED_NOTICE, V1_ACCESS_EXPIRED_NOTICE } from '../../src/error-guidance.js';
+import { loadJson } from '../../src/protocol-files.js';
+import { createRelayClient } from '../../src/relay-client.js';
 
 const sendOutputSchema = TOOLS.find(tool => tool.name === 'syncky_send').outputSchema;
 const validateSendReceipt = new Ajv({ strict: false, validateFormats: false }).compile(sendOutputSchema);
@@ -91,8 +97,8 @@ test('CLI and MCP project awaiting, missing and late resolved pairing access ind
       assert.equal(Boolean(member.pairing_access.notice), missing);
       if (missing) {
         assert.equal(member.pairing_access.notice, PAIRING_ACCESS_NOTICE);
-        assert.match(member.pairing_access.notice, /renewed explicit owner approval and phone availability/);
-        assert.match(member.pairing_access.notice, /finite positive TTL <= 24 hours/);
+        assert.match(member.pairing_access.follow_up, /renewed explicit owner approval and phone availability/);
+        assert.match(member.pairing_access.follow_up, /finite positive TTL <= 24 hours/);
         assert.doesNotMatch(member.pairing_access.notice, /older app|exactly 24/);
       }
       assert.doesNotMatch(output.stdout + output.stderr, /pair_secret|pairing_token|pair_proof|private_key|ciphertext|uri/);
@@ -158,6 +164,128 @@ function homeFixture(t, options) {
   saveConfig(fixture.home, { relay_url: 'http://127.0.0.1:8787', name: 'Test' });
   return fixture;
 }
+
+for (const finish of ['retry', 'superseded', 'revoked', 'mismatched']) test(`v1 scoped intent survives confirmation and restart with ${finish}`, async t => {
+  const { home, pairing } = homeFixture(t, { confirmed: false }), id = keys.dev1.member_id;
+  let at = now().getTime(), serial = 0, seq = 0, refuseConfirm = true, refuseAccess = true;
+  const clock = () => new Date(at), sent = [];
+  const fetch = async (url, options) => {
+    const path = new URL(url).pathname;
+    if (path.endsWith('/pairings')) {
+      assert.ok(options.body === '{}', 'v1 E2 carried access data');
+      return Response.json({ pairing_id: `p_${String(++serial).padStart(22, 'A')}`, pairing_token: `pt_${'T'.repeat(43)}`,
+        expires_at: new Date(at + 600000).toISOString() }, { status: 201 });
+    }
+    assert.ok(path.endsWith('/messages') && options.method === 'POST', 'unexpected relay call');
+    const envelope = JSON.parse(options.body);
+    const { inner } = await runtime.transport.receive({ envelope, hubId: identity.hub_id,
+      self: { memberId: id, privateKey: b64uDecode(keys.dev1.sk) }, senderKeyOf: () => b64uDecode(keys.agent.pk) });
+    sent.push({ type: inner.type, envelope, body: options.body, inner });
+    if ((inner.type === 'confirmed' && refuseConfirm) || (inner.type === 'access_request' && refuseAccess)) {
+      return Response.json({ error: 'internal_error' }, { status: 503 });
+    }
+    return Response.json({ seq: ++seq }, { status: 201 });
+  };
+  let runtime = createRuntime({ home, env: {}, now: clock, fetch });
+  const service = createPairingService({ home, relay: runtime.relay, publicKey: keys.agent.pk, agentName: 'Test', now: clock });
+  const started = await service.startPairing({ v1: true, read: ['steps', 'steps'], write: ['body_mass'] });
+  assert.equal(parsePairUri(started.uri, { allowInsecureRelay: true }).value.requestedScope, undefined);
+  updateHomeState(home, s => { s.members[id].pairing_id = started.pairing_id; });
+  pairing.join({ member_id: id, public_key: keys.dev1.pk, role: 'device', pairing_id: started.pairing_id }, { verified: true });
+  await runtime.outbox.flush();
+  assert.equal(sent.length, 0);
+  const fingerprint = readHomeState(home).members[id].fingerprint;
+  assert.throws(() => service.confirmWithFingerprint(id, '0000'), { code: 'fingerprint_mismatch' });
+  service.confirmWithFingerprint(id, fingerprint);
+  await runtime.inbound.releaseHeld();
+  await runtime.outbox.flush();
+  assert.deepEqual(sent.map(x => x.type), ['confirmed']);
+  assert.equal(readHomeState(home).pairings[started.pairing_id].v1_request, undefined);
+  at += 2000; refuseConfirm = false;
+  runtime = createRuntime({ home, env: {}, now: clock, fetch });
+  await runtime.outbox.flush();
+  const first = sent.filter(x => x.type === 'access_request');
+  assert.equal(first.length, 1);
+  assert.equal(Date.parse(first[0].inner.expires_at) - Date.parse(first[0].inner.created_at), 86400000);
+  assert.ok(first[0].inner.read.length === 1 && first[0].inner.write.length === 1, 'wrong access scope counts');
+  assert.equal(runtime.status().transport.response_waits?.length ?? 0, 0);
+  service.confirmWithFingerprint(id, fingerprint);
+  if (finish === 'superseded') await service.startPairing();
+  if (finish === 'revoked') pairing.revoke(id);
+  if (finish === 'mismatched') updateHomeState(home, s => { s.members[id].pairing_id = null; });
+  at += 2000; refuseAccess = false;
+  runtime = createRuntime({ home, env: {}, now: clock, fetch });
+  await runtime.outbox.flush();
+  await runtime.outbox.flush();
+  const delivered = sent.filter(x => x.type === 'access_request');
+  assert.equal(delivered.length, finish === 'retry' ? 2 : 1);
+  if (finish !== 'retry') return;
+  assert.ok(delivered[0].body === delivered[1].body, 'delivery retry changed the sealed request');
+  assert.ok(delivered[0].inner.request_ref === delivered[1].inner.request_ref, 'delivery retry changed the request reference');
+  assert.equal(runtime.status().transport.response_waits.filter(w => w.kind === 'access').length, 1);
+  assert.equal(runtime.status().transport.response_waits.filter(w => w.kind === 'pairing').length, 0);
+  const duplicate = await runCli(['--home', home, 'confirm', id, fingerprint], { env: {}, now: clock, fetch });
+  assert.equal(duplicate.code, 0);
+  assert.equal(JSON.parse(duplicate.stdout).access_request.state, 'sent');
+  assert.equal(sent.filter(x => x.type === 'access_request').length, 2);
+  at += 86400000;
+  const [expired] = runtime.status().transport.response_waits;
+  assert.equal(expired.state, 'no_reply'); assert.equal(expired.notice, V1_ACCESS_EXPIRED_NOTICE);
+});
+
+test('large E10 acceptance and a legacy phone ACK do not establish access; a matching reply completes only its own wait', async t => {
+  const { home } = homeFixture(t), id = keys.dev1.member_id;
+  let at = now().getTime(), seq = 0, ack = 0, oldRelay = true, delivered;
+  const clock = () => new Date(at);
+  const fetch = async (url, options) => {
+    const path = new URL(url).pathname;
+    if (path === '/v1/acks') {
+      ack = JSON.parse(options.body).up_to_seq;
+      return Response.json({ acked_up_to: ack });
+    }
+    if (options.method === 'GET') return Response.json({ messages: [delivered], next_after: delivered.seq });
+    const bytes = Buffer.byteLength(options.body);
+    if (oldRelay && bytes > 4096) return Response.json({ error: 'payload_too_large' }, { status: 413 });
+    delivered = { ...JSON.parse(options.body), seq: ++seq };
+    return Response.json({ seq }, { status: 201 });
+  };
+  const runtime = createRuntime({ home, env: {}, now: clock, fetch });
+  const { types, characteristics } = loadJson('types.json'), catalog = [...types, ...characteristics, { name: 'workout' }];
+  const ttl = 600000;
+  const request = n => ({ v: 1, type: 'access_request', request_ref: String(n).repeat(32), created_at: clock().toISOString(),
+    expires_at: new Date(at + ttl).toISOString(), read: catalog.map(t => t.name), write: catalog.filter(t => t.write).map(t => t.name) });
+  const send = inner => runtime.send({ type: inner.type, inner });
+  const rejected = await send(request(1));
+  assert.equal(rejected.state, 'failed'); assert.equal(rejected.relay_status, 413);
+  assert.equal(rejected.relay_code, 'payload_too_large');
+  assert.ok(rejected.hint.endsWith('This relay rejected the larger access request. Reduce the requested types so the encrypted request fits 4096 bytes, or contact Syncky support.'));
+  oldRelay = false;
+  const lost = await send(request(2));
+  assert.equal(lost.state, 'sent'); assert.equal(lost.notice, LARGE_ACCESS_ACCEPTED_NOTICE);
+  const phone = createRelayClient({ baseUrl: 'http://127.0.0.1:8787', token: `sk_${identity.hub_id}_${'P'.repeat(40)}`, fetch });
+  const page = await phone.getMessages({ after: 0 }), [{ seq: receivedSeq, ...envelope }] = page.messages;
+  assert.equal(Buffer.byteLength(JSON.stringify(envelope)), lost.envelope_bytes);
+  assert.ok(envelope.kind === 'control' && lost.envelope_bytes > 4096, 'legacy phone would not drop this delivery');
+  await phone.ack(page.next_after);
+  assert.equal(ack, receivedSeq);
+  assert.equal(runtime.status().transport.response_waits.find(w => w.msg_id === lost.msg_id).state, 'sent');
+  assert.equal(createInbox(home).read({ type: 'access_reply' }).length, 0);
+  const next = request(3), accepted = await send(next);
+  const reply = { v: 1, type: 'access_reply', request_ref: next.request_ref, decided_at: formatTimestamp(clock()), outcome: 'resolved',
+    read: next.read.map(type => ({ type, outcome: 'allowed' })), write: next.write.map(type => ({ type, outcome: 'allowed' })) };
+  assert.equal((await runtime.inbound.receive(await delivery(runtime.transport, 1, reply))).status, 'stored');
+  let waits = runtime.status().transport.response_waits;
+  assert.equal(waits.find(w => w.msg_id === accepted.msg_id).completed_at, at);
+  assert.equal(waits.find(w => w.msg_id === lost.msg_id).completed_at, undefined);
+  at += ttl;
+  const restarted = createRuntime({ home, env: {}, now: clock, fetch }), status = restarted.status();
+  waits = status.transport.response_waits;
+  const expired = waits.find(w => w.msg_id === lost.msg_id);
+  assert.equal(expired.member_id, id); assert.equal(expired.state, 'no_reply'); assert.equal(expired.notice, LARGE_ACCESS_EXPIRED_NOTICE);
+  assert.equal(waits.find(w => w.msg_id === accepted.msg_id).notice, undefined);
+  assert.equal(status.members.find(m => m.member_id === id).scope, null);
+  assert.doesNotMatch(JSON.stringify(waits), /request_ref|public_key|"read"|"write"/);
+});
 
 for (const surface of ['cli', 'mcp']) test(`${surface} validates access TTL boundaries and malformed dates before any send`, async t => {
   const { home } = homeFixture(t), created_at = now().toISOString().replace('.000Z', 'Z');
@@ -228,6 +356,7 @@ for (const emit of [false, true]) test(`CLI receive --once ${emit ? '--emit-reco
   assert.doesNotMatch(result.stderr, /PRIVATE_RECORD_CANARY/);
   const cycle = result.stderr.trim().split('\n').map(line => JSON.parse(line)).find(line => line.event === 'receive_cycle');
   assert.equal(cycle.fetched, 1); assert.equal(cycle.acked_up_to, 1);
+  assert.deepEqual(cycle.limits, { poll_floor_s: 300 });
   assert.equal(requests.filter(([path, method]) => path === '/v1/messages' && method === 'GET').length, 1);
   assert.equal(requests.filter(([path]) => path === '/v1/acks').length, 1);
   assert.equal(readHomeState(home).transport.acked_seq, 1);
@@ -460,13 +589,45 @@ test('MCP starts no receiver, heartbeat, retry or update network work', async t 
   assert.equal(readHomeState(home).transport.heartbeat_day, undefined);
 });
 
-test('receive once exposes the authoritative floor reason and deadline to the operator', async t => {
-  const { home } = homeFixture(t), at = now().getTime();
-  updateHomeState(home, s => { s.transport.last_poll_at = at; s.transport.next_poll_at = at + 1800000; s.transport.poll_interval_s = 1800; });
-  const result = await cli(home, ['receive', '--once']);
+for (const [reason, delay, interval] of [['poll_floor', 300000, 86400], ['retry_after', 500000, 300]]) test(`receive once reports the exact ${reason} deadline and polls at eligibility`, async t => {
+  const { home } = homeFixture(t), last = now().getTime(), due = last + delay;
+  updateHomeState(home, s => {
+    s.transport.last_poll_at = last;
+    s.transport.next_poll_at = last + interval * 1000;
+    s.transport.poll_interval_s = interval;
+    if (reason === 'retry_after') s.transport.poll_retry_after_until = due;
+  });
+  let at = due - 1;
+  const polls = [];
+  const fetch = async input => {
+    const url = new URL(input);
+    if (url.pathname === '/v1/heartbeat') return new Response(null, { status: 204 });
+    if (url.pathname === '/v1/hub/state') return Response.json({ state: 'active' });
+    assert.equal(url.pathname, '/v1/messages');
+    polls.push(url.searchParams.get('poll_interval_s'));
+    return Response.json({ messages: [] });
+  };
+  const run = (...args) => runCli(['--home', home, 'receive', '--once', '--poll-interval', String(interval), ...args], { now: () => new Date(at), fetch });
+  const receiveCycle = ({ stderr }) => stderr.trim().split('\n').map(line => JSON.parse(line)).find(line => line.event === 'receive_cycle');
+
+  const result = await run();
   assert.equal(result.code, 0);
-  const cycle = result.stderr.trim().split('\n').map(s => JSON.parse(s)).find(s => s.event === 'receive_cycle');
-  assert.equal(cycle.deferred, true); assert.equal(cycle.reason, 'poll_floor'); assert.equal(cycle.next_poll_at, at + 300000);
+  assert.equal(result.stdout, '');
+  const cycle = receiveCycle(result);
+  assert.equal(cycle.deferred, true);
+  assert.equal(cycle.reason, reason);
+  assert.equal(cycle.next_poll_at, due);
+  assert.deepEqual(cycle.limits, { poll_floor_s: 300 });
+  const quiet = await run('--log-level', 'silent');
+  assert.deepEqual([quiet.code, quiet.stdout, quiet.stderr], [0, '', '']);
+  assert.deepEqual(polls, []);
+
+  at = due;
+  const eligible = await run();
+  assert.equal(eligible.code, 0);
+  assert.equal(eligible.stdout, '');
+  assert.equal(receiveCycle(eligible).pages, 1);
+  assert.deepEqual(polls, [String(interval)]);
 });
 
 

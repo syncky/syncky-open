@@ -9,7 +9,7 @@ import { createHomeState, readHomeState } from '../../src/home-state.js';
 import { saveSecrets } from '../../src/secrets.js';
 import { createPairingService, readPairingFile } from '../../src/pairing.js';
 import { cleanupPairingQr, createPairingQrFiles, pairingQr, qrPng, qrSvg, renderTerminalQr } from '../../src/pair-qr.js';
-import { buildPairUri } from '../../src/pair-uri.js';
+import { buildPairUri, parsePairUri } from '../../src/pair-uri.js';
 import { createLogger } from '../../src/log.js';
 import { acquireHomeLock } from '../../src/protected-files.js';
 import { identity, keys } from '../support/thin-home.js';
@@ -24,7 +24,9 @@ function fixture(t) {
   saveConfig(home, { relay_url: 'https://relay.syncky.app', name: 'My agent' });
   let at = Date.parse('2026-11-16T10:00:00Z'), count = 0;
   const now = () => new Date(at), advance = ms => { at += ms; };
-  const fetch = async (_url, opts) => Response.json(opts.method === 'POST' ? { pairing_id: `p_${String(++count).padStart(22, 'A')}`, pairing_token: `pt_${'T'.repeat(43)}`, expires_at: new Date(at + 600000).toISOString() } : { status: 'pending' });
+  const fetch = async (_url, opts) => Response.json(opts.method === 'POST' ? { pairing_id: `p_${String(++count).padStart(22, 'A')}`,
+    pairing_token: `pt_${'T'.repeat(43)}`, expires_at: new Date(at + 600000).toISOString(),
+    ...(Object.hasOwn(JSON.parse(opts.body ?? '{}'), 'pairing_scope_blob') && { pairing_scope_stored: true }) } : { status: 'pending' });
   const receiver = acquireHomeLock(home, 'receiver');
   t.after(() => { receiver.release(); tmp.cleanup(); });
   const cli = (args, options) => runCli(['--home', home, ...args], { fetch, now, spawn: () => assert.fail('unexpected waiter'), ...options });
@@ -124,6 +126,8 @@ test('pair and show-qr preserve URI, scope, code and deadline while creating and
   const result = await f.cli(['pair', '--read', 'body_mass', '--write', 'dietary_water', '--qr-png', '--json']);
   assert.equal(result.code, 0, result.stderr);
   const started = JSON.parse(result.stdout), before = readPairingFile(f.home), state = fs.readFileSync(join(f.home, 'state.json'));
+  assert.equal(parsePairUri(started.uri).value.requestedScope, undefined);
+  assert.ok(before.requested_scope.read.length === 1 && before.requested_scope.write.length === 1, 'stored scope counts changed');
   const png = imagePath(f.home, before), svg = imagePath(f.home, before, 'svg');
   assert.equal(started.qr_png, png); assert.equal(started.qr_text, renderTerminalQr(before.uri)); assert.equal(before.qr_files, undefined);
   const shown = await f.cli(['pair', '--show-qr', '--qr-svg', '--json'], { fetch: () => assert.fail('show-qr must be offline') });

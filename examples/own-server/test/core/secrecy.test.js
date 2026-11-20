@@ -28,7 +28,7 @@ it("stdout, stderr and error responses never expose credentials, bodies or Healt
 
 it("bootstrap, metadata, login and OAuth failures never print secrets, codes, URLs or exception contents", () => {
   const code = `
-    import { browser, origin } from './test/support/browser.js';
+    import { browser, origin, setupParams } from './test/support/browser.js';
     import { secret } from './test/support/helpers.js';
     const cleanups = [], outputs = [];
     for (const name of ['log', 'error', 'warn', 'info', 'debug', 'trace']) console[name] = (...args) => outputs.push(args.join(' '));
@@ -41,8 +41,8 @@ it("bootstrap, metadata, login and OAuth failures never print secrets, codes, UR
     const exchanged = await b.token(client, auth.code, auth.verifier, {}, { Authorization: basic });
     if (exchanged.status !== 200) throw new Error('exchange_failed');
     const tokens = await exchanged.json();
-    const url = new URL(initial.link);
-    const values = [b.password, b.cookie.split('=')[1], url.searchParams.get('token'), url.searchParams.get('hmac'), client.client_secret, auth.code, tokens.access_token, tokens.refresh_token, initial.link, origin + '/oauth/token', secret()];
+    const params = setupParams(initial.link);
+    const values = [b.password, b.cookie.split('=')[1], params.get('token'), params.get('hmac'), client.client_secret, auth.code, tokens.access_token, tokens.refresh_token, initial.link, origin + '/oauth/token', secret()];
     const invalid = await b.send(new Request(origin + '/oauth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client_name: values.at(-1), redirect_uris: [values.at(-1)] }) }));
     if (invalid.status !== 400) throw new Error('metadata_failed');
     const failed = await b.login(secret());

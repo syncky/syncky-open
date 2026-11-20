@@ -14,9 +14,11 @@ import { acquireHomeLock } from '../../src/protected-files.js';
 import { startRelayDouble } from '../support/relay-double.js';
 import { runCli, tempHome } from '../support/helpers.js';
 
-const limitsNotice = 'Hosted default pairing-link lifetime: 10 minutes; expires_at from the relay is authoritative.\nHosted default never-joined hub lifetime: 24 hours from registration; creating another link does not restart it.\n';
-const limits = { hosted_defaults: { pairing_link_ttl_s: 600, unjoined_hub_ttl_s: 86400 },
-  pairing_link_deadline: 'expires_at', unjoined_hub_clock: 'registration' };
+const limitsNotice = 'Hosted default pairing-link lifetime: 10 minutes; expires_at from the relay is authoritative.\nHosted default never-joined hub lifetime: 24 hours from registration; creating another link does not restart it.\nEncrypted pairing scope: 12000 bytes, 16000 base64url characters. Hosted pairing body: 16384 bytes.\nComplete UTF-8 envelope limits: 4096 bytes for ordinary controls, 131072 bytes for access requests and replies.\n';
+const limits = { hosted_defaults: { pairing_link_ttl_s: 600, unjoined_hub_ttl_s: 86400, poll_floor_s: 300 },
+  pairing_link_deadline: 'expires_at', unjoined_hub_clock: 'registration', max_pairing_scope_blob_bytes: 12000,
+  max_pairing_scope_blob_base64url_chars: 16000, max_pairing_request_body_bytes: 16384,
+  max_control_envelope_bytes: 4096, max_access_envelope_bytes: 131072 };
 
 test('every pair presentation labels hosted defaults without inventing a new registration deadline', async t => {
   const tmp = tempHome(), home = tmp.home;

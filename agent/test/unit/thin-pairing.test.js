@@ -234,7 +234,7 @@ test('scoped pair starts a pre-join response window and replacement closes it wi
   const { createPairingService } = await import('../../src/pairing.js');
   const { home } = setup(t); let n = 0;
   const service = createPairingService({ home, publicKey: identity.public_key, agentName: 'Test', now,
-    relay: { baseUrl: 'https://relay.example', createPairing: async () => ({ pairing_id: 'p_' + String(++n).repeat(22), pairing_token: 'pt_' + 'T'.repeat(43), expires_at: new Date(now().getTime() + 600000).toISOString() }) } });
+    relay: { baseUrl: 'https://relay.example', createPairing: async blob => ({ pairing_id: 'p_' + String(++n).repeat(22), pairing_token: 'pt_' + 'T'.repeat(43), expires_at: new Date(now().getTime() + 600000).toISOString(), ...(blob && { pairing_scope_stored: true }) }) } });
   const first = await service.startPairing({ read: ['steps'] });
   let waits = Object.values(readHomeState(home).transport.response_waits);
   assert.equal(waits.length, 1); assert.equal(waits[0].member_id, null); assert.equal(waits[0].state, 'queued');

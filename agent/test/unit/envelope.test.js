@@ -221,20 +221,22 @@ describe("openEnvelope", () => {
     assert.deepEqual(await open({ ...env, seq: 42 }, "m_dev_2"), utf8(PLAINTEXT));
   });
 
-  it("measures only submitted fields for 4096-byte control deliveries", async () => {
+  it("measures only submitted fields at the control and access byte caps", async () => {
     for (const markers of [{}, { diagnostics: "request" }, { diagnostics: "reply" }, { access: "request" }, { access: "reply" }]) {
+      const cap = markers.access ? 131072 : 4096;
       let options, length;
       for (const createdAt of ["2026-11-04T12:00:00Z", "2026-11-04T12:00:00.0Z", "2026-11-04T12:00:00.00Z"]) {
         options = { kind: "control", ...markers, createdAt };
         const empty = await seal(["m_dev_1"], { ...options, plaintext: "" });
         const overhead = utf8(serializeEnvelope(empty)).length - empty.ciphertext.length;
-        length = Array.from({ length: 3000 }, (_, n) => n).find(n => overhead + Math.ceil((n + 16) * 4 / 3) === 4096);
+        const candidate = Math.floor((cap - overhead) * 3 / 4) - 16;
+        if (overhead + Math.ceil((candidate + 16) * 4 / 3) === cap) length = candidate;
         if (length !== undefined) break;
       }
       assert.notEqual(length, undefined);
       const plaintext = "x".repeat(length);
       const envelope = await seal(["m_dev_1"], { ...options, plaintext });
-      assert.equal(utf8(serializeEnvelope(envelope)).length, 4096);
+      assert.equal(utf8(serializeEnvelope(envelope)).length, cap);
       assert.deepEqual(await open({ ...envelope, seq: Number.MAX_SAFE_INTEGER, extra: "metadata".repeat(1024) }, "m_dev_1"), utf8(plaintext));
       await rejectsWith(open({ ...envelope, ciphertext: envelope.ciphertext + "AAAA" }, "m_dev_1"), "malformed");
       await rejectsWith(seal(["m_dev_1"], { ...options, plaintext: plaintext + "xxx" }), "invalid_input");

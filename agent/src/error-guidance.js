@@ -1,3 +1,11 @@
+import { CONFIG_ENV, POLL_INTERVAL_MIN_S, POLL_INTERVAL_MAX_S } from './config.js';
+export const PAIRING_SIZE_HINT = 'The requested scope exceeds the 12000-byte encrypted pairing limit or the 131072-byte access reply limit. Use fewer types in this pairing, then request the rest with send --type access_request after confirmation.';
+export const ACCESS_SIZE_HINT = 'The request or largest possible reply exceeds the 131072-byte access envelope limit. Send fewer types per request. Update Syncky on the phone before sending requests above 4096 bytes.';
+export const ACCESS_RELAY_HINT = 'This relay rejected the larger access request. Reduce the requested types so the encrypted request fits 4096 bytes, or contact Syncky support.';
+export const LARGE_ACCESS_ACCEPTED_NOTICE = 'Syncky 0.1.5 drops access requests above 4096 bytes. Update Syncky on the phone or choose Health data on the phone.';
+export const LARGE_ACCESS_EXPIRED_NOTICE = 'No access reply arrived before the request expired. Check that Syncky is updated and the phone is online. On Syncky 0.1.5, choose Health data on the phone or send a smaller request that fits 4096 bytes.';
+export const V1_ACCESS_EXPIRED_NOTICE = 'No access reply arrived before the request sent after fingerprint confirmation expired. Check Syncky on the phone. Ask for explicit owner approval before sending another access request.';
+
 export const ERROR_GUIDANCE = Object.freeze({
   "inbox_seen_limit": "This sender exceeded the replay protection capacity. Retain local history and leave delivery unACKed; retry after older IDs leave the protected window.",
   "inbox_scan_limit": "No inbox cursor progress fit within the scan budget. Use a narrower date range and retain local history.",
@@ -55,6 +63,12 @@ export const ERROR_GUIDANCE = Object.freeze({
   "pair_proof_invalid": "Pairing proof verification failed and data remains held. Ask the owner to compare the phone fingerprint; never bypass trust checks.",
   "pairing_expired": "The pending pairing link or confirmation window expired. Check status and start a new pairing only with owner approval.",
   "pairing_not_found": "The relay cannot find this pairing or its hub. Check the pairing with the owner before starting again.",
+  "pairing_scope_missing": "The access request for this pairing did not arrive. Create a fresh pairing link for the owner.",
+  "pairing_scope_auth_failed": "The encrypted access request could not be verified. Create a fresh pairing link for the owner.",
+  "pairing_scope_invalid": "The encrypted access request is invalid or exceeds its limits. Check the requested types and create a new pairing link.",
+  "pairing_scope_relay_unsupported": "This relay does not support encrypted pairing requests. Try again later or contact Syncky support.",
+  "pairing_access_cancelled": "The pairing access request expired or its pairing changed. Check the current phone connection and ask for owner approval before sending a new request.",
+  "pairing_previous_access_format": "This saved pairing link uses the previous access format. Run syncky pair to create a new link.",
   "payload_too_large": "The serialized input or encrypted envelope exceeds its byte cap. Reduce the caller payload; account for encryption and recipient overhead.",
   "plan_in_use": "This subscription is already bound to another hub. Ask the owner to resolve the subscription binding in the app.",
   "plan_insufficient": "The subscription proof does not provide the required entitlement. Ask the owner to check the plan in the app.",
@@ -96,7 +110,12 @@ export const ERROR_GUIDANCE = Object.freeze({
 
 export const agentErrorCode = code => code === "invalid_invite" ? "registration_refused" : code;
 
-export function errorHint(code) {
+export function errorHint(code, detail) {
   code = agentErrorCode(code);
+  if (code === 'invalid_config' && detail === 'poll_interval_s') {
+    return `--poll-interval requires whole seconds in the inclusive ${POLL_INTERVAL_MIN_S}–${POLL_INTERVAL_MAX_S.toLocaleString('en-US')} range. Use the same range for ${CONFIG_ENV.poll_interval_s} or poll_interval_s in config.json.`;
+  }
+  if (detail === 'too_large' && code === 'invalid_input') return PAIRING_SIZE_HINT;
+  if (detail === 'too_large' && code === 'schema_invalid') return ACCESS_SIZE_HINT;
   return Object.hasOwn(ERROR_GUIDANCE, code) ? ERROR_GUIDANCE[code] : ERROR_GUIDANCE.local_error;
 }

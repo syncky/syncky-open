@@ -167,11 +167,13 @@ describe("config", () => {
   describe("resolveConfig", () => {
     it("bounds cadence to whole seconds from 300 through 86400 in every source", () => {
       for (const value of [300, 86400]) {
+        assert.equal(resolveConfig({ env: {}, flags: { poll_interval_s: String(value) } }).poll_interval_s, value);
+        assert.equal(resolveConfig({ env: { SYNCKY_POLL_INTERVAL_S: String(value) } }).poll_interval_s, value);
         assert.equal(resolveConfig({ env: {}, file: { poll_interval_s: value } }).poll_interval_s, value);
       }
-      for (const value of [null, 86401, Number.MAX_SAFE_INTEGER, "1e3", "+300", " 300", "300.0"]) {
+      for (const value of [null, 10, 60, 299, 300.5, 86401, Number.MAX_SAFE_INTEGER, "1e3", "+300", " 300", "300.0"]) {
         for (const source of [{ flags: { poll_interval_s: value } }, { file: { poll_interval_s: value } }, { env: { SYNCKY_POLL_INTERVAL_S: value } }]) {
-          assert.throws(() => resolveConfig({ env: {}, ...source }), { code: "invalid_config" });
+          assert.throws(() => resolveConfig({ env: {}, ...source }), { code: "invalid_config", detail: "poll_interval_s" });
         }
       }
     });
@@ -195,6 +197,7 @@ describe("config", () => {
       assert.equal(cfg.name, "env-name");
       assert.equal(cfg.poll_interval_s, 600);
       assert.equal(cfg.heartbeat, "off");
+      assert.equal(resolveConfig({ flags: { ...flags, poll_interval_s: "300" }, env, file }).poll_interval_s, 300);
     });
 
     it("ignores empty env values and undefined flags", () => {

@@ -1,8 +1,11 @@
 import { loadJson } from './protocol-files.js';
 import { isTimestamp } from './encoding.js';
+import { MAX_ACCESS_ENVELOPE_BYTES } from './thin-transport.js';
 
 const catalog = loadJson('types.json');
 const types = new Map([...catalog.types, ...catalog.characteristics, { name: 'workout', write: false }].map(t => [t.name, t]));
+const catalogRead = [...types.keys()].sort();
+const catalogWrite = catalogRead.filter(name => types.get(name).write === true);
 const timestamp = '9999-12-31T23:59:59.999Z';
 export const isRequestRef = value => typeof value === 'string' && /^[0-9a-f]{32}$/.test(value);
 export const normalizeScopeNames = names => Array.isArray(names) && names.every(n => typeof n === 'string') ? [...new Set(names)].sort() : names;
@@ -10,7 +13,7 @@ const strings = names => Array.isArray(names) && names.every(n => typeof n === '
 const canonical = names => strings(names) && names.every((n, i) => i === 0 || names[i - 1] < n);
 const invalid = (param, detail) => ({ ok: false, param, detail });
 
-export function accessEnvelopeSizes(scope, { request, agentId = 'm_agent_999999', deviceId = 'm_dev_999999' } = {}) {
+export function accessEnvelopeSizes(scope, { request, union = scope, agentId = 'm_agent_999999', deviceId = 'm_dev_999999' } = {}) {
   const bytes = (inner, from, to, access) => Buffer.byteLength(JSON.stringify({ v: 1,
     msg_id: '00000000-0000-7000-8000-000000000000', kind: 'control', access, from, created_at: timestamp,
     recipients: [{ member_id: to, enc: 'A'.repeat(43), wrapped_key: 'A'.repeat(64) }], nonce: 'A'.repeat(16),
@@ -19,7 +22,7 @@ export function accessEnvelopeSizes(scope, { request, agentId = 'm_agent_999999'
   const aliases = ['1', '2', '3', '4'].map(n => n.repeat(32)).filter(ref => ref !== scope.request_ref).slice(0, 3);
   const refused = names => names.map(type => ({ type, outcome: 'refused', reason: 'requested_recently', next_available_at: timestamp }));
   const owner = names => names.map(type => ({ type, outcome: 'needs_health_settings' }));
-  const read = request ? refused(scope.read) : owner(scope.read), write = request ? refused(scope.write) : owner(scope.write);
+  const read = request ? refused(union.read) : owner(scope.read), write = request ? refused(union.write) : owner(scope.write);
   if (request && (read.length || write.length)) {
     const shown = read.length ? read : write;
     shown[0] = { type: shown[0].type, outcome: 'needs_health_settings' };
@@ -28,7 +31,8 @@ export function accessEnvelopeSizes(scope, { request, agentId = 'm_agent_999999'
   return {
     request: bytes(request ?? { v: 1, type: 'access_request', request_ref: scope.request_ref,
       created_at: '9999-12-30T23:59:59.999Z', expires_at: timestamp, read: scope.read, write: scope.write }, agentId, deviceId, 'request'),
-    reply: replyBytes({ ...base, outcome: 'resolved', read, write, ...(request && { merged_refs: aliases }) }),
+    reply: Math.max(replyBytes({ ...base, outcome: 'resolved', read, write, ...(request && { merged_refs: aliases }) }),
+      replyBytes({ ...base, outcome: 'expired', read: [], write: [], ...(request && { merged_refs: aliases }) })),
     refusal: Math.max(replyBytes({ ...base, outcome: 'rate_limited', read: [], write: [], next_available_at: timestamp,
       ...(request && { limit_reason: 'amendment_limit' }) }), request ? replyBytes({ ...base, outcome: 'filtered', read: refused(scope.read), write: refused(scope.write) }) : 0),
     ...(request && { acknowledgement: replyBytes({ ...base, request_ref: aliases[0], outcome: 'merged', merged_into: scope.request_ref,
@@ -36,7 +40,16 @@ export function accessEnvelopeSizes(scope, { request, agentId = 'm_agent_999999'
   };
 }
 
-export function validateAccessScope(scope, { normalize = false, request } = {}) {
+export function accessFits(scope, { request, union, maxBytes = MAX_ACCESS_ENVELOPE_BYTES } = {}) {
+  return Object.values(accessEnvelopeSizes(scope, { request, union })).every(n => n <= maxBytes);
+}
+
+export function accessRequestFits(scope, request) {
+  const union = { read: normalizeScopeNames([...catalogRead, ...scope.read]), write: normalizeScopeNames([...catalogWrite, ...scope.write]) };
+  return accessFits(scope, { request, union });
+}
+
+export function validateAccessScope(scope, { normalize = false, request, maxBytes } = {}) {
   if (!scope || !isRequestRef(scope.request_ref)) return invalid('request_ref', 'malformed');
   const value = { request_ref: scope.request_ref, read: normalize ? normalizeScopeNames(scope.read) : scope.read,
     write: normalize ? normalizeScopeNames(scope.write) : scope.write };
@@ -45,7 +58,7 @@ export function validateAccessScope(scope, { normalize = false, request } = {}) 
   for (const side of ['read', 'write']) if (value[side].some(n => !/^[a-z][a-z0-9_]{0,63}$/.test(n) || !types.has(n))) return invalid(side, 'unknown_type');
   const readOnly = value.write.filter(n => types.get(n).write !== true);
   if (readOnly.length) return { ...invalid('write', 'not_writable'), types: readOnly };
-  if (Object.values(accessEnvelopeSizes(value, { request })).some(n => n > 4096)) return invalid('scope', 'too_large');
+  if (!accessFits(value, { request, maxBytes })) return invalid('scope', 'too_large');
   return { ok: true, value };
 }
 

@@ -9,6 +9,7 @@ import { LOCAL_STATE_ERROR_CODES } from '../../src/config.js';
 import { b64uDecode, b64uEncode, toHex } from '../../src/encoding.js';
 import { TOKEN_RE } from '../../src/ids.js';
 import { parsePairUri } from '../../src/pair-uri.js';
+import { openPairingScope } from '../../src/pairing-scope-blob.js';
 import { RELAY_CLIENT_ERROR_CODES, RELAY_ERROR_CODES } from '../../src/relay-client.js';
 import { MAX_INNER_BYTES } from '../support/fake-phone.js';
 import { agentBin } from '../support/agent-bin.js';
@@ -215,9 +216,14 @@ describe('thin agent against the real relay (wrangler dev)', { skip: SKIP }, () 
       await json(['init', '--relay', RELAY, '--name', 'Scoped e2e'], options);
       const pairing = await json(['pair', '--read', 'steps', '--write', 'dietary_water'], options);
       const parsed = parsePairUri(pairing.uri, { allowInsecureRelay: true }).value;
-      privateTokens.push(pairing.uri, pairing.code, parsed.requestedScope.request_ref, parsed.pairingToken, parsed.pairSecret);
-      const joined = createFakePhone({ relayUrl: RELAY }); await joined.pair(pairing.uri);
-      privateTokens.push(joined.token);
+      assert.equal(parsed.scopeOnRelay, true);
+      assert.equal(parsed.requestedScope, undefined);
+      privateTokens.push(pairing.uri, pairing.code, parsed.pairingToken, parsed.pairSecret);
+      const joined = createFakePhone({ relayUrl: RELAY }); await joined.pair(pairing.uri, { includePairingScope: true });
+      privateTokens.push(joined.token, joined.pairingScopeBlob);
+      const requested = await openPairingScope(joined.pairingScopeBlob, parsed);
+      privateTokens.push(requested.request_ref);
+      assert.deepEqual([requested.read, requested.write], [['steps'], ['dietary_water']]);
       const poll = async () => {
         const child = spawn(process.execPath, [RECEIVE_FIXTURE, '--agent-bin', BIN, '--home', scoped.home, '--once'],
           { env: env(), stdio: ['ignore', 'ignore', 'pipe'] });
@@ -238,7 +244,7 @@ describe('thin agent against the real relay (wrangler dev)', { skip: SKIP }, () 
         finally { clearTimeout(timer); }
       };
       const scopedMember = async () => (await json(['status'], options)).members.find(m => m.member_id === joined.memberId);
-      await joined.sendAccessReply({ request_ref: parsed.requestedScope.request_ref, decided_at: new Date().toISOString(),
+      await joined.sendAccessReply({ request_ref: requested.request_ref, decided_at: new Date().toISOString(),
         outcome: 'resolved', read: [{ type: 'steps', outcome: 'allowed' }], write: [{ type: 'dietary_water', outcome: 'declined' }] });
       await poll();
       assert.equal((await scopedMember()).state, 'joined');

@@ -5,7 +5,7 @@ import { isHubId, isMemberId, isPairingId, isUuidV7 } from "./ids.js";
 import { isB64u } from "./encoding.js";
 import { atomicPrivateWrite, parsePrivateJson, privateDirectory, privateStat, readPrivateFile, removePrivateFile, syncDirectory, syncPrivateFile, withHomeLock } from "./protected-files.js";
 import { rewriteInbox, iterateInbox, inboxMetadata, inboxCursor, validInboxReplay } from "./inbox.js";
-import { validPairingAccess } from './pairing-access.js';
+import { validPairingAccess, validV1Intent } from './pairing-access.js';
 import { validScopeRelease } from './scope-release.js';
 import { validResponseCorrelation, validResponseWaits, validCommandWaitDeadlines, maintainResponseWaits } from "./response-waits.js";
 
@@ -41,7 +41,7 @@ export function validateHomeState(state) {
   }
   for (const [id, pairing] of Object.entries(state.pairings)) {
     if (!isPairingId(id) || !object(pairing) || pairing.pairing_id !== id || !["pending", "completed", "expired"].includes(pairing.status)
-      || !Number.isFinite(Date.parse(pairing.expires_at)) || !validPairingAccess(pairing)) throw corrupt();
+      || !Number.isFinite(Date.parse(pairing.expires_at)) || !validPairingAccess(pairing) || !validV1Intent(pairing)) throw corrupt();
     if (pairing.requested_scope && pairing.member_id && (state.members[pairing.member_id]?.role !== 'device'
       || state.members[pairing.member_id].public_key !== pairing.public_key)) throw corrupt();
   }
@@ -121,6 +121,9 @@ function validateCipher(entry, area) {
     || (entry.seq != null && (!Number.isSafeInteger(entry.seq) || entry.seq < 0))) throw corrupt();
   if (entry.response_waits !== undefined && (!Array.isArray(entry.response_waits) || !entry.response_waits.every(validResponseCorrelation)
     || entry.response_waits.some(w => !entry.to?.includes(w.member_id)))) throw corrupt();
+  if (entry.pairing_id !== undefined && (area !== 'outbox' || entry.type !== 'access_request' || !isPairingId(entry.pairing_id)
+    || entry.response_waits?.length !== 1 || entry.response_waits[0].pairing_id !== entry.pairing_id
+    || entry.response_waits[0].msg_id !== entry.msg_id)) throw corrupt();
   return entry;
 }
 
@@ -149,12 +152,19 @@ export function createCipherFiles(home, area, { fs = nodeFs } = {}) {
   };
   return {
     list: () => withHomeLock(home, () => cipherEntries(home, area, options), options),
-    put(entry) {
+    put(entry, { pairingGuard } = {}) {
       return withHomeLock(home, () => {
+        if (pairingGuard && !pairingGuard(readHomeState(home, options))) return false;
         validateCipher(entry, area); privateDirectory(join(home, area), options);
         const path = filename(entry.msg_id), prior = readPrivateFile(path, { fs, optional: true });
         if (prior) {
           const saved = validateCipher(parsePrivateJson(prior), area);
+          if (pairingGuard && saved.pairing_id === entry.pairing_id && saved.to[0] === entry.to[0]
+            && saved.response_waits[0].request_ref === entry.response_waits[0].request_ref
+            && saved.response_waits[0].public_key === entry.response_waits[0].public_key) {
+            syncPrivateFile(path, options);
+            return true;
+          }
           if (area === "outbox" && entry.response_waits?.length) entry = { ...entry, response_waits: entry.response_waits.map((w, i) => {
             const cursor = saved.response_waits?.[i]?.inbox_after;
             return { ...w, ...(cursor !== undefined && { inbox_after: w.inbox_after ?? cursor }) };

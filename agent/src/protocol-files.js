@@ -18,6 +18,7 @@ export const VECTOR_FILES = Object.freeze([
   "fingerprints.json",
   "pair-uris.json",
   "pair-codes.json",
+  "pairing-scope.json",
 ]);
 
 export function protocolDir(env = process.env) {

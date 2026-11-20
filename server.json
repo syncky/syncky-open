@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.syncky/syncky-health",
   "title": "Syncky Health",
-  "description": "Apple Health data, end-to-end encrypted between iPhone and local Syncky agent, allowed write-back",
-  "version": "0.1.9",
+  "description": "Apple Health → your own AI agent over an end-to-end encrypted relay; per-type write-back; no account",
+  "version": "0.2.0",
   "repository": {
     "url": "https://github.com/syncky/syncky-open",
     "source": "github"
@@ -14,7 +14,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@syncky/agent",
-      "version": "0.1.9",
+      "version": "0.2.0",
       "runtimeHint": "npx",
       "packageArguments": [
         {
@@ -28,7 +28,7 @@
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/syncky/syncky-open/releases/download/v0.1.9/syncky-health.mcpb",
+      "identifier": "https://github.com/syncky/syncky-open/releases/download/v0.2.0/syncky-health.mcpb",
       "transport": {
         "type": "stdio"
       }

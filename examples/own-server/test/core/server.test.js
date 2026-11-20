@@ -175,15 +175,23 @@ it("rejects aborted body streams without persisting any records", async (t) => {
   assert.equal(rows(f, "samples").length, 0);
 });
 
-it("builds only authenticated native setup links for all supported schemes", () => {
+it("builds authenticated native setup links on the production site for valid stored labels", () => {
   const token = secret();
-  for (const scheme of ["syncky", "syncky-lab", "syncky-preview"]) {
-    const link = new URL(buildLink({ name: "Local Grüße", url: "https://receiver.example/server", format: "native", auth: { kind: "bearer" }, signing: false }, { token }, scheme));
-    assert.equal(link.protocol, scheme + ":");
-    assert.equal(link.searchParams.get("format"), "native");
-    assert.equal(link.searchParams.get("name"), "Local Grüße");
-    assert.ok(link.searchParams.get("token") === token, "token encoded exactly");
-    assert.ok(!link.searchParams.has("writes"));
+  const destination = { name: "Local Grüße", url: "https://receiver.example/server?client=phone&mode=local", format: "native", auth: { kind: "bearer" }, signing: false };
+  for (const scheme of [undefined, "syncky", "syncky-lab", "syncky-preview", `syncky-a${"0".repeat(31)}`]) {
+    const link = new URL(buildLink(destination, { token }, scheme));
+    assert.equal(link.origin, "https://syncky.app");
+    assert.equal(link.pathname, "/connect");
+    assert.equal(link.search, "");
+    const params = new URLSearchParams(link.hash.slice(1));
+    assert.equal(params.get("v"), "1");
+    assert.equal(params.get("format"), "native");
+    assert.equal(params.get("name"), "Local Grüße");
+    assert.ok(params.get("url") === destination.url && params.get("token") === token, "fragment values round-trip");
+    assert.ok(!params.has("writes"));
   }
-  assert.throws(() => buildLink({ name: "Local", url: "invalid", format: "native", auth: { kind: "bearer" } }, { token }), { message: "invalid_configuration" });
+  for (const scheme of ["syncky-lab.evil", "syncky-Lab", "syncky-1", `syncky-a${"0".repeat(32)}`, ["syncky"]]) {
+    assert.throws(() => buildLink(destination, { token }, scheme), { message: "invalid_configuration" });
+  }
+  assert.throws(() => buildLink({ ...destination, url: "invalid" }, { token }), { message: "invalid_configuration" });
 });

@@ -1,4 +1,4 @@
-import { agentErrorCode, errorHint } from './error-guidance.js';
+import { ACCESS_RELAY_HINT, agentErrorCode, errorHint, LARGE_ACCESS_ACCEPTED_NOTICE } from './error-guidance.js';
 import { RELAY_ERROR_CODES, RELAY_CLIENT_ERROR_CODES } from './relay-client.js';
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
@@ -7,6 +7,8 @@ import { retryHomeLock } from "./thin-lock.js";
 import { privateStat, removePrivateFile, syncDirectory, withHomeLock } from "./protected-files.js";
 import { iterateInbox, committedInboxRecord } from "./inbox.js";
 import { activateResponseWaits, completeResponseWaits } from "./response-waits.js";
+import { isAccessEnvelope, MAX_ACCESS_ENVELOPE_BYTES, MAX_CONTROL_ENVELOPE_BYTES } from './thin-transport.js';
+import { v1AccessMember } from './pairing-access.js';
 
 const relayCodes = new Set([...RELAY_ERROR_CODES, ...RELAY_CLIENT_ERROR_CODES]);
 const relayCause = error => ({
@@ -17,9 +19,14 @@ const relayCause = error => ({
 export function sendReceipt(entry) {
   const receipt = Object.fromEntries(["msg_id", "kind", "type", "to", "state", "seq", "attempts", "next_attempt_at", "retry_after_until", "code"].filter(k => entry[k] !== undefined).map(k => [k, entry[k]]));
   if (receipt.code) receipt.code = agentErrorCode(receipt.code);
+  const access = ['access_request', 'access_reply'].includes(entry.type) && typeof entry.body === 'string' && isAccessEnvelope(JSON.parse(entry.body));
+  const bytes = access ? Buffer.byteLength(entry.body) : 0;
+  if (access) receipt.envelope_bytes = bytes;
+  if (entry.state === 'sent' && entry.type === 'access_request' && bytes > MAX_CONTROL_ENVELOPE_BYTES) receipt.notice = LARGE_ACCESS_ACCEPTED_NOTICE;
   if (['pending', 'failed'].includes(entry.state) && entry.code) {
     if (entry.code !== 'target_revoked' && (entry.relay_code != null || entry.relay_status != null)) Object.assign(receipt, relayCause({ code: entry.relay_code, status: entry.relay_status }));
-    receipt.hint = (entry.state === 'pending' ? 'Queued; the receiver retries after the receipt deadline. ' : 'Terminal receipt; this send will not retry. ') + errorHint(receipt.relay_code ?? entry.code);
+    const hint = receipt.relay_status === 413 && bytes > MAX_CONTROL_ENVELOPE_BYTES ? ACCESS_RELAY_HINT : errorHint(receipt.relay_code ?? entry.code);
+    receipt.hint = (entry.state === 'pending' ? 'Queued; the receiver retries after the receipt deadline. ' : 'Terminal receipt; this send will not retry. ') + hint;
   }
   return receipt;
 }
@@ -33,11 +40,22 @@ export function createOutbox({ home, relay, fs, now = () => new Date(), maxAttem
   };
   const candidates = () => retryHomeLock(() => cipherEntries(home, "outbox", { fs }));
   const change = (id, patch, when) => retryHomeLock(() => queue.update(id, patch, { when }));
+  const liveV1Request = (state, entry, at) => {
+    const row = state.pairings[entry.pairing_id], wait = entry.response_waits[0];
+    return v1AccessMember(state, row)?.member_id === wait.member_id && row.public_key === wait.public_key
+      && row.v1_request?.msg_id === entry.msg_id && row.v1_request.request_ref === wait.request_ref
+      && Date.parse(row.v1_request.expires_at) > at;
+  };
   const prune = async () => {
     const recovered = new Set((await recoverWaits()).map(e => e.msg_id));
     await retryHomeLock(() => withHomeLock(home, () => {
+      const state = readHomeState(home, { fs });
+      const protectedConfirmations = new Set(Object.values(state.pairings)
+        .filter(row => v1AccessMember(state, row) && !row.v1_request?.queued).map(row => row.v1_confirmation));
       const receipts = cipherEntries(home, "outbox", { fs }).filter(e => ["sent", "failed"].includes(e.state)).sort((a, b) => a.msg_id.localeCompare(b.msg_id));
       for (const entry of receipts.slice(0, -100)) {
+        if (protectedConfirmations.has(entry.msg_id) || (entry.pairing_id && liveV1Request(state, entry, now().getTime())
+          && !state.pairings[entry.pairing_id].v1_request.queued)) continue;
         if (entry.state === "sent" && entry.response_waits?.length && !recovered.has(entry.msg_id)) continue;
         removePrivateFile(join(home, "outbox", `${entry.msg_id}.json`), { fs });
       }
@@ -52,8 +70,19 @@ export function createOutbox({ home, relay, fs, now = () => new Date(), maxAttem
         await change(entry.msg_id, { state: "failed", code: "target_revoked", relay_code: null, relay_status: null }, e => e.state === "pending"); continue;
       }
       const at = now().getTime();
+      if (entry.pairing_id && !liveV1Request(state, entry, at)) {
+        await change(entry.msg_id, { state: 'failed', code: 'pairing_access_cancelled', relay_code: null, relay_status: null }, e => e.state === 'pending'); continue;
+      }
+      const bytes = Buffer.byteLength(entry.body), envelope = JSON.parse(entry.body);
+      const cap = entry.kind === 'control' || envelope?.kind === 'control'
+        ? isAccessEnvelope(envelope) ? MAX_ACCESS_ENVELOPE_BYTES : MAX_CONTROL_ENVELOPE_BYTES : 262144;
+      if (bytes > cap) {
+        await change(entry.msg_id, { state: 'failed', code: 'payload_too_large', relay_code: null, relay_status: null }, e => e.state === 'pending'); continue;
+      }
       const claimed = await change(entry.msg_id, { lease_owner: owner, lease_until: at + timeoutMs + 15000, attempts: (entry.attempts ?? 0) + 1 }, e =>
-        e.state === "pending" && (typeof e.next_attempt_at === "string" ? Date.parse(e.next_attempt_at) : e.next_attempt_at ?? 0) <= at && (e.retry_after_until ?? 0) <= at && (e.lease_until ?? 0) <= at);
+        e.state === "pending" && (typeof e.next_attempt_at === "string" ? Date.parse(e.next_attempt_at) : e.next_attempt_at ?? 0) <= at
+        && (e.retry_after_until ?? 0) <= at && (e.lease_until ?? 0) <= at
+        && (!e.pairing_id || liveV1Request(readHomeState(home, { fs }), e, at)));
       if (!claimed) continue;
       const owned = e => e.state === "pending" && e.lease_owner === owner;
       const controller = new AbortController(), timer = timers.setTimeout(() => controller.abort(), timeoutMs);

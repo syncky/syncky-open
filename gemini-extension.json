@@ -1,6 +1,6 @@
 {
   "name": "syncky",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone.",
   "contextFileName": "SKILL.md",
   "settings": [
@@ -16,7 +16,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@syncky/agent@0.1.9",
+        "@syncky/agent@0.2.0",
         "mcp"
       ]
     }

@@ -40,7 +40,7 @@ export function buildLink(destination, secrets = {}, urlScheme = "syncky") {
   if (kind === "basic") parts.push(`user=${need(destination.auth.user, "a user")}`, `token=${need(secrets.token, "a password")}`);
   if (destination.signing) parts.push(`hmac=${need(secrets.hmac, "an hmac secret")}`);
   if (destination.types) parts.push(`types=${destination.types.map(percentEncode).join(",")}`);
-  return `${urlScheme}://webhook?${parts.join("&")}`;
+  return `https://syncky.app/connect#${parts.join("&")}`;
 }
 const digest = (value) => createHash("sha256").update(String(value)).digest();
 const sameValue = (a, b) => timingSafeEqual(digest(a), digest(b));
@@ -260,7 +260,7 @@ const USAGE = `usage: server.mjs <command> [options]
   status                                     counts of what is stored and queued
 options for every command: --data <dir> (default ./syncky-data)
 auth for serve and link: --auth none|bearer|basic|header (default bearer), --user <name>, --header <Name>
-link scheme: --url-scheme > SYNCKY_URL_SCHEME > <data>/config.json url_scheme > syncky
+link label (only syncky): --url-scheme > SYNCKY_URL_SCHEME > <data>/config.json url_scheme > syncky
 example: server.mjs link
 secrets: SYNCKY_SERVER_TOKEN and SYNCKY_SERVER_HMAC, else the token and hmac files in the data dir`;
 class UsageError extends Error {}

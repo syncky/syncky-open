@@ -54,7 +54,6 @@ export function updateState(home, change) {
   } finally { unlinkSync(mine); }
   try { const state = loadState(home); change(state); saveState(home, state); return state; } finally { try { if (readFileSync(lock, "utf8") === me) unlinkSync(lock); } catch {} }
 }
-// Encoding, keys and ids
 const fail = (code, message) => Object.assign(new Error(message), { code });
 const utf8 = (text) => new TextEncoder().encode(text);
 const randomBytes = (n) => getRandomValues(new Uint8Array(n));
@@ -91,8 +90,16 @@ export const pairProof = (c, agentPk, devicePk) => b64u(createHmac("sha256", unb
 const CEK_INFO = utf8("syncky-cek-v1");
 export const envelopeAad = (hubId, msgId, from, kind = "data", diagnostics, access) => `syncky-v1|${hubId}|${msgId}|${from}${kind === "control" ? "|control" : ""}${diagnostics === undefined ? "" : `|diagnostics=${diagnostics}`}${access === undefined ? "" : `|access=${access}`}`;
 const validMarker = e => (!Object.hasOwn(e, "access") || !Object.hasOwn(e, "diagnostics") && e.kind === "control" && ["request", "reply"].includes(e.access)) && (!Object.hasOwn(e, "diagnostics") || (e.diagnostics === "archive" ? e.kind === "data" : ["request", "reply"].includes(e.diagnostics) && e.kind === "control"));
+const diagnosticsType = { archive: "diagnostics", request: "diagnostics_request", reply: "diagnostics_reply" };
+const envelopeCap = (e) => e.kind === "data" ? 262_144 : Object.hasOwn(e, "access") ? 131_072 : 4_096;
+function submittedEnvelopeBytes({ v, msg_id, kind, access, diagnostics, from, created_at, recipients, nonce, ciphertext }) {
+  const entries = recipients.map((r) => ({ member_id: r?.member_id, enc: r?.enc, wrapped_key: r?.wrapped_key }));
+  return Buffer.byteLength(JSON.stringify({ v, msg_id, kind, access, diagnostics, from, created_at, recipients: entries, nonce, ciphertext }));
+}
 export async function sealEnvelope({ hubId, from, sk, recipients, plaintext, msgId = uuidv7(), kind = "data", diagnostics, access }) {
-  if (!validMarker({ kind, ...(diagnostics === undefined ? {} : { diagnostics }), ...(access === undefined ? {} : { access }) })) throw fail("invalid_input", "invalid marker");
+  const markers = { ...(access === undefined ? {} : { access }), ...(diagnostics === undefined ? {} : { diagnostics }) };
+  if (!["data", "control"].includes(kind)) throw fail("invalid_input", "invalid envelope kind");
+  if (!validMarker({ kind, ...markers })) throw fail("invalid_input", "invalid marker");
   const aad = utf8(envelopeAad(hubId, msgId, from, kind, diagnostics, access));
   const [cek, nonce] = [randomBytes(32), randomBytes(12)];
   const senderKey = await importPrivate(sk);
@@ -104,12 +111,15 @@ export async function sealEnvelope({ hubId, from, sk, recipients, plaintext, msg
   }
   const ciphertext = new Uint8Array(await new Chacha20Poly1305().createEncryptionContext(cek).seal(nonce, utf8(plaintext), aad));
   cek.fill(0);
-  return { v: 1, msg_id: msgId, kind, ...(access === undefined ? {} : { access }), ...(diagnostics === undefined ? {} : { diagnostics }), from, created_at: nowText(), recipients: sealed, nonce: b64u(nonce), ciphertext: b64u(ciphertext) };
+  const envelope = { v: 1, msg_id: msgId, kind, ...markers, from, created_at: nowText(), recipients: sealed, nonce: b64u(nonce), ciphertext: b64u(ciphertext) };
+  if (submittedEnvelopeBytes(envelope) > envelopeCap(envelope)) throw fail("invalid_input", "envelope too large");
+  return envelope;
 }
 // The sender key comes only from `registry` (confirmed keys, or the joined key for its pair_proof), never from the envelope or the relay.
 export async function openEnvelope(e, { hubId, memberId, sk, registry, kind = "data" }) {
   if (e?.v !== 1 || !["data", "control"].includes(kind) || !validMarker(e) || e.kind !== kind || typeof e.msg_id !== "string" || typeof e.from !== "string") throw fail("malformed", "not an envelope");
   if (!Array.isArray(e.recipients) || e.recipients.length < 1) throw fail("malformed", "no recipients");
+  if (submittedEnvelopeBytes(e) > envelopeCap(e)) throw fail("malformed", "envelope too large");
   const mine = e.recipients.find((r) => r?.member_id === memberId);
   if (!mine) throw fail("not_a_recipient", "this member is not a recipient");
   if (!Object.hasOwn(registry, e.from)) throw fail("unknown_sender", "sender is not a confirmed member");
@@ -125,8 +135,9 @@ export async function openEnvelope(e, { hubId, memberId, sk, registry, kind = "d
   try {
     const plain = await new Chacha20Poly1305().createEncryptionContext(cek).open(nonce, ciphertext, aad);
     const text = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(plain);
-    let inner; try { inner = JSON.parse(text); } catch { if (Object.hasOwn(e, "access")) throw fail("inner_invalid", "invalid marked inner"); }
-    if (Object.hasOwn(e, "access") ? inner?.v !== 1 || inner.type !== `access_${e.access}` : ["access_request", "access_reply"].includes(inner?.type)) throw fail("inner_invalid", "invalid marked inner");
+    const markedType = Object.hasOwn(e, "access") ? `access_${e.access}` : diagnosticsType[e.diagnostics];
+    let inner; try { inner = JSON.parse(text); } catch { if (markedType) throw fail("inner_invalid", "invalid marked inner"); }
+    if (markedType ? inner?.v !== 1 || inner.type !== markedType : ["access_request", "access_reply"].includes(inner?.type)) throw fail("inner_invalid", "invalid marked inner");
     return text;
   } catch (err) {
     if (err.code === "inner_invalid") throw err;
@@ -290,7 +301,6 @@ export async function handleMessage(home, state, msg) {
     const registry = proofCheck ? { [msg.from]: sender.pk } : Object.fromEntries(Object.entries(state.members).filter(([, m]) => m.state === "confirmed").map(([id, m]) => [id, m.pk]));
     inner = await openEnvelope(msg, { hubId: state.hub_id, memberId: state.member_id, sk: state.sk, registry, kind: msg.kind }).then(JSON.parse).catch((err) => err);
     if (inner instanceof Error) return console.log(`${tag}: skipped (${inner.code ?? "inner_invalid"})`);
-    if (Object.hasOwn(msg, "diagnostics") && (inner?.v !== 1 || inner.type !== ({ archive: "diagnostics", request: "diagnostics_request", reply: "diagnostics_reply" })[msg.diagnostics])) return console.log(`${tag}: skipped (inner_invalid)`);
     if (Object.hasOwn(msg, "access")) return console.log(`${tag}: skipped (control message)`);
     if (proofCheck) return checkProof(home, state, msg, sender, inner);
     if (inner?.v !== 1 || inner.type !== "sync" || inner.device !== msg.from) return console.log(`${tag}: skipped (${Number.isInteger(inner?.v) && inner.v !== 1 ? "unsupported_version" : "inner_invalid"})`);
@@ -387,7 +397,6 @@ function status(state) {
   for (const [id, m] of Object.entries(state.members)) console.log(`member ${id} "${clean(m.name)}": ${m.state === "joined" ? "not confirmed" : m.state}`);
   for (const [id, c] of Object.entries(state.commands)) console.log(`command ${id} v${c.version} dietary_water to ${c.to}: ${c.state}${c.reason ? ` (${c.reason}${c.detail ? `/${c.detail}` : ""})` : ""}`);
 }
-// CLI
 const COMMANDS = {
   init: { options: { relay: { type: "string" }, invite: { type: "string" }, name: { type: "string" } } },
   pair: { options: { wait: { type: "string" } } },

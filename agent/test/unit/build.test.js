@@ -343,7 +343,7 @@ describe("release bundle", () => {
     assert.equal(actual.ok, true);
     assert.deepEqual(actual.files.map(f => f.file), [
       "rfc9180-auth-x25519-sha256-chacha20poly1305.json", "keys.json", "envelopes.json", "envelopes-negative.json",
-      "envelope-shape.json", "fingerprints.json", "pair-uris.json", "pair-codes.json",
+      "envelope-shape.json", "fingerprints.json", "pair-uris.json", "pair-codes.json", "pairing-scope.json",
     ]);
     assert.ok(!existsSync(join(root, "node_modules")) && !existsSync(join(root, "protocol")));
     assert.deepEqual(readdirSync(cwd), []);

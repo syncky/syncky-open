@@ -68,7 +68,7 @@ for (const stage of ['access maintenance', 'join', 'expiry', 'join cleanup']) {
     const pairingId = `p_${'A'.repeat(22)}`;
     const pairing = createPairingService({ home, publicKey: keys.agent.pk, agentName: 'Test', now, relay: {
       baseUrl: 'http://127.0.0.1:8787', createPairing: async () => ({ hub_id: identity.hub_id,
-        pairing_id: pairingId, pairing_token: `pt_${'P'.repeat(43)}`, expires_at: '2026-11-08T00:05:00Z' }),
+        pairing_id: pairingId, pairing_token: `pt_${'P'.repeat(43)}`, expires_at: '2026-11-08T00:05:00Z', pairing_scope_stored: true }),
     } });
     await pairing.startPairing({ read: ['steps'] });
     updateHomeState(home, s => {
@@ -135,7 +135,7 @@ for (const stage of ['access maintenance', 'expiry']) test(`waiter startup clean
   const pairingId = `p_${'A'.repeat(22)}`;
   const pairing = createPairingService({ home, publicKey: keys.agent.pk, agentName: 'Test', now, relay: {
     baseUrl: 'http://127.0.0.1:8787', createPairing: async () => ({ hub_id: identity.hub_id,
-      pairing_id: pairingId, pairing_token: `pt_${'P'.repeat(43)}`, expires_at: '2026-11-08T00:05:00Z' }),
+      pairing_id: pairingId, pairing_token: `pt_${'P'.repeat(43)}`, expires_at: '2026-11-08T00:05:00Z', pairing_scope_stored: true }),
   } });
   await pairing.startPairing({ read: ['steps'] });
   updateHomeState(home, s => {
@@ -163,7 +163,7 @@ test('receive --once retries state renames after watching a scoped pairing', asy
   const now = () => new Date('2026-11-08T00:00:00Z');
   const pairing = createPairingService({ home, publicKey: keys.agent.pk, agentName: 'Test', now, relay: {
     baseUrl: 'http://127.0.0.1:8787', createPairing: async () => ({ hub_id: identity.hub_id,
-      pairing_id: `p_${'A'.repeat(22)}`, pairing_token: `pt_${'P'.repeat(43)}`, expires_at: '2026-11-08T00:05:00Z' }),
+      pairing_id: `p_${'A'.repeat(22)}`, pairing_token: `pt_${'P'.repeat(43)}`, expires_at: '2026-11-08T00:05:00Z', pairing_scope_stored: true }),
   } });
   await pairing.startPairing({ read: ['steps'] });
   let polls = 0, refreshes = 0;
@@ -283,7 +283,7 @@ for (const completed of [false, true]) test(`pairing refresh retries member stat
   let refreshes = 0, listings = 0;
   const pairing = createPairingService({ home, publicKey: keys.agent.pk, agentName: 'Test', now, relay: {
     baseUrl: 'http://127.0.0.1:8787', createPairing: async () => ({ hub_id: identity.hub_id,
-      pairing_id: pairingId, pairing_token: `pt_${'P'.repeat(43)}`, expires_at: '2026-11-08T00:05:00Z' }),
+      pairing_id: pairingId, pairing_token: `pt_${'P'.repeat(43)}`, expires_at: '2026-11-08T00:05:00Z', pairing_scope_stored: true }),
     getPairing: async () => { refreshes++; return { status: 'completed', member_id: member.member_id, public_key: member.public_key }; },
     listMembers: async () => { listings++; race.arm(1); return { members: [member] }; },
   } });

@@ -1,10 +1,12 @@
 # Syncky: open protocol, reference agent and reference server
 
-Syncky Health sends the Apple Health data you choose from your iPhone to your own AI agent (local MCP server) or your own server. The AI agent route is end-to-end encrypted. Your agent and your server can both write entries back into Health once you allow writing on the iPhone.
+Apple Health → your own AI agent over an end-to-end encrypted relay, with per-type write-back into Health; no account.
+
+Syncky Health sends the Apple Health data you choose from your iPhone to your own AI agent, such as Claude Code, OpenClaw, Hermes or Codex (local MCP server or shell skill), or your own server. The AI agent route is end-to-end encrypted. Your agent and your server can both write entries back into Health once you allow writing on the iPhone. Free during launch; plans are coming later ([pricing](https://syncky.app/pricing)). No Syncky account required.
 
 Client health-data envelopes are end-to-end encrypted (HPKE Auth + ChaCha20-Poly1305): the relay sees delivery metadata and emits plaintext hub notices, but sees no health values. The app can also send straight to a server the user runs, with no relay at all. The user's agent or server receives plaintext, and a chosen model sees what the agent supplies.
 
-Get [Syncky Health on the App Store](https://apps.apple.com/app/id6827472070) or visit [syncky.app](https://syncky.app).
+Get [Syncky Health on the App Store](https://apps.apple.com/app/id6827472070) or visit [syncky.app](https://syncky.app). Agents that read web pages, such as Hermes (tested), can do the agent-side setup themselves from [syncky.app/agent](https://syncky.app/agent); you confirm on the iPhone.
 
 ## Install for an MCP client
 

@@ -19,11 +19,11 @@ export function client(runtime) {
     b.cookie = cookie(response);
     const html = await response.text();
     b.csrf = hidden(html, "csrf");
-    const link = html.match(/href="(syncky:[^"]+)"/)?.[1].replaceAll("&amp;", "&");
+    const link = html.match(/href="(https:\/\/syncky\.app\/connect#[^"]+)"/)?.[1].replaceAll("&amp;", "&");
     if (link) {
-      const setup = new URL(link);
-      check(setup.searchParams.get("url") === b.origin + "/server" && setup.searchParams.get("format") === "native", "runtime setup origin");
-      b.token = setup.searchParams.get("token"); b.hmac = setup.searchParams.get("hmac");
+      const setup = new URLSearchParams(new URL(link).hash.slice(1));
+      check(setup.get("url") === b.origin + "/server" && setup.get("format") === "native", "runtime setup origin");
+      b.token = setup.get("token"); b.hmac = setup.get("hmac");
     }
     return link;
   };

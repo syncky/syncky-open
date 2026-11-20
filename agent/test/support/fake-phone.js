@@ -142,7 +142,7 @@ export function createFakePhone({
   };
   const agentKey = () => b64uDecode(phone.agentPublicKey, { length: 32 });
 
-  phone.pair = async (uri) => {
+  phone.pair = async (uri, { includePairingScope = false } = {}) => {
     const parsed = parsePairUri(uri, { allowInsecureRelay });
     if (!parsed.ok) throw new FakePhoneError(parsed.code, `bad pairing URI: ${parsed.code}${parsed.param ? ` (${parsed.param})` : ""}`);
     const { relayBase, hubId, pairingToken, agentPublicKey } = parsed.value;
@@ -150,12 +150,13 @@ export function createFakePhone({
     phone.keys = await generateKeyPair();
     phone.publicKey = b64uEncode(phone.keys.publicKey);
     const res = await call("POST", "/v1/pair", {
-      body: { hub_id: hubId, pairing_token: pairingToken, public_key: phone.publicKey, device_name: name },
+      body: { hub_id: hubId, pairing_token: pairingToken, public_key: phone.publicKey, device_name: name, ...(includePairingScope && { include_pairing_scope: true }) },
     });
     phone.hubId = res.hub_id;
     phone.memberId = res.member_id;
     phone.token = res.token;
     phone.members = res.members;
+    phone.pairingScopeBlob = res.pairing_scope_blob;
     const expected = b64uDecode(agentPublicKey, { length: 32 });
     const agent = res.members.find(
       (m) => m.role === "agent" && constantTimeEqual(b64uDecode(m.public_key, { length: 32 }), expected),

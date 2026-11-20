@@ -1,10 +1,14 @@
 import Ajv from 'ajv/dist/2020.js';
 import { isB64u, isTimestamp } from './encoding.js';
-import { isMemberId, isPairingId } from './ids.js';
+import { isMemberId, isPairingId, isUuidV7 } from './ids.js';
 import { isRequestRef } from './access-scope.js';
 import { loadJson } from './protocol-files.js';
+import { LARGE_ACCESS_EXPIRED_NOTICE, V1_ACCESS_EXPIRED_NOTICE } from './error-guidance.js';
 
 export const RESPONSE_WAIT_MS = 900000;
+const ACCESS_OUTCOME_RETENTION_MS = 7 * 86400000;
+const keepsAccessOutcome = w => w.kind === 'access' && (w.large_access || w.pairing_id);
+const retainsExpiredWait = (w, at) => keepsAccessOutcome(w) && w.expires_at + ACCESS_OUTCOME_RETENTION_MS > at;
 const object = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const time = v => Number.isSafeInteger(v) && v >= 0;
 const commandId = v => typeof v === 'string' && /^[A-Za-z0-9_.:-]{1,64}$/.test(v);
@@ -17,8 +21,11 @@ export function validResponseCorrelation(w) {
     || !isB64u(w.public_key, { length: 32 }) || !time(w.opened_at) || (w.inbox_after !== undefined && (!Number.isSafeInteger(w.inbox_after) || w.inbox_after < -1))) return false;
   if (w.kind === 'command') return commandId(w.command_id) && version(w.version) && w.expires_at === null
     && Object.keys(w).every(k => ['kind', 'member_id', 'public_key', 'opened_at', 'expires_at', 'inbox_after', 'command_id', 'version'].includes(k));
-  return isRequestRef(w.request_ref) && time(w.expires_at) && (w.kind !== 'access' || (names(w.read) && names(w.write)))
-    && Object.keys(w).every(k => ['kind', 'member_id', 'public_key', 'opened_at', 'expires_at', 'inbox_after', 'request_ref', ...(w.kind === 'access' ? ['read', 'write'] : [])].includes(k));
+  return isRequestRef(w.request_ref) && time(w.expires_at) && (w.kind !== 'access' || (names(w.read) && names(w.write)
+    && (w.large_access === undefined || w.large_access === true) && (w.pairing_id === undefined || isPairingId(w.pairing_id))
+    && (w.msg_id === undefined || isUuidV7(w.msg_id))))
+    && Object.keys(w).every(k => ['kind', 'member_id', 'public_key', 'opened_at', 'expires_at', 'inbox_after', 'request_ref',
+      ...(w.kind === 'access' ? ['read', 'write', 'large_access', 'pairing_id', 'msg_id'] : [])].includes(k));
 }
 
 export function validResponseWaits(waits) {
@@ -39,14 +46,15 @@ export function validCommandWaitDeadlines(deadlines) {
     && validResponseCorrelation({ ...w, expires_at: null })));
 }
 
-export function responseCorrelations(inner, member, at) {
+export function responseCorrelations(inner, member, at, { largeAccess, pairingId, msgId } = {}) {
   const base = { member_id: member.member_id, public_key: member.public_key, opened_at: at };
   if (inner.v !== 1) return [];
   if (inner.type === 'commands' && Array.isArray(inner.commands)) return [...new Map(inner.commands.filter(c => commandId(c?.command_id) && version(c?.version))
     .map(c => { const w = { ...base, kind: 'command', command_id: c.command_id, version: c.version, expires_at: null }; return [responseWaitKey(w), w]; })).values()];
   if (!['access_request', 'diagnostics_request'].includes(inner.type) || !isRequestRef(inner.request_ref) || !isTimestamp(inner.expires_at) || !isTimestamp(inner.created_at)) return [];
   const w = { ...base, kind: inner.type === 'access_request' ? 'access' : 'diagnostics', request_ref: inner.request_ref, expires_at: Date.parse(inner.expires_at),
-    ...(inner.type === 'access_request' && { read: inner.read, write: inner.write }) };
+    ...(inner.type === 'access_request' && { read: inner.read, write: inner.write,
+      ...(largeAccess && { large_access: true }), ...(pairingId && { pairing_id: pairingId }), ...((largeAccess || pairingId) && { msg_id: msgId }) }) };
   return validResponseCorrelation(w) ? [w] : [];
 }
 
@@ -61,8 +69,12 @@ export function maintainResponseWaits(state, at) {
   }
   for (const [key, w] of Object.entries(waits)) {
     const m = state.members[w.member_id];
-    if (w.kind === 'pairing' || w.expires_at <= at || hubGone || !m || m.public_key !== w.public_key || m.state !== 'confirmed' || m.unpair_reason) delete waits[key];
+    if (w.kind === 'pairing' || (w.expires_at <= at && !retainsExpiredWait(w, at)) || hubGone || !m
+      || m.public_key !== w.public_key || m.state !== 'confirmed' || m.unpair_reason != null
+      || (w.pairing_id && (m.pairing_id !== w.pairing_id || state.pairings[w.pairing_id]?.v1_cancelled))) delete waits[key];
   }
+  const expired = Object.entries(waits).filter(([, w]) => w.expires_at <= at).sort(([, a], [, b]) => b.expires_at - a.expires_at);
+  for (const [key] of expired.slice(100)) delete waits[key];
   for (const row of Object.values(state.pairings)) {
     if (hubGone || row.access?.state !== 'awaiting' || Date.parse(row.access.deadline_at) <= at) continue;
     const m = state.members[row.member_id];
@@ -91,7 +103,7 @@ export function activateResponseWaits(state, entries, at) {
         ({ opened_at, expires_at } = deadlines[key]);
       }
       state.transport.response_waits ??= {};
-      if (expires_at > at && !state.transport.response_waits[key]) {
+      if ((expires_at > at || retainsExpiredWait({ ...correlation, expires_at }, at)) && !state.transport.response_waits[key]) {
         state.transport.response_waits[key] = { ...correlation, state: 'sent', opened_at, expires_at };
         activated.push(correlation);
       }
@@ -117,7 +129,8 @@ export function completeResponseWaits(state, memberId, publicKey, inner, at, rec
   const waits = Object.values(state.transport.response_waits ?? {});
   const accessReply = inner.type === 'access_reply' && valid(inner.type, inner);
   for (const w of waits) {
-    if (w.kind === 'pairing' || w.member_id !== memberId || w.public_key !== publicKey || w.state !== 'sent' || w.completed_at !== undefined) continue;
+    if (w.kind === 'pairing' || w.member_id !== memberId || w.public_key !== publicKey || w.state !== 'sent' || w.completed_at !== undefined
+      || (keepsAccessOutcome(w) && (record?.accepted_at ?? at) >= w.expires_at)) continue;
     if (record && (record.public_key !== undefined && record.public_key !== publicKey
       || (w.inbox_after !== undefined ? (record.cursor ?? record.seq) <= w.inbox_after : (record.accepted_at ?? Date.parse(record.received_at)) < w.opened_at))) continue;
     let matched = false;
@@ -149,4 +162,16 @@ export function completeResponseWaits(state, memberId, publicKey, inner, at, rec
   maintainResponseWaits(state, at);
 }
 
-export const hasResponseWait = state => Object.values(state.transport.response_waits ?? {}).some(w => w.completed_at === undefined && (w.state === 'sent' || w.kind === 'pairing'));
+export const hasResponseWait = (state, at = 0) => Object.values(state.transport.response_waits ?? {}).some(w => w.expires_at > at
+  && w.completed_at === undefined && (w.state === 'sent' || w.kind === 'pairing'));
+
+export function responseWaitView(w, at) {
+  const view = Object.fromEntries(['kind', 'member_id', 'msg_id', 'state', 'opened_at', 'expires_at', 'completed_at']
+    .filter(k => w[k] !== undefined).map(k => [k, w[k]]));
+  if (keepsAccessOutcome(w) && w.completed_at === undefined && w.expires_at <= at) {
+    view.state = 'no_reply';
+    view.notice = w.large_access ? LARGE_ACCESS_EXPIRED_NOTICE : V1_ACCESS_EXPIRED_NOTICE;
+    if (w.large_access && w.pairing_id) view.follow_up = 'This access request was sent after fingerprint confirmation. Ask for explicit owner approval before sending another request.';
+  }
+  return view;
+}

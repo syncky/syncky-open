@@ -2,15 +2,16 @@ import { it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { fixture, native, sample, messageRequest } from "../support/helpers.js";
-import { browser, origin, hidden } from "../support/browser.js";
+import { browser, origin, hidden, setupParams } from "../support/browser.js";
 import { connected, command, write, tool } from "../support/mcp.js";
 import { canonicalOrigin } from "../../src/security.js";
 
-it("shared runtime has no network clients, service hosts, timers or remote assets", () => {
+it("shared runtime has no network clients, timers or remote assets and uses the production setup link", () => {
   const dir = new URL("../../src/", import.meta.url);
   for (const file of readdirSync(dir).filter(n => n.endsWith(".js"))) {
     const source = readFileSync(new URL(file, dir), "utf8");
-    const scanned = file === "security.js" ? source.replace('service = "syncky.app";', 'service = "";') : source;
+    let scanned = file === "security.js" ? source.replace('service = "syncky.app";', 'service = "";') : source;
+    if (file === "crypto.js") scanned = scanned.replace('\n  return `https://syncky.app/connect#${parts.join("&")}`;\n', "\n");
     assert.ok(!/\bfetch\s*\(|\bWebSocket\b|\bXMLHttpRequest\b|\bconnect\s*\(|\bset(?:Interval|Timeout)\s*\(|https?:\/\/|syncky\.app/.test(scanned), "no external runtime egress");
   }
 });
@@ -27,9 +28,9 @@ it("runtime has no external egress through initialization, admin, registration, 
   t.mock.method(globalThis, "fetch", () => { throw new Error("network_denied"); });
   const b = await browser(t);
   const { link } = await b.login();
-  const setup = new URL(link);
-  b.config.token = setup.searchParams.get("token");
-  b.config.hmac = setup.searchParams.get("hmac");
+  const params = setupParams(link);
+  b.config.token = params.get("token");
+  b.config.hmac = params.get("hmac");
   assert.equal((await b.send(native(b, { samples: [sample()] }))).status, 200);
   const client = await b.register({ client_uri: "https://attacker.example/metadata", logo_uri: "https://attacker.example/logo" });
   const auth = await b.authorize(client, {}, false);

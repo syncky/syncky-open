@@ -18,7 +18,18 @@ The table is the transport contract for the thin agent. It is published alongsid
 | `aad` | Base template, per-kind suffixes, marker suffix template and order, and the two authenticated uses |
 | `canonical` | Ordered submitted-envelope and recipient fields; omit optional marker fields when absent |
 
-Envelope limits count UTF-8 bytes of the complete serialized submitted envelope, including base64 and recipients, excluding delivery metadata such as `seq`. Data envelopes allow 262144 bytes; controls allow 4096. Diagnostics additionally have a 180000-byte `max_inner_bytes` cap on UTF-8 inner JSON. Sync's 180000-byte `target_inner_bytes` is a sender chunk target, not a receiver-wide inner limit. No inner cap is implied when `max_inner_bytes` is absent.
+Envelope limits count UTF-8 bytes of the complete submitted envelope, including base64url and recipients. The relay counts the raw E10 body. Endpoints count the canonical submitted serialization, excluding delivery metadata such as `seq`.
+
+| Traffic | Maximum bytes |
+| --- | ---: |
+| Overall E10 body and data envelope | 262144 |
+| Ordinary control, including diagnostics request/reply, `pair_proof`, `confirmed` and `scope_release` | 4096 |
+| Control with a valid `access: "request"` or `access: "reply"` and no `diagnostics` | 131072 |
+| Diagnostics archive inner UTF-8 JSON | 180000 |
+
+For the exact `access_request`/`request` and `access_reply`/`reply` mappings, `limits.max_access_envelope_bytes` takes precedence over both the ordinary control cap and the per-message `max_envelope_bytes`. Apply the override only after validating the outer kind and marker exclusivity, then enforce it with the authenticated inner kind/type/marker match. The table's schema/protocol versions and the legacy per-message limits stay compatible. A new reader with an older verified table that omits the field uses 131072 for those same validated mappings. A 0.1.x reader keeps its 4096-byte limit. All other rules retain their existing caps.
+
+Sync's 180000-byte `target_inner_bytes` is a sender chunk target. The receiver-wide inner cap is specified only where `max_inner_bytes` is present.
 
 Every named control and all three data types (`sync`, `commands`, `diagnostics`) are listed. The `default` rule permits feature extension without a transport type registry. It does not define feature schemas, permissions, consent, units, command policy or lifecycle handling.
 
@@ -29,3 +40,7 @@ For a listed marked type, require exactly its declared marker and kind after aut
 Construct AAD as UTF-8: substitute the hub id, message id and sender into `aad.base`, append the entry for the envelope's kind in `aad.kind_suffixes`, then append each present marker through `aad.marker_template` in `aad.marker_order`. Use those same bytes for both HPKE Auth CEK wrapping and payload AEAD. The unmarked data suffix is empty; control adds `|control`. Marker suffix order is `diagnostics`, then `access`, while canonical envelope JSON places `access` before `diagnostics`. Mutual exclusion permits only one marker suffix on a valid envelope. An exact persisted retry keeps its original sealed bytes.
 
 The thin transport uses this table for sealing, envelope shape/size checks and authenticated marker/type/kind matching. Receiving still preserves authentic JSON objects with a string `type`, including unknown fields and types, without feature-schema validation. Optional send validation uses available local schemas. The schemas and signed skill describe feature behavior; the table grants no permission to send writes or requests. See the [protocol file inventory](README.md#files) for the other artifacts and consumers.
+
+## Pairing access
+
+New v2 links carry `v,r,h,t,k,n,c`, optional `a=1` when the requested scope is on the relay, and optional `s=http`. The marker makes the scope mandatory for a phone that supports encrypted pairing scope; Syncky 0.1.5 ignores it and pairs without the request. The agent encrypts the request with a key derived from the link secret and only the ciphertext is stored on the relay. A phone that supports encrypted pairing scope and receives a marked link stops pairing and revokes the consumed join if the relay withholds the request. After a successful review and confirmation, the phone sends the standard `access_reply`. See [pairing access outcomes and compatibility](README.md#pairing-access-outcomes-and-compatibility).

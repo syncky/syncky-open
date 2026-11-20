@@ -16,6 +16,7 @@ const fromVector = (v) => ({
   agentPublicKey: v.agent_public_key,
   agentName: v.agent_name,
   ...(v.pair_secret !== undefined && { pairSecret: v.pair_secret }),
+  ...(v.scope_on_relay && { scopeOnRelay: true }),
   ...(v.requested_scope !== undefined && { requestedScope: { ...v.requested_scope,
     read: normalizeScopeNames(v.requested_scope.read), write: normalizeScopeNames(v.requested_scope.write) } }),
 });

@@ -271,7 +271,8 @@ export function createRelayClient({
       );
     },
 
-    createPairing: () => bodyOf(request("POST", "/v1/pairings", { body: "{}" })),
+    createPairing: (pairingScopeBlob) => bodyOf(request("POST", "/v1/pairings", pairingScopeBlob === undefined
+      ? { body: "{}" } : { body: json({ pairing_scope_blob: pairingScopeBlob }), secrets: [pairingScopeBlob] })),
     getPairing: (pairingId, { signal, deadline } = {}) => bodyOf(request("GET", `/v1/pairings/${encodeURIComponent(pairingId)}`, { signal, deadline })),
     listMembers: ({ retry: retrying = true, signal, deadline } = {}) => bodyOf(request("GET", "/v1/members", { attempts: retrying ? retry.maxAttempts : 1, signal, deadline })),
     getHubState: ({ attempts = 1, quiet, signal, deadline } = {}) => bodyOf(request("GET", "/v1/hub/state", { attempts, quiet, signal, deadline })),

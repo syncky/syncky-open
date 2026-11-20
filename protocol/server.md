@@ -28,7 +28,7 @@ What that means for responsibility: the server receives the user's health data i
 In the app, open Settings › Connections › **+**. Then choose one of these:
 
 - **Server or automation**, or one of the templates under "Start from a template" (Home Assistant, InfluxDB, n8n, Node-RED, Health Auto Export server). A template fills in the format and the URL path. You add the address and the token.
-- **Paste a setup link**. Your server prints a webhook setup link (default `syncky://webhook?…`) or a QR code, and the app fills in everything for review and confirmation (section 9).
+- **Paste a setup link**. Your server prints a webhook setup link (`https://syncky.app/connect#…`) or a QR code, and the app fills in everything for review and confirmation (section 9).
 
 Then tap **Check connection**. The app sends one test request with every header, auth and signature included, and no health data. There is no handshake or challenge step: this test is an ordinary request. Setting up and checking is free. **Free during launch; plans are coming later.** See [launch access and pricing](https://syncky.app/pricing).
 
@@ -401,11 +401,11 @@ A custom header cannot be `Host`, `Content-Type`, `Content-Length`, `User-Agent`
 
 A setup link fills in the whole server entry. Your server prints it, and the user pastes it or scans it as a QR code in Settings › Connections › **+** › **Paste a setup link**.
 
-Use the `syncky` scheme. A tapped webhook setup link opens Syncky and shows the import review and confirmation; no server is added before you confirm.
+Use `https://syncky.app/connect` as the setup address. The path is exactly `/connect`. Put all parameters in the fragment and omit the outer query, including a bare `?`. Tapping the link can open Syncky for review and explicit confirmation. If the browser opens the setup page, return to Syncky and paste the original link or scan its QR code. Syncky 0.2.0 also accepts older setup links that start with `syncky:` for import; a later version may stop accepting them.
 
 ```text
-syncky://webhook?v=1&name=<pct>&url=<pct>&format=native|hae|csv|influx&auth=none|bearer|header|basic
-                [&header=<name>][&user=<pct>][&token=<pct>][&hmac=<whsec_…>][&types=<a,b>]
+https://syncky.app/connect#v=1&name=<pct>&url=<pct>&format=native|hae|csv|influx&auth=none|bearer|header|basic
+                              [&header=<name>][&user=<pct>][&token=<pct>][&hmac=<whsec_…>][&types=<a,b>]
 ```
 
 - `<pct>`: percent-encode every byte outside `A-Z a-z 0-9 - . _ ~` of the UTF-8 text as `%XX`.
@@ -413,16 +413,19 @@ syncky://webhook?v=1&name=<pct>&url=<pct>&format=native|hae|csv|influx&auth=none
 - `header` only with `auth=header`, `user` only with `auth=basic`.
 - `hmac` turns signing on with that secret, so your server can make the secret and the app adopts it.
 - `types` limits the data types, as a comma-separated list of type names.
-- Unknown or repeated parameters, a fragment or a `v` other than `1` make the link invalid.
+- The fragment is required. Empty fragments, extra `#` delimiters, unknown or repeated parameters and a `v` other than `1` make the link invalid.
 - A link cannot turn on **Accept writes to Health** or change **Send deletions**. The user sets those in the app.
 
 A link for a custom header and two types:
 
-`syncky://webhook?v=1&name=Vector%20header&url=https%3A%2F%2Freceiver.example%2Fhook%2Fheader&format=native&auth=header&header=X-Api-Key&token=vec_key_x9VHBdwKQo-KwlcOB9v4cwlAawCa0nF2NWQRO1qLDlI&types=heart_rate,steps`
+<!-- vector: webhook-requests.json native_header_auth_unsigned_types_and_invalid link -->
+```text
+https://syncky.app/connect#v=1&name=Vector%20header&url=https%3A%2F%2Freceiver.example%2Fhook%2Fheader&format=native&auth=header&header=X-Api-Key&token=vec_key_x9VHBdwKQo-KwlcOB9v4cwlAawCa0nF2NWQRO1qLDlI&types=heart_rate,steps
+```
 
-Every case of [`webhook-requests.json`](test-vectors/webhook-requests.json) carries the `link` for its server, so you can test your encoder against them. Optional case-level `url_scheme` supplies the link builder's scheme; absent means `syncky`. It does not change request bodies or headers.
+Every case of [`webhook-requests.json`](test-vectors/webhook-requests.json) carries the `link` for its server, so you can test your encoder against them. Optional case-level `url_scheme` selects the setup site. With no selector the builder uses `syncky.app`. The selection affects only the setup link authority, leaving request bodies and headers unchanged.
 
-The link carries secrets and is not signed. Show it only to the iPhone's owner, best as a QR code on a local screen. The app shows the name, the host and the format for explicit confirmation before it imports. After the import it runs **Check connection** by itself.
+The unsigned link carries secrets. The fragment stays outside the page's HTTP request. The full link can still be exposed through sharing, the clipboard or browser history. Show it only to the iPhone's owner, for example as a QR code on a local screen. The app shows the name, the receiver host and the format before the owner confirms the import. After import it runs **Check connection**.
 
 To print a QR code in a terminal, pipe the link into a QR tool, for example with the example server:
 
@@ -704,5 +707,5 @@ Not verified by Syncky: this format against a live Health Auto Export receiver, 
 - [ ] For native JSON, store samples by `(device, uuid)` and parts by `(device, uuid, part)`. Replace characteristics and activity summaries. Apply deletions.
 - [ ] Answer `2xx` within a few seconds. Never redirect. Answer `413` only when the body is really too large.
 - [ ] Optional: reply with commands (JSON, signed over plain HTTP), accept the results request, and keep each command until its result arrives.
-- [ ] Optional: print a webhook setup link or a QR code with your URL, token and `hmac` secret; use `syncky` (section 9).
+- [ ] Optional: print a webhook setup link or a QR code with your URL, token and `hmac` secret; use `https://syncky.app/connect#…` (section 9).
 - [ ] Replay [`webhook-requests.json`](test-vectors/webhook-requests.json), [`webhook-signatures.json`](test-vectors/webhook-signatures.json) and [`webhook-exchanges.json`](test-vectors/webhook-exchanges.json) against your server.

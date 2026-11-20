@@ -19,6 +19,7 @@ function inheritedRetry(transport) {
     transport.poll_progress?.retry_at ?? 0, transport.poll_retry_after_until ?? 0, transport.ack_retry_after_until ?? 0, legacyPoll, legacyAck);
 }
 const nextPollAt = transport => transport.next_poll_at ?? transport.poll_progress?.next_poll_at ?? 0;
+const canResumePage = transport => transport.pagination_after !== undefined && transport.pagination_after === transport.cursor;
 async function cancellable(work, signal) {
   signal.throwIfAborted();
   let abort;
@@ -48,12 +49,13 @@ export function createThinPoller({ home, transport, self, relay, fs, now = () =>
   }
   function cadence(current) {
     const fast = current.transport.fast_poll;
-    return fast?.devices?.length && fast.until > now().getTime() ? 25 : hasResponseWait(current) ? POLL_INTERVAL_MIN_S : intervalS;
+    const at = now().getTime();
+    return fast?.devices?.length && fast.until > at ? 25 : hasResponseWait(current, at) ? POLL_INTERVAL_MIN_S : intervalS;
   }
-  function floorAt(current) {
+  function floorAt(current, at = now().getTime()) {
     const t = current.transport, last = t.last_poll_at ?? t.poll_progress?.last_poll_at;
     const fast = t.fast_poll;
-    const interval = fast?.devices?.length && fast.until > now().getTime() ? 25 : POLL_INTERVAL_MIN_S;
+    const interval = fast?.devices?.length && fast.until > at ? 25 : POLL_INTERVAL_MIN_S;
     const attempted = t.poll_attempt_at;
     if (last === undefined && attempted === undefined) return nextPollAt(t);
     return scheduledDue(Math.max(last ?? 0, attempted ?? 0), interval);
@@ -79,15 +81,35 @@ export function createThinPoller({ home, transport, self, relay, fs, now = () =>
       if (s.transport.last_poll_at !== undefined) s.transport.next_poll_at = pollDue(s);
     });
   }
+  function retryDeferral(current, at, operatorPoll) {
+    const t = current.transport, retry = inheritedRetry(t);
+    if (retry <= at) return null;
+    let due = retry;
+    if (operatorPoll && !canResumePage(t)) {
+      due = Math.max(retry, floorAt(current, at));
+      due = Math.max(due, floorAt(current, due));
+    } else if (operatorPoll && t.pending_ack?.up_to_seq > t.acked_seq) {
+      due = ackBackoffDeferral(current, retry, true)?.next_poll_at ?? retry;
+    }
+    return { deferred: true, reason: "retry_after", next_poll_at: due };
+  }
+  function ackBackoffDeferral(current, at, operator) {
+    const t = current.transport, backoff = Math.max(t.ack_retry_at ?? 0, t.poll_retry_at ?? 0);
+    if (backoff <= at) return null;
+    if (operator) {
+      const floor = floorAt(current, at);
+      if (floor <= at) return null;
+      const due = floorAt(current, floor);
+      if (due < backoff) return { deferred: true, reason: "poll_floor", next_poll_at: due };
+    }
+    return { deferred: true, reason: "backoff", next_poll_at: backoff };
+  }
   async function eligibility({ operator = false, ackOnly = false, signal, deadline } = {}) {
     const current = await state({ signal, deadline }), t = current.transport, at = now().getTime();
-    const retry = inheritedRetry(t);
-    if (retry > at) return { deferred: true, reason: "retry_after", next_poll_at: retry };
-    if (ackOnly) {
-      const due = Math.max(t.ack_retry_at ?? 0, t.poll_retry_at ?? 0);
-      return due > at ? { deferred: true, reason: "backoff", next_poll_at: due } : null;
-    }
-    if (t.pagination_after !== undefined && t.pagination_after === t.cursor && (operator || (t.poll_retry_at ?? 0) <= at)) return null;
+    const retry = retryDeferral(current, at, operator && !ackOnly);
+    if (retry) return retry;
+    if (ackOnly) return ackBackoffDeferral(current, at, operator);
+    if (canResumePage(t) && (operator || (t.poll_retry_at ?? 0) <= at)) return null;
     const floor = floorAt(current);
     if (floor > at) return { deferred: true, reason: "poll_floor", next_poll_at: floor };
     if (!operator) {
@@ -110,8 +132,8 @@ export function createThinPoller({ home, transport, self, relay, fs, now = () =>
     const current = (await state(context)).transport;
     if (!Number.isSafeInteger(seq) || seq < 0 || seq > current.cursor) throw new LocalStateError("unsafe_ack", "ACK exceeds durable receive checkpoint");
     if (seq <= current.acked_seq) return { acked_up_to: current.acked_seq };
-    const deferred = await eligibility({ ...context, ackOnly: true });
-    if (deferred && !(operator && deferred.reason === "backoff" && floorAt(await state(context)) <= now().getTime())) return deferred;
+    const deferred = await eligibility({ ...context, ackOnly: true, operator });
+    if (deferred) return deferred;
     await mutate(s => { s.transport.pending_ack = { up_to_seq: Math.max(s.transport.pending_ack?.up_to_seq ?? 0, seq) }; });
     try {
       await relay.ack(seq, { signal, deadline, independent: true });
@@ -148,8 +170,8 @@ export function createThinPoller({ home, transport, self, relay, fs, now = () =>
     signal?.throwIfAborted();
     await inbound.reconcile(context);
     await maintain(context);
-    const authoritative = inheritedRetry((await state(context)).transport);
-    if (authoritative > now().getTime()) return { deferred: true, reason: "retry_after", next_poll_at: authoritative };
+    const authoritative = retryDeferral(await state(context), now().getTime(), operator);
+    if (authoritative) return authoritative;
     try { await inbound.releaseHeld(context); }
     catch (err) {
       if (err.status === 429 || err.status === 0 || err.status >= 500) await mutate(s => { recordRetry(s, err, now().getTime()); });

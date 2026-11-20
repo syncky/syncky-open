@@ -10,15 +10,17 @@ import { createPairingService, readPairingFile } from '../../src/pairing.js';
 import { saveConfig } from '../../src/config.js';
 import { createRuntime } from '../../src/runtime.js';
 import { createThinPoller } from '../../src/thin-poller.js';
-import { readHomeState, updateHomeState } from '../../src/home-state.js';
+import { createHomeState, readHomeState, updateHomeState } from '../../src/home-state.js';
 import { acquireHomeLock } from '../../src/protected-files.js';
 import { maintainResponseWaits } from '../../src/response-waits.js';
-import { keys } from '../support/thin-home.js';
+import { fixture as localHome, identity, keys } from '../support/thin-home.js';
 import { createFakePhone } from '../support/fake-phone.js';
 import { startRelayDouble } from '../support/relay-double.js';
 import { runCli, tempHome, waitFor } from '../support/helpers.js';
 import { b64uDecode } from '../../src/encoding.js';
 import { PAIRING_ACCESS_NOTICE } from '../../src/pairing-access.js';
+import { saveSecrets } from '../../src/secrets.js';
+import { pairProof } from '../../src/pair-code.js';
 
 test('waiter startup retries state renames before its first current pairing snapshot', async t => {
   const f = await fixture(t), started = await f.pairing.startPairing();
@@ -100,12 +102,13 @@ for (const command of ['pair', 'wait']) test(`scoped foreground ${command} retur
   assert.equal(completed.status, 'completed'); assert.equal(completed.member.state, 'confirmed');
   assert.equal(completed.member.pairing_access.state, 'awaiting');
   assert.equal(completed.member.pairing_access.notice, PAIRING_ACCESS_NOTICE);
-  assert.match(completed.member.pairing_access.notice, /renewed explicit owner approval and phone availability/);
-  assert.match(completed.member.pairing_access.notice, /finite positive TTL <= 24 hours/);
+  assert.match(completed.member.pairing_access.follow_up, /renewed explicit owner approval and phone availability/);
+  assert.match(completed.member.pairing_access.follow_up, /finite positive TTL <= 24 hours/);
   assert.ok(Date.parse(completed.member.pairing_access.deadline_at) > f.now().getTime());
   assert.equal(f.now().getTime(), at + 10000);
   assert.doesNotMatch(JSON.stringify(completed) + result.stderr, /"request_ref":|syncky:\/\/|https:\/\//);
   await phone.fetchCommands(); assert.ok(!phone.controlReceived.some(r => r.type === 'access_request'));
+  assert.ok(phone.controlReceived.some(r => r.type === 'confirmed'));
 });
 
 test('scoped waiter continues after proof until the held reply resolves without requesting access', async t => {
@@ -157,11 +160,66 @@ test('missing access reply leaves a durable notice at the post-confirmation dead
   f.advance(Date.parse(started.expires_at) + 61000 - f.now().getTime());
   const result = await runCli(['--home', f.home, 'pair-waiter', started.pairing_id], { now: f.now, sleep: async ms => f.advance(ms) });
   assert.equal(result.code, 0); assert.equal(f.now().getTime(), Date.parse(access.deadline_at));
+  assert.match(result.stderr, /pair_waiter_finished/);
+  assert.doesNotMatch(result.stderr, /pair_waiter_stopped/);
   const member = f.runtime.status().members.find(m => m.member_id === phone.memberId);
   assert.equal(member.pairing_access.state, 'no_reply'); assert.equal(member.scope, null);
   assert.equal(member.pairing_access.notice, PAIRING_ACCESS_NOTICE);
   assert.doesNotMatch(member.pairing_access.notice, /older app|exactly 24/);
   await phone.fetchCommands(); assert.deepEqual(phone.controlReceived.map(r => r.type), ['confirmed', 'agent_info']);
+});
+
+for (const detached of [false, true]) test(`verified proof without a reply keeps the ${detached ? 'detached' : 'foreground'} pairing confirmed`, async t => {
+  const home = localHome(t), baseUrl = 'https://relay.example', pairingId = `p_${'A'.repeat(22)}`;
+  createHomeState(home, identity);
+  saveConfig(home, { relay_url: baseUrl, name: 'Agent' });
+  saveSecrets(home, { private_key: keys.agent.sk, public_key: keys.agent.pk,
+    token: `sk_${identity.hub_id}_${'T'.repeat(40)}`, webhook_secret: `whsec_${'W'.repeat(43)}` });
+  let at = Date.now(), seq = 0, proof;
+  const now = () => new Date(at), device = { member_id: keys.dev1.member_id, role: 'device', public_key: keys.dev1.pk,
+    pairing_id: pairingId, joined_at: now().toISOString() };
+  const sent = [];
+  const fetch = async (url, options) => {
+    const { pathname, searchParams } = new URL(url);
+    if (pathname === '/v1/pairings') return Response.json({ pairing_id: pairingId, pairing_token: `pt_${'T'.repeat(43)}`,
+      expires_at: new Date(at + 600000).toISOString(), pairing_scope_stored: true }, { status: 201 });
+    if (pathname.startsWith('/v1/pairings/')) return Response.json({ status: 'completed', member_id: device.member_id,
+      public_key: device.public_key, completed_at: device.joined_at });
+    if (pathname === '/v1/members') return Response.json({ members: [device] });
+    if (pathname === '/v1/messages' && options.method === 'GET') {
+      return Response.json(Number(searchParams.get('after')) < proof.seq ? { messages: [proof], next_after: proof.seq } : { messages: [] });
+    }
+    if (pathname === '/v1/messages') {
+      const { inner } = await runtime.transport.receive({ envelope: JSON.parse(options.body), hubId: identity.hub_id,
+        self: { memberId: device.member_id, privateKey: b64uDecode(keys.dev1.sk) }, senderKeyOf: () => b64uDecode(keys.agent.pk) });
+      sent.push(inner.type);
+      return Response.json({ seq: ++seq }, { status: 201 });
+    }
+    if (pathname === '/v1/hub/state') return Response.json({ state: 'active' });
+    return Response.json({});
+  };
+  const runtime = createRuntime({ home, fetch, now, env: {} });
+  const service = createPairingService({ home, relay: runtime.relay, agentName: 'Agent', publicKey: keys.agent.pk, now });
+  await service.startPairing({ read: ['steps'] });
+  proof = { seq: 1, ...await runtime.transport.sealMessage({ hubId: identity.hub_id, from: device.member_id,
+    senderPrivateKey: b64uDecode(keys.dev1.sk), recipients: [{ memberId: keys.agent.member_id, publicKey: b64uDecode(keys.agent.pk) }],
+    innerText: JSON.stringify({ v: 1, type: 'pair_proof', proof: pairProof(readPairingFile(home).pair_secret, keys.agent.pk, keys.dev1.pk) }) }) };
+  const result = await runCli(['--home', home, ...(detached ? ['pair-waiter', pairingId] : ['wait', '--timeout', '10'])], {
+    now, fetch, sleep: async ms => { at += ms; },
+  });
+  assert.equal(result.code, 0);
+  assert.deepEqual(sent, ['confirmed', 'agent_info']);
+  const member = runtime.status().members.find(m => m.member_id === device.member_id);
+  assert.equal(member.state, 'confirmed'); assert.equal(member.scope, null);
+  assert.equal(member.pairing_access.notice, PAIRING_ACCESS_NOTICE);
+  if (detached) {
+    assert.match(result.stderr, /pair_waiter_finished/);
+    assert.doesNotMatch(result.stderr, /pair_waiter_stopped/);
+    assert.equal(member.pairing_access.state, 'no_reply');
+    assert.equal(at, Date.parse(member.pairing_access.deadline_at));
+  } else {
+    assert.equal(JSON.parse(result.stdout).member.pairing_access.state, 'awaiting');
+  }
 });
 
 test('scoped waiter hands off to a continuous receiver without losing the expected reply', async t => {
@@ -211,8 +269,10 @@ for (const json of [false, true]) test(`v2 pair spawns one detached waiter after
   if (json) {
     const output = JSON.parse(result.stdout);
     assert.deepEqual(Object.keys(output).sort(), ['code', 'expires_at', 'limits', 'pairing_id', 'qr_text', 'uri', 'version']);
-    assert.deepEqual(output.limits, { hosted_defaults: { pairing_link_ttl_s: 600, unjoined_hub_ttl_s: 86400 },
-      pairing_link_deadline: 'expires_at', unjoined_hub_clock: 'registration' });
+    assert.deepEqual(output.limits, { hosted_defaults: { pairing_link_ttl_s: 600, unjoined_hub_ttl_s: 86400, poll_floor_s: 300 },
+      pairing_link_deadline: 'expires_at', unjoined_hub_clock: 'registration', max_pairing_scope_blob_bytes: 12000,
+      max_pairing_scope_blob_base64url_chars: 16000, max_pairing_request_body_bytes: 16384,
+      max_control_envelope_bytes: 4096, max_access_envelope_bytes: 131072 });
   }
   else assert.ok(result.stdout.split('\n')[1] === doc.uri && result.stdout.includes('Pairing code: '));
 });

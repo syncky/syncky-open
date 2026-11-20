@@ -10,7 +10,7 @@ import { readHomeState, updateHomeState, createCipherFiles } from "./home-state.
 import { parsePrivateJson, privateStat, readPrivateFile, removePrivateFile, syncDirectory, withHomeLock } from "./protected-files.js";
 import { joinGraceUntil } from "./transport-time.js";
 import { isStoredRequestedScope } from './access-scope.js';
-import { cancelPairingAccess, maintainPairingAccess, PAIRING_REPLY_MS } from './pairing-access.js';
+import { cancelPairingAccess, maintainPairingAccess, PAIRING_REPLY_MS, validV1Scope } from './pairing-access.js';
 import { cleanupPairingQr } from './pair-qr.js';
 
 export function validateMemberPairing(fields) {
@@ -43,6 +43,16 @@ function bindRequest(home, state, member, at, options) {
   if (member.state !== 'joined' || !member.pairing_id) return;
   const bytes = readPrivateFile(join(home, 'pairing.json'), { ...options, optional: true });
   const doc = bytes ? parsePrivateJson(bytes) : null;
+  if (doc?.pairing_id === member.pairing_id && doc.v1_scope !== undefined) {
+    if (!validV1Scope(doc.v1_scope) || doc.pair_secret !== undefined || doc.requested_scope !== undefined || !isTimestamp(doc.expires_at)) {
+      throw new LocalStateError('corrupt_state', 'invalid pending pairing request');
+    }
+    const row = ownPairing(state, member.pairing_id) ?? (state.pairings[member.pairing_id] = {
+      pairing_id: member.pairing_id, status: 'pending', expires_at: doc.expires_at, version: 1,
+    });
+    if (row.v1_scope && JSON.stringify(row.v1_scope) !== JSON.stringify(doc.v1_scope)) throw new LocalStateError('corrupt_state', 'pairing request conflict');
+    row.v1_scope ??= doc.v1_scope;
+  }
   if (doc?.pairing_id === member.pairing_id && doc.requested_scope !== undefined) {
     if (!isStoredRequestedScope(doc.requested_scope) || !isTimestamp(doc.expires_at)) throw new LocalStateError('corrupt_state', 'invalid pending pairing request');
     let row = ownPairing(state, member.pairing_id);
@@ -52,6 +62,9 @@ function bindRequest(home, state, member, at, options) {
     row.access ??= { state: 'awaiting', deadline_at: doc.expires_at };
   }
   const row = ownPairing(state, member.pairing_id);
+  if (row?.v1_scope && !row.v1_cancelled && row.status !== 'expired' && (!row.member_id || (row.member_id === member.member_id && row.public_key === member.public_key))) {
+    Object.assign(row, { status: 'completed', member_id: member.member_id, public_key: member.public_key });
+  }
   if (!row?.requested_scope || row.access.state !== 'awaiting' || (row.member_id && (row.member_id !== member.member_id || row.public_key !== member.public_key))) return;
   row.member_id = member.member_id; row.public_key = member.public_key; row.status = 'completed';
   if (!row.access.joined_at) {
@@ -73,6 +86,8 @@ export function createThinPairing(home, { fs = nodeFs, now = () => new Date() } 
     member.confirmation_method = method; member.state = "confirmed"; member.confirmed_at = at.toISOString(); member.pair_code = null; member.pair_proof = null;
     member.confirmation = { msg_id: uuidv7({ now: () => at.getTime() }), created_at: at.toISOString() };
     const row = ownPairing(state, member.pairing_id);
+    if (method === 'fingerprint' && row?.v1_scope && !row.v1_cancelled && row.status === 'completed'
+      && row.member_id === member.member_id && row.public_key === member.public_key) row.v1_confirmation = member.confirmation.msg_id;
     if (row?.access?.state === 'awaiting' && row.member_id === member.member_id && row.public_key === member.public_key) {
       row.access.confirmed_at = member.confirmed_at;
       row.access.deadline_at = new Date(at.getTime() + PAIRING_REPLY_MS).toISOString();

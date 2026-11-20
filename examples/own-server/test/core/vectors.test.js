@@ -31,6 +31,7 @@ for (const c of vectors("webhook-requests")) {
     assert.equal(rows(f, "summaries").length, summaries.size);
     for (const row of rows(f, "samples")) assert.ok(equalJSON(JSON.parse(row.payload_json), samples.get(`${row.device}|${row.uuid}|${row.part}`)), "sample payload preserved");
     for (const row of rows(f, "summaries")) assert.ok(row.value === summaries.get(JSON.stringify([row.device, row.type, row.unit, row.start, row.end, row.stat])).value, "summary replaced");
+    assert.ok(c.link.startsWith("https://syncky.app/connect#v=1&"), "published setup link uses the production envelope");
     if (c.destination.auth.kind !== "none" && c.format === "native") assert.ok(buildLink(c.destination, c.secrets, c.url_scheme) === c.link, "setup link matches vector bytes");
     else assert.throws(() => buildLink(c.destination, c.secrets), /invalid_configuration/);
   });

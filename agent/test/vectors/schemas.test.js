@@ -22,6 +22,7 @@ const FILE_DEFS = {
   "test-vectors/fingerprints.json": ["test-vectors.schema.json", "fingerprints_file"],
   "test-vectors/pair-uris.json": ["test-vectors.schema.json", "pair_uris_file"],
   "test-vectors/pair-codes.json": ["test-vectors.schema.json", "pair_codes_file"],
+  "test-vectors/pairing-scope.json": ["test-vectors.schema.json", "pairing_scope_file"],
   "test-vectors/app-attest-client-data.json": ["test-vectors.schema.json", "app_attest_client_data_file"],
   "test-vectors/webhook-signatures.json": ["test-vectors.schema.json", "webhook_signatures_file"],
   "test-vectors/webhook-requests.json": ["test-vectors.schema.json", "webhook_requests_file"],
@@ -67,6 +68,13 @@ describe("protocol files validate against protocol/schemas", () => {
     const present = readdirSync(protocolPath("test-vectors/")).filter((f) => f.endsWith(".json")).sort();
     assert.deepEqual(present, Object.keys(FILE_DEFS).filter(f => f.startsWith("test-vectors/")).map(f => f.slice("test-vectors/".length)).sort());
     for (const f of present) assert.ok(FILE_DEFS[`test-vectors/${f}`], `no schema mapping for ${f}`);
+  });
+
+  it('generates the additive access limit while keeping legacy table rows', () => {
+    const table = loadJson('messages.json');
+    assert.equal(table.limits.max_access_envelope_bytes, 131072);
+    assert.equal(table.limits.max_control_envelope_bytes, 4096);
+    for (const type of ['access_request', 'access_reply']) assert.equal(table.messages[type].max_envelope_bytes, 4096);
   });
 
   for (const [file, [schemaFile, def]] of Object.entries(FILE_DEFS)) {

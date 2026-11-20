@@ -1,6 +1,6 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
-import { browser, origin, callback, challenge, hidden } from "../support/browser.js";
+import { browser, origin, callback, challenge, hidden, setupParams } from "../support/browser.js";
 import { secret, native, sample, summary } from "../support/helpers.js";
 
 it("issuer and routes use only the deployment origin; discovery never reflects an untrusted host", async (t) => {
@@ -169,9 +169,9 @@ it("unused registrations expire after a day while consented registrations surviv
 
 it("admin can recover full registration capacity without erasing Health data", async (t) => {
   const b = await browser(t);
-  const link = new URL((await b.login()).link);
-  b.config.token = link.searchParams.get("token");
-  b.config.hmac = link.searchParams.get("hmac");
+  const params = setupParams((await b.login()).link);
+  b.config.token = params.get("token");
+  b.config.hmac = params.get("hmac");
   assert.equal((await b.send(native(b, { samples: [sample()], summaries: [summary()] }))).status, 200);
   const clients = [], time = b.deps.now();
   for (let hour = 0; hour < 4; hour++) {

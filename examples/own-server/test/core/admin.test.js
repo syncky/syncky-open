@@ -1,6 +1,6 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
-import { browser, origin, hidden, cookie } from "../support/browser.js";
+import { browser, origin, hidden, cookie, setupParams } from "../support/browser.js";
 import { secret, native, sample } from "../support/helpers.js";
 
 it("missing password fails closed; login and all mutations require origin and CSRF", async (t) => {
@@ -82,9 +82,9 @@ it("login CSRF cookie is required and admin password changes fail closed", async
 it("admin export is bounded and authenticated, erasure is explicit and rotates credentials", async (t) => {
   const b = await browser(t);
   const { link } = await b.login();
-  const url = new URL(link);
-  b.config.token = url.searchParams.get("token");
-  b.config.hmac = url.searchParams.get("hmac");
+  const params = setupParams(link);
+  b.config.token = params.get("token");
+  b.config.hmac = params.get("hmac");
   await b.send(native(b, { samples: [sample(), sample()] }));
   assert.equal((await b.get("/admin/export", { Cookie: "" })).status, 401);
   const first = await (await b.get("/admin/export?kind=samples&limit=1")).json();

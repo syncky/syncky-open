@@ -6,7 +6,7 @@ import { destination, device, sample, databasePath, vectors, signed, authHeader 
 import { openSqlite } from "../../docker/sql.js";
 import { createStore } from "../../src/store.js";
 import catalog from "../../src/write-catalog.json" with { type: "json" };
-import { setup } from "../support/browser.js";
+import { setup, setupParams } from "../support/browser.js";
 
 it("writes are hidden and denied by default and require both current toggle and explicit per-client consent", async (t) => {
   const b = await connected(t);
@@ -106,8 +106,8 @@ it("resends only on matching ordinary native uploads, signs exact reply bytes, a
   assert.equal((await b.post("/admin/settings", { hmac_enabled: "false" })).status, 200);
   const rotated = await b.post("/admin/rotate-upload", { confirm: "rotate" });
   assert.equal(rotated.status, 200);
-  const link = new URL(setup(await rotated.text()));
-  b.config.token = link.searchParams.get("token"); b.config.hmac = null;
+  const params = setupParams(setup(await rotated.text()));
+  b.config.token = params.get("token"); b.config.hmac = null;
   assert.equal((await write(b, command(b))).state, "queued");
   const unsigned = await b.deliver();
   assert.equal(unsigned.headers.has("x-syncky-signature"), false);

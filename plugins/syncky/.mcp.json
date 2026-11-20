@@ -2,7 +2,7 @@
   "mcpServers": {
     "syncky": {
       "command": "npx",
-      "args": ["-y", "@syncky/agent@0.1.9", "mcp"]
+      "args": ["-y", "@syncky/agent@0.2.0", "mcp"]
     }
   }
 }

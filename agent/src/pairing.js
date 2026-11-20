@@ -6,16 +6,18 @@ import { randomBytes } from './crypto.js';
 import { b64uEncode, deviceName, isB64u, isTimestamp } from './encoding.js';
 import { isHubId, isPairingId, isPairingToken } from './ids.js';
 import { pairCode } from './pair-code.js';
-import { buildPairUri, isPairUriName, PAIR_SECRET_BYTES } from './pair-uri.js';
+import { buildPairUri, isPairUriName, parsePairUri, PAIR_SECRET_BYTES } from './pair-uri.js';
 import { registerSecret } from './log.js';
 import { RelayError } from './relay-client.js';
 import { readHomeState, updateHomeState, forgetThinMember, STATE_FILE, validateHomeState } from './home-state.js';
 import { createThinPairing, validateMemberPairing } from './thin-pairing.js';
 import { atomicPrivateWrite, parsePrivateJson, privateStat, readPrivateFile, removePrivateFile, withHomeLock } from './protected-files.js';
 import { retryHomeLock } from './thin-lock.js';
-import { isStoredRequestedScope, validateAccessScope } from './access-scope.js';
-import { cancelPairingAccess, maintainPairingAccess } from './pairing-access.js';
+import { accessRequestFits, isStoredRequestedScope, validateAccessScope } from './access-scope.js';
+import { cancelPairingAccess, maintainPairingAccess, validV1Scope } from './pairing-access.js';
 import { cleanupPairingQr, createPairingQrFiles } from './pair-qr.js';
+import { sealPairingScope } from './pairing-scope-blob.js';
+import { errorHint, PAIRING_SIZE_HINT } from './error-guidance.js';
 
 export const PAIRING_FILE = 'pairing.json';
 export { renderTerminalQr } from './pair-qr.js';
@@ -25,7 +27,8 @@ export function readPairingFile(home, { fs = nodeFs } = {}) {
   if (doc === null) return null;
   const badSecret = doc.pair_secret !== undefined && !isB64u(doc.pair_secret, { length: PAIR_SECRET_BYTES });
   if (!isPairingId(doc.pairing_id) || !isPairingToken(doc.pairing_token) || typeof doc.uri !== "string" || badSecret
-    || !isTimestamp(doc.expires_at) || (doc.requested_scope !== undefined && !isStoredRequestedScope(doc.requested_scope))) {
+    || !isTimestamp(doc.expires_at) || (doc.requested_scope !== undefined && !isStoredRequestedScope(doc.requested_scope))
+    || (doc.v1_scope !== undefined && (doc.pair_secret !== undefined || doc.requested_scope !== undefined || !validV1Scope(doc.v1_scope)))) {
     throw new LocalStateError("corrupt_state", `${PAIRING_FILE} is malformed; run syncky-agent pair again`);
   }
   if (doc.pair_secret !== undefined) registerSecret(doc.pair_secret);
@@ -80,30 +83,47 @@ export function createPairingService({ home, relay, publicKey, agentName, urlSch
   }
   return {
     async startPairing({ v1 = false, read, write, qrPng, qrSvg } = {}) {
-      await retryHomeLock(() => withHomeLock(home, snapshot, options));
+      const { identity } = await retryHomeLock(() => readHomeState(home, options));
       if (urlScheme != null) validateUrlScheme(urlScheme, relay.baseUrl);
       if (!isPairUriName(agentName)) throw new LocalStateError('invalid_config', 'agent name cannot fit pairing URI');
+      if (publicKey !== identity.public_key) throw new LocalStateError('key_mismatch', 'home identity and pairing key disagree');
+      const pairSecret = v1 ? undefined : b64uEncode(randomBytes(PAIR_SECRET_BYTES));
       let requestedScope;
       if (read !== undefined || write !== undefined) {
         const scope = { request_ref: Buffer.from(randomBytes(16)).toString('hex'), read: read ?? [], write: write ?? [] };
         const result = validateAccessScope(scope, { normalize: true });
-        if (!result.ok) throw new LocalStateError('invalid_input', `invalid requested scope: ${result.detail}`, { detail: result.detail, ...(result.detail === 'not_writable' && { types: result.types }) });
+        if (!result.ok) throw new LocalStateError('invalid_input', result.detail === 'too_large' ? PAIRING_SIZE_HINT : `invalid requested scope: ${result.detail}`, { detail: result.detail, ...(result.detail === 'not_writable' && { types: result.types }) });
         requestedScope = result.value;
+        if (v1 && !accessRequestFits(requestedScope, { v: 1, type: 'access_request', ...requestedScope,
+          created_at: '9999-12-30T23:59:59.999Z', expires_at: '9999-12-31T23:59:59.999Z' })) {
+          throw new LocalStateError('invalid_input', PAIRING_SIZE_HINT, { detail: 'too_large' });
+        }
       }
-      const result = await relay.createPairing(), state = await retryHomeLock(() => readHomeState(home, options));
-      const hubId = result?.hub_id ?? state.identity.hub_id;
-      if (!isHubId(hubId) || hubId !== state.identity.hub_id || !isPairingId(result?.pairing_id) || !isPairingToken(result.pairing_token) || !isTimestamp(result.expires_at)) throw new RelayError({ status: 200, code: 'invalid_response', message: 'malformed pairing response' });
-      const pairSecret = v1 ? undefined : b64uEncode(randomBytes(PAIR_SECRET_BYTES));
+      let blob;
+      if (requestedScope && !v1) {
+        try { blob = await sealPairingScope(requestedScope, { pairSecret, hubId: identity.hub_id, agentPublicKey: identity.public_key }); }
+        catch (error) {
+          if (error.detail !== 'too_large') throw error;
+          throw new LocalStateError('invalid_input', PAIRING_SIZE_HINT, { detail: 'too_large' });
+        }
+      }
+      const result = await relay.createPairing(blob);
+      const hubId = result?.hub_id ?? identity.hub_id;
+      if (!isHubId(hubId) || hubId !== identity.hub_id || !isPairingId(result?.pairing_id) || !isPairingToken(result.pairing_token) || !isTimestamp(result.expires_at)) throw new RelayError({ status: 200, code: 'invalid_response', message: 'malformed pairing response' });
+      if (blob && result.pairing_scope_stored !== true) throw new LocalStateError('pairing_scope_relay_unsupported', errorHint('pairing_scope_relay_unsupported'));
+      const currentIdentity = (await retryHomeLock(() => readHomeState(home, options))).identity;
+      if (JSON.stringify(currentIdentity) !== JSON.stringify(identity)) throw new LocalStateError('key_mismatch', 'home identity changed during pairing');
       registerSecret(pairSecret); registerSecret(result.pairing_token);
       const uri = buildPairUri({ relayBase: relay.baseUrl, hubId, pairingToken: result.pairing_token, agentPublicKey: publicKey, agentName,
-        pairSecret, requestedScope, urlScheme: urlScheme == null ? null : validateUrlScheme(urlScheme) });
+        pairSecret, scopeOnRelay: blob !== undefined, urlScheme: urlScheme == null ? null : validateUrlScheme(urlScheme) });
+      const v1Scope = v1 && requestedScope ? { read: requestedScope.read, write: requestedScope.write } : undefined;
       const doc = { pairing_id: result.pairing_id, pairing_token: result.pairing_token, expires_at: result.expires_at, uri,
-        ...(pairSecret && { pair_secret: pairSecret }), ...(requestedScope && { requested_scope: requestedScope }) };
+        ...(pairSecret && { pair_secret: pairSecret }), ...(v1Scope && { v1_scope: v1Scope }), ...(!v1 && requestedScope && { requested_scope: requestedScope }) };
       const images = await retryHomeLock(() => withHomeLock(home, () => {
         const current = readHomeState(home, options);
         for (const row of Object.values(current.pairings)) cancelPairingAccess(row);
         current.pairings[doc.pairing_id] = { pairing_id: doc.pairing_id, status: 'pending', expires_at: doc.expires_at, version: v1 ? 1 : 2,
-          ...(requestedScope && { requested_scope: requestedScope, access: { state: 'awaiting', deadline_at: doc.expires_at } }) };
+          ...(v1Scope && { v1_scope: v1Scope }), ...(doc.requested_scope && { requested_scope: requestedScope, access: { state: 'awaiting', deadline_at: doc.expires_at } }) };
         maintainResponseWaits(current, now().getTime());
         atomicPrivateWrite(join(home, PAIRING_FILE), JSON.stringify(doc) + '\n', options);
         atomicPrivateWrite(join(home, STATE_FILE), JSON.stringify(validateHomeState(current)) + '\n', options);
@@ -118,6 +138,10 @@ export function createPairingService({ home, relay, publicKey, agentName, urlSch
       return withHomeLock(home, () => {
         const { doc, state } = snapshot();
         if (!doc || doc.pairing_id !== pending.pairing_id || state.pairings[doc.pairing_id]?.status !== 'pending' || Date.parse(doc.expires_at) <= now().getTime()) throw new LocalStateError('pairing_expired', 'no live pending pairing');
+        const info = parsePairUri(doc.uri, { allowInsecureRelay: true }).value;
+        if (info?.requestedScope || (doc.requested_scope && !info?.scopeOnRelay)) {
+          throw new LocalStateError('pairing_previous_access_format', errorHint('pairing_previous_access_format'));
+        }
         return view(doc, createPairingQrFiles(home, doc, { qrPng, qrSvg }, options));
       }, options);
     },

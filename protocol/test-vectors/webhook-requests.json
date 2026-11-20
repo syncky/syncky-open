@@ -140,7 +140,7 @@
           "body": "{\"v\":1,\"type\":\"sync\",\"device\":\"d_zsOZnTQUz_juWFVljuOOBQ\",\"samples\":[{\"uuid\":\"characteristic:blood_type\",\"type\":\"characteristic\",\"name\":\"blood_type\",\"value\":\"a_positive\"},{\"uuid\":\"4EA70000-0000-4000-8000-000000000001\",\"type\":\"heart_rate\",\"value\":64,\"unit\":\"count/min\",\"start\":\"2026-10-14T07:01:03Z\",\"end\":\"2026-10-14T07:01:03Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}},{\"uuid\":\"51EE0000-0000-4000-8000-000000000001\",\"type\":\"sleep_analysis\",\"value\":\"asleep_core\",\"start\":\"2026-10-13T23:10:00Z\",\"end\":\"2026-10-14T00:40:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}},{\"uuid\":\"5E1D0000-0000-4000-8000-000000000001\",\"type\":\"steps\",\"value\":412,\"unit\":\"count\",\"start\":\"2026-10-14T07:01:00Z\",\"end\":\"2026-10-14T07:01:59Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}},{\"uuid\":\"0B6F0000-0000-4000-8000-000000000001\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-14T05:00:00Z\",\"end\":\"2026-10-14T05:31:10Z\",\"duration_s\":1870,\"energy_kcal\":312.4,\"distance_m\":5020,\"location\":\"unknown\",\"metadata\":{},\"events\":[],\"activities\":[],\"statistics\":[],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}}],\"deleted\":[{\"uuid\":\"5E1D0000-0000-4000-8000-000000000099\",\"type\":\"steps\"},{\"uuid\":\"0B6F0000-0000-4000-8000-000000000002\",\"type\":\"workout\"}],\"acks\":[],\"more\":false,\"delivery\":{\"destination\":\"wh_hmf4Hk2wv-D-TUbXkl-UCA\",\"id\":\"01a13940-fe30-7630-9d7f-9da6e6de1e3d\",\"index\":0,\"count\":1,\"sent_at\":\"2026-10-14T07:12:03.120Z\"}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20every-kind&url=https%3A%2F%2Freceiver.example%2Fhook%2Fevery-kind&format=native&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20every-kind&url=https%3A%2F%2Freceiver.example%2Fhook%2Fevery-kind&format=native&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "native_signed_split_with_oversized_item",
@@ -384,7 +384,7 @@
           "body": "{\"v\":1,\"type\":\"sync\",\"device\":\"d_zsOZnTQUz_juWFVljuOOBQ\",\"samples\":[{\"uuid\":\"5E1D0000-0000-4000-8000-000000000007\",\"type\":\"steps\",\"value\":107,\"unit\":\"count\",\"start\":\"2026-10-14T07:07:00Z\",\"end\":\"2026-10-14T07:07:59Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}},{\"uuid\":\"5E1D0000-0000-4000-8000-000000000008\",\"type\":\"steps\",\"value\":108,\"unit\":\"count\",\"start\":\"2026-10-14T07:08:00Z\",\"end\":\"2026-10-14T07:08:59Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}}],\"deleted\":[],\"acks\":[],\"more\":false,\"delivery\":{\"destination\":\"wh_SdmO_d16ZscfB6a0-MhdpQ\",\"id\":\"01a13940-fe30-7759-844e-45d262615b3b\",\"index\":2,\"count\":3,\"sent_at\":\"2026-10-14T07:12:03.120Z\"}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20split&url=https%3A%2F%2Freceiver.example%2Fhook%2Fsplit&format=native&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20split&url=https%3A%2F%2Freceiver.example%2Fhook%2Fsplit&format=native&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "native_header_auth_unsigned_types_and_invalid",
@@ -522,7 +522,7 @@
           "body": "{\"v\":1,\"type\":\"sync\",\"device\":\"d_zsOZnTQUz_juWFVljuOOBQ\",\"samples\":[{\"uuid\":\"4EA70000-0000-4000-8000-000000000001\",\"type\":\"heart_rate\",\"value\":64,\"unit\":\"count/min\",\"start\":\"2026-10-14T07:01:03Z\",\"end\":\"2026-10-14T07:01:03Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}},{\"uuid\":\"5E1D0000-0000-4000-8000-000000000001\",\"type\":\"steps\",\"value\":412,\"unit\":\"count\",\"start\":\"2026-10-14T07:01:00Z\",\"end\":\"2026-10-14T07:01:59Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}}],\"deleted\":[{\"uuid\":\"4EA70000-0000-4000-8000-000000000050\",\"type\":\"heart_rate\"}],\"acks\":[],\"more\":false,\"delivery\":{\"destination\":\"wh_gblLnF03ycKB9XS7LHBfPg\",\"id\":\"01a13940-fe30-7717-9596-dcde9d4e215c\",\"index\":0,\"count\":1,\"sent_at\":\"2026-10-14T07:12:03.120Z\"}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20header&url=https%3A%2F%2Freceiver.example%2Fhook%2Fheader&format=native&auth=header&header=X-Api-Key&token=vec_key_x9VHBdwKQo-KwlcOB9v4cwlAawCa0nF2NWQRO1qLDlI&types=heart_rate,steps"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20header&url=https%3A%2F%2Freceiver.example%2Fhook%2Fheader&format=native&auth=header&header=X-Api-Key&token=vec_key_x9VHBdwKQo-KwlcOB9v4cwlAawCa0nF2NWQRO1qLDlI&types=heart_rate,steps"
     },
     {
       "name": "native_nothing_collected",
@@ -564,7 +564,7 @@
         "delivered_groups": []
       },
       "requests": [],
-      "link": "syncky://webhook?v=1&name=Vector%20empty&url=https%3A%2F%2Freceiver.example%2Fhook%2Fempty&format=native&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20empty&url=https%3A%2F%2Freceiver.example%2Fhook%2Fempty&format=native&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "hae_bearer_signed_every_shape",
@@ -876,7 +876,7 @@
           "body": "{\"data\":{\"metrics\":[{\"name\":\"apple_stand_hour\",\"units\":\"count\",\"data\":[{\"date\":\"2026-10-14 08:00:00 +0200\",\"qty\":1,\"source\":\"Apple Watch\"}]},{\"name\":\"blood_glucose\",\"units\":\"mg/dL\",\"data\":[{\"date\":\"2026-10-14 08:05:00 +0200\",\"qty\":98.5,\"source\":\"Apple Watch\",\"mealTime\":\"Unspecified\"}]},{\"name\":\"blood_pressure\",\"units\":\"mmHg\",\"data\":[{\"date\":\"2026-10-14 08:15:00 +0200\",\"systolic\":121,\"diastolic\":79,\"source\":\"Apple Watch\"}]},{\"name\":\"handwashing\",\"units\":\"count\",\"data\":[{\"date\":\"2026-10-14 08:30:00 +0200\",\"qty\":21,\"value\":\"Complete\",\"source\":\"Apple Watch\"}]},{\"name\":\"heart_rate\",\"units\":\"count/min\",\"data\":[{\"date\":\"2026-10-14 09:01:03 +0200\",\"Min\":64,\"Avg\":64,\"Max\":64,\"source\":\"Apple Watch\"}]},{\"name\":\"mindful_minutes\",\"units\":\"min\",\"data\":[{\"date\":\"2026-10-14 08:00:00 +0200\",\"qty\":12.5,\"source\":\"Apple Watch\"}]},{\"name\":\"blood_oxygen_saturation\",\"units\":\"%\",\"data\":[{\"date\":\"2026-10-14 08:00:00 +0200\",\"qty\":97,\"source\":\"Apple Watch\"}]},{\"name\":\"sleep_analysis\",\"units\":\"hr\",\"data\":[{\"startDate\":\"2026-10-14 01:10:00 +0200\",\"endDate\":\"2026-10-14 02:40:00 +0200\",\"date\":\"2026-10-14 01:10:00 +0200\",\"qty\":1.5,\"value\":\"Core\",\"source\":\"Apple Watch\"}]},{\"name\":\"step_count\",\"units\":\"count\",\"data\":[{\"date\":\"2026-10-14 03:00:00 +0000\",\"qty\":30,\"source\":\"iPhone\"},{\"date\":\"2026-10-14 09:01:00 +0200\",\"qty\":412,\"source\":\"Apple Watch\"},{\"date\":\"2026-10-25 02:30:00 +0200\",\"qty\":10,\"source\":\"iPhone\"},{\"date\":\"2026-10-25 02:30:00 +0100\",\"qty\":20,\"source\":\"iPhone\"}]}],\"workouts\":[{\"id\":\"0B6F0000-0000-4000-8000-000000000001\",\"name\":\"Running\",\"start\":\"2026-10-14 07:00:00 +0200\",\"end\":\"2026-10-14 07:31:10 +0200\",\"duration\":1870,\"activeEnergyBurned\":{\"qty\":312.4,\"units\":\"kcal\"},\"distance\":{\"qty\":5.02,\"units\":\"km\"}}]}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20hae-every-shape&url=https%3A%2F%2Freceiver.example%2Fhook%2Fhae-every-shape&format=hae&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20hae-every-shape&url=https%3A%2F%2Freceiver.example%2Fhook%2Fhae-every-shape&format=hae&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "hae_header_auth_unsigned_split",
@@ -1262,7 +1262,7 @@
           "body": "{\"data\":{\"metrics\":[{\"name\":\"step_count\",\"units\":\"count\",\"data\":[{\"date\":\"2026-10-14 09:07:00 +0200\",\"qty\":107,\"source\":\"Apple Watch\"},{\"date\":\"2026-10-14 09:08:00 +0200\",\"qty\":108,\"source\":\"Apple Watch\"}]}],\"workouts\":[]}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=%D0%94%D0%BE%D0%BC%D0%B0%D1%88%D0%BD%D0%B8%D0%B9%20%D1%81%D0%B5%D1%80%D0%B2%D0%B5%D1%80&url=https%3A%2F%2Freceiver.example%2Fhook%2Fhae-split&format=hae&auth=header&header=X-Api-Key&token=vec_key_x9VHBdwKQo-KwlcOB9v4cwlAawCa0nF2NWQRO1qLDlI"
+      "link": "https://syncky.app/connect#v=1&name=%D0%94%D0%BE%D0%BC%D0%B0%D1%88%D0%BD%D0%B8%D0%B9%20%D1%81%D0%B5%D1%80%D0%B2%D0%B5%D1%80&url=https%3A%2F%2Freceiver.example%2Fhook%2Fhae-split&format=hae&auth=header&header=X-Api-Key&token=vec_key_x9VHBdwKQo-KwlcOB9v4cwlAawCa0nF2NWQRO1qLDlI"
     },
     {
       "name": "hae_only_deletions_and_unmapped",
@@ -1333,7 +1333,7 @@
         ]
       },
       "requests": [],
-      "link": "syncky://webhook?v=1&name=Vector%20hae-dropped&url=https%3A%2F%2Freceiver.example%2Fhook%2Fhae-dropped&format=hae&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20hae-dropped&url=https%3A%2F%2Freceiver.example%2Fhook%2Fhae-dropped&format=hae&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "native_all_kinds",
@@ -2470,7 +2470,7 @@
           "body": "{\"v\":1,\"type\":\"sync\",\"device\":\"d_zsOZnTQUz_juWFVljuOOBQ\",\"samples\":[{\"uuid\":\"0E0E0000-0000-4000-8000-000000000001\",\"type\":\"workout_route\",\"start\":\"2026-10-14T05:00:00Z\",\"end\":\"2026-10-14T05:31:10Z\",\"workout_uuid\":\"0B6F0000-0000-4000-8000-000000000010\",\"count\":60,\"part\":2,\"parts\":3,\"points\":[[58000,56.956351999999995,24.11778,10.25,null,null,null,null,null,null],[59000,56.956525,24.117998999999998,11.25,4.75,3.5,2.85,0.45,87.5,11.25]],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}}],\"deleted\":[],\"acks\":[],\"more\":false,\"delivery\":{\"destination\":\"wh_6KZ4hhYBbuQt6uX6K8M9Sw\",\"id\":\"01a13940-fe30-785a-8824-1b3f30354839\",\"index\":4,\"count\":5,\"sent_at\":\"2026-10-14T07:12:03.120Z\"}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20all-kinds&url=https%3A%2F%2Freceiver.example%2Fhook%2Fall-kinds&format=native&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20all-kinds&url=https%3A%2F%2Freceiver.example%2Fhook%2Fall-kinds&format=native&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "native_summary_resent",
@@ -2548,7 +2548,7 @@
           "body": "{\"v\":1,\"type\":\"sync\",\"device\":\"d_zsOZnTQUz_juWFVljuOOBQ\",\"samples\":[{\"uuid\":\"activity_summary:2026-10-12\",\"type\":\"activity_summary\",\"date\":\"2026-10-12\",\"move_mode\":\"active_energy\",\"active_energy_kcal\":688.25,\"active_energy_goal_kcal\":650,\"move_time_min\":0,\"move_time_goal_min\":0,\"exercise_time_min\":41.5,\"exercise_time_goal_min\":30,\"stand_hours\":11,\"stand_hours_goal\":12,\"paused\":false}],\"deleted\":[],\"acks\":[],\"more\":false,\"delivery\":{\"destination\":\"wh_6KZ4hhYBbuQt6uX6K8M9Sw\",\"id\":\"01a13940-fe30-7f4b-9b0b-2bb2b24e03d6\",\"index\":0,\"count\":1,\"sent_at\":\"2026-10-14T07:12:03.120Z\"}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20all-kinds&url=https%3A%2F%2Freceiver.example%2Fhook%2Fall-kinds&format=native&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20all-kinds&url=https%3A%2F%2Freceiver.example%2Fhook%2Fall-kinds&format=native&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "hae_routes_and_symptoms",
@@ -2895,7 +2895,7 @@
           "body": "{\"data\":{\"metrics\":[],\"workouts\":[{\"id\":\"0B6F0000-0000-4000-8000-000000000010\",\"name\":\"Running\",\"start\":\"2026-10-14 07:00:00 +0200\",\"end\":\"2026-10-14 07:31:10 +0200\",\"duration\":1870,\"activeEnergyBurned\":{\"qty\":312.4,\"units\":\"kcal\"},\"distance\":{\"qty\":5.02,\"units\":\"km\"},\"heartRate\":{\"min\":{\"qty\":101.5,\"units\":\"bpm\"},\"avg\":{\"qty\":148.25,\"units\":\"bpm\"},\"max\":{\"qty\":172.5,\"units\":\"bpm\"}},\"elevationUp\":{\"qty\":42.5,\"units\":\"m\"},\"elevationDown\":{\"qty\":40.25,\"units\":\"m\"},\"temperature\":{\"qty\":14.5,\"units\":\"degC\"},\"humidity\":{\"qty\":63,\"units\":\"%\"},\"route\":[{\"latitude\":56.946318,\"longitude\":24.105078,\"altitude\":7.25,\"course\":87.5,\"courseAccuracy\":11.25,\"horizontalAccuracy\":4.75,\"verticalAccuracy\":3.5,\"timestamp\":\"2026-10-14 07:00:00 +0200\",\"speed\":2.85,\"speedAccuracy\":0.45},{\"latitude\":56.946490999999995,\"longitude\":24.105297,\"altitude\":8.25,\"course\":87.5,\"courseAccuracy\":11.25,\"horizontalAccuracy\":4.75,\"verticalAccuracy\":3.5,\"timestamp\":\"2026-10-14 07:00:01 +0200\",\"speed\":2.85,\"speedAccuracy\":0.45},{\"latitude\":56.946664,\"longitude\":24.105515999999998,\"altitude\":9.25,\"course\":87.5,\"courseAccuracy\":11.25,\"horizontalAccuracy\":4.75,\"verticalAccuracy\":3.5,\"timestamp\":\"2026-10-14 07:00:02 +0200\",\"speed\":2.85,\"speedAccuracy\":0.45},{\"latitude\":56.946836999999995,\"longitude\":24.105735,\"altitude\":10.25,\"course\":87.5,\"courseAccuracy\":11.25,\"horizontalAccuracy\":4.75,\"verticalAccuracy\":3.5,\"timestamp\":\"2026-10-14 07:00:03 +0200\",\"speed\":2.85,\"speedAccuracy\":0.45},{\"latitude\":56.94701,\"longitude\":24.105954,\"altitude\":11.25,\"course\":null,\"courseAccuracy\":null,\"horizontalAccuracy\":null,\"verticalAccuracy\":null,\"timestamp\":\"2026-10-14 07:00:04 +0200\",\"speed\":null,\"speedAccuracy\":null},{\"latitude\":56.947182999999995,\"longitude\":24.106173,\"altitude\":7.25,\"course\":87.5,\"courseAccuracy\":11.25,\"horizontalAccuracy\":4.75,\"verticalAccuracy\":3.5,\"timestamp\":\"2026-10-14 07:00:05 +0200\",\"speed\":2.85,\"speedAccuracy\":0.45}]}],\"stateOfMind\":[{\"id\":\"0E0D0000-0000-4000-8000-000000000001\",\"start\":\"2026-10-14T06:30:00Z\",\"end\":\"2026-10-14T06:30:00Z\",\"kind\":\"momentary_emotion\",\"labels\":[\"hopeful\",\"grateful\"],\"associations\":[\"fitness\",\"family\"],\"valence\":0.375,\"valenceClassification\":\"pleasant\"}],\"symptoms\":[{\"start\":\"2026-10-14 08:11:00 +0200\",\"end\":\"2026-10-14 09:11:00 +0200\",\"name\":\"Fatigue\",\"severity\":\"Not Present\",\"userEntered\":false,\"source\":\"Apple Watch\"},{\"start\":\"2026-10-14 08:10:00 +0200\",\"end\":\"2026-10-14 09:10:00 +0200\",\"name\":\"Headache\",\"severity\":\"Mild\",\"userEntered\":true,\"source\":\"Apple Watch\"},{\"start\":\"2026-10-14 08:12:00 +0200\",\"end\":\"2026-10-14 09:12:00 +0200\",\"name\":\"Nausea\",\"severity\":\"Present\",\"userEntered\":false,\"source\":\"Apple Watch\"}]}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20hae-routes&url=https%3A%2F%2Freceiver.example%2Fhook%2Fhae-routes&format=hae&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20hae-routes&url=https%3A%2F%2Freceiver.example%2Fhook%2Fhae-routes&format=hae&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "hae_route_too_large",
@@ -3528,7 +3528,7 @@
           "body": "{\"data\":{\"metrics\":[],\"workouts\":[{\"id\":\"0B6F0000-0000-4000-8000-000000000010\",\"name\":\"Running\",\"start\":\"2026-10-14 07:00:00 +0200\",\"end\":\"2026-10-14 07:31:10 +0200\",\"duration\":1870,\"activeEnergyBurned\":{\"qty\":312.4,\"units\":\"kcal\"},\"distance\":{\"qty\":5.02,\"units\":\"km\"},\"heartRate\":{\"min\":{\"qty\":101.5,\"units\":\"bpm\"},\"avg\":{\"qty\":148.25,\"units\":\"bpm\"},\"max\":{\"qty\":172.5,\"units\":\"bpm\"}},\"elevationUp\":{\"qty\":42.5,\"units\":\"m\"},\"elevationDown\":{\"qty\":40.25,\"units\":\"m\"},\"temperature\":{\"qty\":14.5,\"units\":\"degC\"},\"humidity\":{\"qty\":63,\"units\":\"%\"}}]}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20hae-route-too-large&url=https%3A%2F%2Freceiver.example%2Fhook%2Fhae-route-too-large&format=hae&auth=none"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20hae-route-too-large&url=https%3A%2F%2Freceiver.example%2Fhook%2Fhae-route-too-large&format=hae&auth=none"
     },
     {
       "name": "native_basic_signed",
@@ -3606,7 +3606,7 @@
           "body": "{\"v\":1,\"type\":\"sync\",\"device\":\"d_zsOZnTQUz_juWFVljuOOBQ\",\"samples\":[{\"uuid\":\"5E1D0000-0000-4000-8000-000000000001\",\"type\":\"steps\",\"value\":412,\"unit\":\"count\",\"start\":\"2026-10-14T07:01:00Z\",\"end\":\"2026-10-14T07:01:59Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}}],\"deleted\":[],\"acks\":[],\"more\":false,\"delivery\":{\"destination\":\"wh_gfnwJZVXT53r1eLTAcN45A\",\"id\":\"01a13940-fe30-7b6d-95b9-7bd67e9592c1\",\"index\":0,\"count\":1,\"sent_at\":\"2026-10-14T07:12:03.120Z\"}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20basic&url=https%3A%2F%2Freceiver.example%2Fhook%2Fbasic&format=native&auth=basic&user=syncky-phone&token=vec_password_Zf_q46OtVTxtLD_V&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20basic&url=https%3A%2F%2Freceiver.example%2Fhook%2Fbasic&format=native&auth=basic&user=syncky-phone&token=vec_password_Zf_q46OtVTxtLD_V&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "csv_basic_signed_every_kind",
@@ -3933,7 +3933,7 @@
           "body": "type,uuid,start,end,value,unit,value_name,source,device,user_entered\r\ncharacteristic,characteristic:blood_type,,,1,,a_positive,,,\r\nheadache,0C000000-0000-4000-8000-000000000031,2026-10-14T08:20:00+02:00,2026-10-14T09:20:00+02:00,2,,mild,com.apple.Health,Apple Watch,true\r\nheart_rate,4EA70000-0000-4000-8000-000000000001,2026-10-14T09:01:03+02:00,2026-10-14T09:01:03+02:00,64,count/min,,com.apple.Health,Apple Watch,false\r\nsleep_analysis,51EE0000-0000-4000-8000-000000000001,2026-10-14T01:10:00+02:00,2026-10-14T02:40:00+02:00,3,,asleep_core,com.apple.Health,Apple Watch,false\r\nsteps,5E1D0000-0000-4000-8000-000000000001,2026-10-14T09:01:00+02:00,2026-10-14T09:01:59+02:00,412,count,,com.apple.Health,Apple Watch,false\r\nsteps,5E1D0000-0000-4000-8000-000000000084,2026-10-13T22:00:00.250-05:00,2026-10-13T22:00:00.250-05:00,12.5,count,,com.apple.Health,\"Ann's \"\"Watch\"\", left\",false\r\nsteps,5E1D0000-0000-4000-8000-000000000085,2026-10-14T03:30:00Z,2026-10-14T03:30:00Z,30,count,,com.apple.Health,,false\r\nsteps,5E1D0000-0000-4000-8000-000000000099,,,,,deleted,,,\r\nworkout,0B6F0000-0000-4000-8000-000000000001,2026-10-14T07:00:00+02:00,2026-10-14T07:31:10+02:00,1870,s,running,com.apple.Health,Apple Watch,false\r\nworkout,0B6F0000-0000-4000-8000-000000000002,,,,,deleted,,,\r\n"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20csv-every-kind&url=https%3A%2F%2Freceiver.example%2Fhook%2Fcsv-every-kind&format=csv&auth=basic&user=sheet&token=vec_password_Zf_q46OtVTxtLD_V&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20csv-every-kind&url=https%3A%2F%2Freceiver.example%2Fhook%2Fcsv-every-kind&format=csv&auth=basic&user=sheet&token=vec_password_Zf_q46OtVTxtLD_V&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "csv_unsigned_split",
@@ -4140,7 +4140,7 @@
           "body": "type,uuid,start,end,value,unit,value_name,source,device,user_entered\r\nsteps,5E1D0000-0000-4000-8000-000000000006,2026-10-14T09:06:00+02:00,2026-10-14T09:06:59+02:00,106,count,,com.apple.Health,Apple Watch,false\r\nsteps,5E1D0000-0000-4000-8000-000000000007,2026-10-14T09:07:00+02:00,2026-10-14T09:07:59+02:00,107,count,,com.apple.Health,Apple Watch,false\r\nsteps,5E1D0000-0000-4000-8000-000000000008,2026-10-14T09:08:00+02:00,2026-10-14T09:08:59+02:00,108,count,,com.apple.Health,Apple Watch,false\r\n"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20csv-split&url=https%3A%2F%2Freceiver.example%2Fhook%2Fcsv-split&format=csv&auth=none"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20csv-split&url=https%3A%2F%2Freceiver.example%2Fhook%2Fcsv-split&format=csv&auth=none"
     },
     {
       "name": "influx_bearer_signed_every_kind",
@@ -4438,7 +4438,7 @@
           "body": "heart_rate,device=Apple\\ Watch,source=com.apple.Health,unit=count/min value=64 1791961263000000000\nsleep_analysis,device=Apple\\ Watch,source=com.apple.Health value=3,value_name=\"asleep_core\" 1791933000000000000\nsteps,device=Apple\\ Watch,source=com.apple.Health,unit=count value=412 1791961260000000000\nsteps,device=Living\\ room\\,\\ \"Hub\"\\=1,source=com.apple.Health,unit=count value=7 1791950400125000000\nworkout,activity=running,device=Apple\\ Watch,source=com.apple.Health duration_s=1870,energy_kcal=312.4,distance_m=5020 1791954000000000000\nworkout,activity=running,device=Apple\\ Watch,source=com.apple.Health duration_s=1870 1791954000000000000\n"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20influx-every-kind&url=https%3A%2F%2Freceiver.example%2Fhook%2Finflux-every-kind&format=influx&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20influx-every-kind&url=https%3A%2F%2Freceiver.example%2Fhook%2Finflux-every-kind&format=influx&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "influx_header_auth_unsigned_split",
@@ -4680,7 +4680,7 @@
           "body": "steps,device=Apple\\ Watch,source=com.apple.Health,unit=count value=108 1791961680000000000\n"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20influx-split&url=https%3A%2F%2Freceiver.example%2Fhook%2Finflux-split&format=influx&auth=header&header=X-Api-Key&token=vec_key_x9VHBdwKQo-KwlcOB9v4cwlAawCa0nF2NWQRO1qLDlI"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20influx-split&url=https%3A%2F%2Freceiver.example%2Fhook%2Finflux-split&format=influx&auth=header&header=X-Api-Key&token=vec_key_x9VHBdwKQo-KwlcOB9v4cwlAawCa0nF2NWQRO1qLDlI"
     },
     {
       "name": "native_without_deletions",
@@ -4767,7 +4767,7 @@
           "body": "{\"v\":1,\"type\":\"sync\",\"device\":\"d_zsOZnTQUz_juWFVljuOOBQ\",\"samples\":[{\"uuid\":\"5E1D0000-0000-4000-8000-000000000001\",\"type\":\"steps\",\"value\":412,\"unit\":\"count\",\"start\":\"2026-10-14T07:01:00Z\",\"end\":\"2026-10-14T07:01:59Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}}],\"deleted\":[],\"acks\":[],\"more\":false,\"delivery\":{\"destination\":\"wh_FQSTkaUpICRsyce19OPyuQ\",\"id\":\"01a13940-fe30-796a-b0a9-0a2508f3e1a0\",\"index\":0,\"count\":1,\"sent_at\":\"2026-10-14T07:12:03.120Z\"}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20without-deletions&url=https%3A%2F%2Freceiver.example%2Fhook%2Fwithout-deletions&format=native&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20without-deletions&url=https%3A%2F%2Freceiver.example%2Fhook%2Fwithout-deletions&format=native&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "native_resend_false",
@@ -4908,7 +4908,7 @@
           "body": "{\"v\":1,\"type\":\"sync\",\"device\":\"d_zsOZnTQUz_juWFVljuOOBQ\",\"samples\":[{\"uuid\":\"characteristic:blood_type\",\"type\":\"characteristic\",\"name\":\"blood_type\",\"value\":\"a_positive\"},{\"uuid\":\"4EA70000-0000-4000-8000-000000000001\",\"type\":\"heart_rate\",\"value\":64,\"unit\":\"count/min\",\"start\":\"2026-10-14T07:01:03Z\",\"end\":\"2026-10-14T07:01:03Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}},{\"uuid\":\"51EE0000-0000-4000-8000-000000000001\",\"type\":\"sleep_analysis\",\"value\":\"asleep_core\",\"start\":\"2026-10-13T23:10:00Z\",\"end\":\"2026-10-14T00:40:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}},{\"uuid\":\"5E1D0000-0000-4000-8000-000000000001\",\"type\":\"steps\",\"value\":412,\"unit\":\"count\",\"start\":\"2026-10-14T07:01:00Z\",\"end\":\"2026-10-14T07:01:59Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}},{\"uuid\":\"0B6F0000-0000-4000-8000-000000000001\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-14T05:00:00Z\",\"end\":\"2026-10-14T05:31:10Z\",\"duration_s\":1870,\"energy_kcal\":312.4,\"distance_m\":5020,\"location\":\"unknown\",\"metadata\":{},\"events\":[],\"activities\":[],\"statistics\":[],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}}],\"deleted\":[{\"uuid\":\"5E1D0000-0000-4000-8000-000000000099\",\"type\":\"steps\"},{\"uuid\":\"0B6F0000-0000-4000-8000-000000000002\",\"type\":\"workout\"}],\"acks\":[],\"more\":false,\"delivery\":{\"destination\":\"wh_hmf4Hk2wv-D-TUbXkl-UCA\",\"id\":\"01a13940-fe30-7f11-8b29-7a52f0b2c26e\",\"index\":0,\"count\":1,\"sent_at\":\"2026-10-14T07:12:03.120Z\"}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20every-kind&url=https%3A%2F%2Freceiver.example%2Fhook%2Fevery-kind&format=native&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20every-kind&url=https%3A%2F%2Freceiver.example%2Fhook%2Fevery-kind&format=native&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "native_resend_signed_every_kind",
@@ -5049,7 +5049,7 @@
           "body": "{\"v\":1,\"type\":\"sync\",\"device\":\"d_zsOZnTQUz_juWFVljuOOBQ\",\"samples\":[{\"uuid\":\"characteristic:blood_type\",\"type\":\"characteristic\",\"name\":\"blood_type\",\"value\":\"a_positive\"},{\"uuid\":\"4EA70000-0000-4000-8000-000000000001\",\"type\":\"heart_rate\",\"value\":64,\"unit\":\"count/min\",\"start\":\"2026-10-14T07:01:03Z\",\"end\":\"2026-10-14T07:01:03Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}},{\"uuid\":\"51EE0000-0000-4000-8000-000000000001\",\"type\":\"sleep_analysis\",\"value\":\"asleep_core\",\"start\":\"2026-10-13T23:10:00Z\",\"end\":\"2026-10-14T00:40:00Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}},{\"uuid\":\"5E1D0000-0000-4000-8000-000000000001\",\"type\":\"steps\",\"value\":412,\"unit\":\"count\",\"start\":\"2026-10-14T07:01:00Z\",\"end\":\"2026-10-14T07:01:59Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}},{\"uuid\":\"0B6F0000-0000-4000-8000-000000000001\",\"type\":\"workout\",\"activity\":\"running\",\"start\":\"2026-10-14T05:00:00Z\",\"end\":\"2026-10-14T05:31:10Z\",\"duration_s\":1870,\"energy_kcal\":312.4,\"distance_m\":5020,\"location\":\"unknown\",\"metadata\":{},\"events\":[],\"activities\":[],\"statistics\":[],\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}}],\"deleted\":[{\"uuid\":\"5E1D0000-0000-4000-8000-000000000099\",\"type\":\"steps\"},{\"uuid\":\"0B6F0000-0000-4000-8000-000000000002\",\"type\":\"workout\"}],\"acks\":[],\"more\":false,\"delivery\":{\"destination\":\"wh_hmf4Hk2wv-D-TUbXkl-UCA\",\"id\":\"01a13940-fe30-7929-b150-a868f589aff9\",\"index\":0,\"count\":1,\"sent_at\":\"2026-10-14T07:12:03.120Z\",\"resend\":true}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20every-kind&url=https%3A%2F%2Freceiver.example%2Fhook%2Fevery-kind&format=native&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20every-kind&url=https%3A%2F%2Freceiver.example%2Fhook%2Fevery-kind&format=native&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "native_resend_signed_split",
@@ -5294,7 +5294,7 @@
           "body": "{\"v\":1,\"type\":\"sync\",\"device\":\"d_zsOZnTQUz_juWFVljuOOBQ\",\"samples\":[{\"uuid\":\"5E1D0000-0000-4000-8000-000000000007\",\"type\":\"steps\",\"value\":107,\"unit\":\"count\",\"start\":\"2026-10-14T07:07:00Z\",\"end\":\"2026-10-14T07:07:59Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}},{\"uuid\":\"5E1D0000-0000-4000-8000-000000000008\",\"type\":\"steps\",\"value\":108,\"unit\":\"count\",\"start\":\"2026-10-14T07:08:00Z\",\"end\":\"2026-10-14T07:08:59Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}}],\"deleted\":[],\"acks\":[],\"more\":false,\"delivery\":{\"destination\":\"wh_SdmO_d16ZscfB6a0-MhdpQ\",\"id\":\"01a13940-fe30-76aa-8e21-a5fe1217f3a7\",\"index\":2,\"count\":3,\"sent_at\":\"2026-10-14T07:12:03.120Z\",\"resend\":true}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20split&url=https%3A%2F%2Freceiver.example%2Fhook%2Fsplit&format=native&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20split&url=https%3A%2F%2Freceiver.example%2Fhook%2Fsplit&format=native&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "hae_resend_unchanged",
@@ -5607,7 +5607,7 @@
           "body": "{\"data\":{\"metrics\":[{\"name\":\"apple_stand_hour\",\"units\":\"count\",\"data\":[{\"date\":\"2026-10-14 08:00:00 +0200\",\"qty\":1,\"source\":\"Apple Watch\"}]},{\"name\":\"blood_glucose\",\"units\":\"mg/dL\",\"data\":[{\"date\":\"2026-10-14 08:05:00 +0200\",\"qty\":98.5,\"source\":\"Apple Watch\",\"mealTime\":\"Unspecified\"}]},{\"name\":\"blood_pressure\",\"units\":\"mmHg\",\"data\":[{\"date\":\"2026-10-14 08:15:00 +0200\",\"systolic\":121,\"diastolic\":79,\"source\":\"Apple Watch\"}]},{\"name\":\"handwashing\",\"units\":\"count\",\"data\":[{\"date\":\"2026-10-14 08:30:00 +0200\",\"qty\":21,\"value\":\"Complete\",\"source\":\"Apple Watch\"}]},{\"name\":\"heart_rate\",\"units\":\"count/min\",\"data\":[{\"date\":\"2026-10-14 09:01:03 +0200\",\"Min\":64,\"Avg\":64,\"Max\":64,\"source\":\"Apple Watch\"}]},{\"name\":\"mindful_minutes\",\"units\":\"min\",\"data\":[{\"date\":\"2026-10-14 08:00:00 +0200\",\"qty\":12.5,\"source\":\"Apple Watch\"}]},{\"name\":\"blood_oxygen_saturation\",\"units\":\"%\",\"data\":[{\"date\":\"2026-10-14 08:00:00 +0200\",\"qty\":97,\"source\":\"Apple Watch\"}]},{\"name\":\"sleep_analysis\",\"units\":\"hr\",\"data\":[{\"startDate\":\"2026-10-14 01:10:00 +0200\",\"endDate\":\"2026-10-14 02:40:00 +0200\",\"date\":\"2026-10-14 01:10:00 +0200\",\"qty\":1.5,\"value\":\"Core\",\"source\":\"Apple Watch\"}]},{\"name\":\"step_count\",\"units\":\"count\",\"data\":[{\"date\":\"2026-10-14 03:00:00 +0000\",\"qty\":30,\"source\":\"iPhone\"},{\"date\":\"2026-10-14 09:01:00 +0200\",\"qty\":412,\"source\":\"Apple Watch\"},{\"date\":\"2026-10-25 02:30:00 +0200\",\"qty\":10,\"source\":\"iPhone\"},{\"date\":\"2026-10-25 02:30:00 +0100\",\"qty\":20,\"source\":\"iPhone\"}]}],\"workouts\":[{\"id\":\"0B6F0000-0000-4000-8000-000000000001\",\"name\":\"Running\",\"start\":\"2026-10-14 07:00:00 +0200\",\"end\":\"2026-10-14 07:31:10 +0200\",\"duration\":1870,\"activeEnergyBurned\":{\"qty\":312.4,\"units\":\"kcal\"},\"distance\":{\"qty\":5.02,\"units\":\"km\"}}]}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20hae-every-shape&url=https%3A%2F%2Freceiver.example%2Fhook%2Fhae-every-shape&format=hae&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20hae-every-shape&url=https%3A%2F%2Freceiver.example%2Fhook%2Fhae-every-shape&format=hae&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "csv_resend_unchanged",
@@ -5935,7 +5935,7 @@
           "body": "type,uuid,start,end,value,unit,value_name,source,device,user_entered\r\ncharacteristic,characteristic:blood_type,,,1,,a_positive,,,\r\nheadache,0C000000-0000-4000-8000-000000000031,2026-10-14T08:20:00+02:00,2026-10-14T09:20:00+02:00,2,,mild,com.apple.Health,Apple Watch,true\r\nheart_rate,4EA70000-0000-4000-8000-000000000001,2026-10-14T09:01:03+02:00,2026-10-14T09:01:03+02:00,64,count/min,,com.apple.Health,Apple Watch,false\r\nsleep_analysis,51EE0000-0000-4000-8000-000000000001,2026-10-14T01:10:00+02:00,2026-10-14T02:40:00+02:00,3,,asleep_core,com.apple.Health,Apple Watch,false\r\nsteps,5E1D0000-0000-4000-8000-000000000001,2026-10-14T09:01:00+02:00,2026-10-14T09:01:59+02:00,412,count,,com.apple.Health,Apple Watch,false\r\nsteps,5E1D0000-0000-4000-8000-000000000084,2026-10-13T22:00:00.250-05:00,2026-10-13T22:00:00.250-05:00,12.5,count,,com.apple.Health,\"Ann's \"\"Watch\"\", left\",false\r\nsteps,5E1D0000-0000-4000-8000-000000000085,2026-10-14T03:30:00Z,2026-10-14T03:30:00Z,30,count,,com.apple.Health,,false\r\nsteps,5E1D0000-0000-4000-8000-000000000099,,,,,deleted,,,\r\nworkout,0B6F0000-0000-4000-8000-000000000001,2026-10-14T07:00:00+02:00,2026-10-14T07:31:10+02:00,1870,s,running,com.apple.Health,Apple Watch,false\r\nworkout,0B6F0000-0000-4000-8000-000000000002,,,,,deleted,,,\r\n"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20csv-every-kind&url=https%3A%2F%2Freceiver.example%2Fhook%2Fcsv-every-kind&format=csv&auth=basic&user=sheet&token=vec_password_Zf_q46OtVTxtLD_V&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20csv-every-kind&url=https%3A%2F%2Freceiver.example%2Fhook%2Fcsv-every-kind&format=csv&auth=basic&user=sheet&token=vec_password_Zf_q46OtVTxtLD_V&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "influx_resend_unchanged",
@@ -6234,7 +6234,7 @@
           "body": "heart_rate,device=Apple\\ Watch,source=com.apple.Health,unit=count/min value=64 1791961263000000000\nsleep_analysis,device=Apple\\ Watch,source=com.apple.Health value=3,value_name=\"asleep_core\" 1791933000000000000\nsteps,device=Apple\\ Watch,source=com.apple.Health,unit=count value=412 1791961260000000000\nsteps,device=Living\\ room\\,\\ \"Hub\"\\=1,source=com.apple.Health,unit=count value=7 1791950400125000000\nworkout,activity=running,device=Apple\\ Watch,source=com.apple.Health duration_s=1870,energy_kcal=312.4,distance_m=5020 1791954000000000000\nworkout,activity=running,device=Apple\\ Watch,source=com.apple.Health duration_s=1870 1791954000000000000\n"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20influx-every-kind&url=https%3A%2F%2Freceiver.example%2Fhook%2Finflux-every-kind&format=influx&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20influx-every-kind&url=https%3A%2F%2Freceiver.example%2Fhook%2Finflux-every-kind&format=influx&auth=bearer&token=vec_token_N_2Y13AA1iajwMKegGliR7uA-JPcykkrnx_oquTiDU0&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "native_history_summary_only_signed",
@@ -6304,7 +6304,7 @@
           "body": "{\"v\":1,\"type\":\"sync\",\"device\":\"d_zsOZnTQUz_juWFVljuOOBQ\",\"samples\":[],\"deleted\":[],\"acks\":[],\"more\":false,\"summaries\":[{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2024-01-01T00:00:00Z\",\"end\":\"2024-01-02T00:00:00Z\",\"stat\":\"sum\",\"value\":100}],\"delivery\":{\"destination\":\"wh_6KZ4hhYBbuQt6uX6K8M9Sw\",\"id\":\"01a13940-fe30-7ed5-8fc7-3210e8e50c70\",\"index\":0,\"count\":1,\"sent_at\":\"2026-10-14T07:12:03.120Z\",\"resend\":true}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20all-kinds&url=https%3A%2F%2Freceiver.example%2Fhook%2Fall-kinds&format=native&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20all-kinds&url=https%3A%2F%2Freceiver.example%2Fhook%2Fall-kinds&format=native&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "native_history_mixed_signed",
@@ -6400,7 +6400,7 @@
           "body": "{\"v\":1,\"type\":\"sync\",\"device\":\"d_zsOZnTQUz_juWFVljuOOBQ\",\"samples\":[{\"uuid\":\"5E1D0000-0000-4000-8000-000000000001\",\"type\":\"steps\",\"value\":412,\"unit\":\"count\",\"start\":\"2026-10-14T07:01:00Z\",\"end\":\"2026-10-14T07:01:59Z\",\"source\":{\"app\":\"com.apple.Health\",\"device\":\"Apple Watch\"}}],\"deleted\":[],\"acks\":[],\"more\":false,\"summaries\":[{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2024-01-01T00:00:00Z\",\"end\":\"2024-01-02T00:00:00Z\",\"stat\":\"sum\",\"value\":100},{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2024-01-02T00:00:00Z\",\"end\":\"2024-01-03T00:00:00Z\",\"stat\":\"sum\",\"value\":200}],\"delivery\":{\"destination\":\"wh_6KZ4hhYBbuQt6uX6K8M9Sw\",\"id\":\"01a13940-fe30-758b-a0c6-29fcb19b5840\",\"index\":0,\"count\":1,\"sent_at\":\"2026-10-14T07:12:03.120Z\",\"resend\":true}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20all-kinds&url=https%3A%2F%2Freceiver.example%2Fhook%2Fall-kinds&format=native&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20all-kinds&url=https%3A%2F%2Freceiver.example%2Fhook%2Fall-kinds&format=native&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     },
     {
       "name": "native_history_summaries_split_signed",
@@ -6542,7 +6542,7 @@
           "body": "{\"v\":1,\"type\":\"sync\",\"device\":\"d_zsOZnTQUz_juWFVljuOOBQ\",\"samples\":[],\"deleted\":[],\"acks\":[],\"more\":false,\"summaries\":[{\"type\":\"steps\",\"unit\":\"count\",\"start\":\"2024-01-04T00:00:00Z\",\"end\":\"2024-01-05T00:00:00Z\",\"stat\":\"sum\",\"value\":400}],\"delivery\":{\"destination\":\"wh_6KZ4hhYBbuQt6uX6K8M9Sw\",\"id\":\"01a13940-fe30-7930-818c-54fd935efd7e\",\"index\":3,\"count\":4,\"sent_at\":\"2026-10-14T07:12:03.120Z\",\"resend\":true}}"
         }
       ],
-      "link": "syncky://webhook?v=1&name=Vector%20all-kinds&url=https%3A%2F%2Freceiver.example%2Fhook%2Fall-kinds&format=native&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
+      "link": "https://syncky.app/connect#v=1&name=Vector%20all-kinds&url=https%3A%2F%2Freceiver.example%2Fhook%2Fall-kinds&format=native&auth=none&hmac=whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c"
     }
   ]
 }

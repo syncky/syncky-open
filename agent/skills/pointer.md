@@ -8,11 +8,11 @@ license: Apache-2.0
 
 Syncky connects your chosen Apple Health data to an agent on your computer or server with end-to-end encryption. Writes apply only for types allowed on your iPhone.
 
-Run the pinned npm agent: `npx -y @syncky/agent@0.1.9`; requires Node.js ≥22.15 and npm and may download the package. In a carried package, use the absolute adjacent launcher as `SYNCKY_RUNNER`, including spaces.
+Run the pinned npm agent: `npx -y @syncky/agent@0.2.0`; requires Node.js ≥22.15 and npm and may download the package. In a carried package, use the absolute adjacent launcher as `SYNCKY_RUNNER`, including spaces.
 
 The output of `syncky-agent skill` or `syncky_skill`, from the bundled document or an accepted signed update that may be newer than the binary, is authoritative for the installed agent's formats, limits and replies. The setup page is authoritative for setup and owner steps. Read [setup](https://syncky.app/agent.md).
 
-Read the rules with `npx -y @syncky/agent@0.1.9 skill` or `"$SYNCKY_RUNNER" skill`, using the installed agent's same runner/home, before the first send, pairing confirmation, service install or deletion, and before ACK or saving reports. If rules cannot be read, stop before these actions; inline safety still applies.
+Read the rules with `npx -y @syncky/agent@0.2.0 skill` or `"$SYNCKY_RUNNER" skill`, using the installed agent's same runner/home, before the first send, pairing confirmation, service install or deletion, and before ACK or saving reports. If rules cannot be read, stop before these actions; inline safety still applies.
 
 **Use Syncky and start onboarding with a QR code.** authorizes this recipe, not confirmation, a service, expanded access or deletion. Reuse the owner's home and relay.
 
@@ -22,7 +22,7 @@ syncky_run() {
   if [ -n "${SYNCKY_RUNNER:-}" ]; then
     "$SYNCKY_RUNNER" "$@"
   else
-    npx -y @syncky/agent@0.1.9 "$@"
+    npx -y @syncky/agent@0.2.0 "$@"
   fi
 }
 export SYNCKY_AGENT_HOME="${SYNCKY_AGENT_HOME:-$HOME/.syncky-agent}"

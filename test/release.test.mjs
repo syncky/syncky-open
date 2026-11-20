@@ -1,9 +1,10 @@
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { cp, rm } from "node:fs/promises";
+import { availableParallelism, tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -16,13 +17,35 @@ const hash = (path) => createHash("sha256").update(readFileSync(path)).digest("h
 const version = json(join(SOURCE, "agent/package.json")).version;
 const config = { command: "npx", args: ["-y", `@syncky/agent@${version}`, "mcp"] };
 const description = "Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone.";
-const registryDescription = "Apple Health data, end-to-end encrypted between iPhone and local Syncky agent, allowed write-back";
+const registryDescription = "Apple Health → your own AI agent over an end-to-end encrypted relay; per-type write-back; no account";
 const offline = { npm_config_offline: "true", npm_config_audit: "false", npm_config_fund: "false", npm_config_update_notifier: "false" };
 const assets = ["syncky-agent.mjs", "syncky-agent.mjs.sha256", "syncky-health.mcpb", "syncky-health.mcpb.sha256", "SHA256SUMS", "server.json",
   ...["claude-code", "codex", "clawhub", "clawhub-light", "skills"].map((name) => `syncky-agent-${name}.tar.gz`)].sort();
 
+const RELEASE_CASE_CONCURRENCY = Math.max(1, Math.min(4, availableParallelism() - 1));
+
 function run(args, cwd, env = {}) {
-  return spawnSync(process.execPath, args, { cwd, env: { ...process.env, ...offline, ...env }, encoding: "utf8", timeout: 120_000, maxBuffer: 4 * 1024 * 1024 });
+  return new Promise((done) => {
+    const child = spawn(process.execPath, args, { cwd, env: { ...process.env, ...offline, ...env }, stdio: ["ignore", "pipe", "pipe"] });
+    const output = { stdout: "", stderr: "" };
+    let error = null;
+    const stop = (code) => {
+      error ??= Object.assign(new Error(code), { code });
+      child.kill("SIGKILL");
+    };
+    for (const name of ["stdout", "stderr"]) {
+      child[name].setEncoding("utf8").on("data", (chunk) => {
+        output[name] += chunk;
+        if (output.stdout.length + output.stderr.length > 4 * 1024 * 1024) stop("ENOBUFS");
+      });
+    }
+    const timer = setTimeout(() => stop("ETIMEDOUT"), 120_000);
+    child.on("error", (err) => { error ??= err; });
+    child.on("close", (status, signal) => {
+      clearTimeout(timer);
+      done({ status, signal, ...output, error });
+    });
+  });
 }
 
 function manifests(root) {
@@ -86,11 +109,13 @@ function manifests(root) {
 
 describe("public installation manifests", () => {
   it("opens both READMEs with user-facing copy and preserves privacy and installation links", () => {
-    const lede = "Syncky Health sends the Apple Health data you choose from your iPhone to your own AI agent (local MCP server) or your own server. The AI agent route is end-to-end encrypted. Your agent and your server can both write entries back into Health once you allow writing on the iPhone.";
+    const lede = "Syncky Health sends the Apple Health data you choose from your iPhone to your own AI agent, such as Claude Code, OpenClaw, Hermes or Codex (local MCP server or shell skill), or your own server. The AI agent route is end-to-end encrypted. Your agent and your server can both write entries back into Health once you allow writing on the iPhone. Free during launch; plans are coming later ([pricing](https://syncky.app/pricing)). No Syncky account required.";
     const readme = readFileSync(join(PUBLIC, "README.md"), "utf8");
     const agentReadme = readFileSync(join(SOURCE, "agent/README.md"), "utf8");
-    for (const text of [readme, agentReadme]) assert.equal(text.split("\n\n")[1], lede);
-    assert.equal(readme.split("\n\n")[2], "Client health-data envelopes are end-to-end encrypted (HPKE Auth + ChaCha20-Poly1305): the relay sees delivery metadata and emits plaintext hub notices, but sees no health values. The app can also send straight to a server the user runs, with no relay at all. The user's agent or server receives plaintext, and a chosen model sees what the agent supplies.");
+    assert.equal(readme.split("\n\n")[1], "Apple Health → your own AI agent over an end-to-end encrypted relay, with per-type write-back into Health; no account.");
+    assert.equal(readme.split("\n\n")[2], lede);
+    assert.equal(agentReadme.split("\n\n")[1], lede);
+    assert.equal(readme.split("\n\n")[3], "Client health-data envelopes are end-to-end encrypted (HPKE Auth + ChaCha20-Poly1305): the relay sees delivery metadata and emits plaintext hub notices, but sees no health values. The app can also send straight to a server the user runs, with no relay at all. The user's agent or server receives plaintext, and a chosen model sees what the agent supplies.");
     assert.match(agentReadme.split("\n\n")[2], /^A Node.js ≥22.15 encrypted transport/);
     assert.ok(readme.includes("https://syncky.app"));
     assert.ok(readme.includes("https://apps.apple.com/app/id6827472070"));
@@ -187,7 +212,7 @@ describe("public installation manifests", () => {
   });
 });
 
-describe("Registry generation and release gates", () => {
+describe("Registry generation and release gates", { concurrency: RELEASE_CASE_CONCURRENCY }, () => {
   let base, source, env, prepared;
   before(async () => {
     base = mkdtempSync(join(tmpdir(), "syncky-release-contract-"));
@@ -207,14 +232,33 @@ describe("Registry generation and release gates", () => {
     const { buildAgent } = await import(pathToFileURL(join(source, "agent/build.mjs")));
     await buildAgent();
     env = { GITHUB_REPOSITORY: "syncky/syncky-open", GITHUB_REF_TYPE: "tag", GITHUB_REF_NAME: `v${pkg.version}` };
-    prepared = run(["release.mjs", "prepare", join(base, "prepared")], source, env);
+    prepared = await run(["release.mjs", "prepare", join(base, "prepared")], source, env);
     assert.equal(prepared.status, 0, prepared.stderr);
+    const keep = new Set(["package.json", "package-lock.json", "LICENSE", "NOTICE", "README.md", "dist"]);
+    for (const name of readdirSync(join(source, "agent"))) if (!keep.has(name)) renameSync(join(source, "agent", name), join(base, `unused-agent-${name}`));
+    for (const entry of readdirSync(join(source, "agent/dist"), { withFileTypes: true })) if (entry.isDirectory()) renameSync(join(source, "agent/dist", entry.name), join(base, `unused-dist-${entry.name}`));
+    for (const name of ["protocol", "test"]) renameSync(join(source, name), join(base, `unused-${name}`));
   });
   after(() => { if (base) rmSync(base, { recursive: true, force: true }); });
 
-  function fixture(t) {
+  // Each case needs a private writable tree, so the shared one keeps only what release.mjs reads after
+  // prepare. Per-file metadata dominates under load, and libuv's COPYFILE_FICLONE does not clone on
+  // macOS, so APFS clones go through cp -c.
+  async function copySource(root) {
+    if (process.platform !== "darwin") return cp(source, root, { recursive: true });
+    const result = await new Promise((done) => {
+      const child = spawn("/bin/cp", ["-cR", `${source}/`, root], { stdio: ["ignore", "ignore", "pipe"] });
+      let stderr = "";
+      child.stderr.setEncoding("utf8").on("data", (chunk) => { stderr += chunk; });
+      child.on("error", (error) => done({ status: null, stderr: error.message }));
+      child.on("close", (status) => done({ status, stderr }));
+    });
+    assert.equal(result.status, 0, result.stderr);
+  }
+
+  async function fixture(t) {
     const root = mkdtempSync(join(base, "case-"));
-    cpSync(source, root, { recursive: true, filter: (path) => path !== join(source, "agent/node_modules") });
+    await copySource(root);
     const bin = join(root, "stub-bin");
     mkdirSync(bin);
     const log = join(root, "side-effects.jsonl");
@@ -337,13 +381,13 @@ if (command === 'npm' && args[0] === 'view') {
       writeFileSync(join(bin, name), stub);
       chmodSync(join(bin, name), 0o755);
     }
-    t.after(() => rmSync(root, { recursive: true, force: true }));
+    t.after(() => rm(root, { recursive: true, force: true }));
     return { root, release: join(root, "release"), log, state, env: { ...env, PATH: `${bin}:${process.env.PATH}`, EFFECTS: log, REMOTE: state,
       RELEASE_NPM_WAIT_ATTEMPTS: "4", RELEASE_NPM_WAIT_SECONDS: "0" } };
   }
 
-  const prepare = (fx) => {
-    cpSync(join(base, "prepared"), fx.release, { recursive: true });
+  const prepare = async (fx) => {
+    await cp(join(base, "prepared"), fx.release, { recursive: true });
     return prepared;
   };
   const publish = (fx) => run(["release.mjs", "publish", fx.release], fx.root, fx.env);
@@ -359,14 +403,14 @@ if (command === 'npm' && args[0] === 'view') {
   });
 
   for (const asset of ["mcp-publisher_linux_amd64.tar.gz", "registry_1.8.7_checksums.txt"]) {
-    it(`names the failed publisher download without exposing command output (${asset})`, (t) => {
-      const fx = fixture(t);
+    it(`names the failed publisher download without exposing command output (${asset})`, async (t) => {
+      const fx = await fixture(t);
       const payload = join(fx.root, "download-fixture");
       writeFileSync(payload, "download fixture");
       updateRemote(fx, { downloadError: asset, downloads: {
         "mcp-publisher_linux_amd64.tar.gz": payload, "registry_1.8.7_checksums.txt": payload,
       } });
-      const result = run(["release.mjs", "install-publisher", join(fx.root, "publisher-bin")], fx.root, fx.env);
+      const result = await run(["release.mjs", "install-publisher", join(fx.root, "publisher-bin")], fx.root, fx.env);
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
       assert.equal(result.stderr, `release: publisher download failed: ${asset}: curl (exit 1)\n`);
@@ -375,8 +419,8 @@ if (command === 'npm' && args[0] === 'view') {
   }
 
   for (const failure of [null, "checksums", "archive", "swapped-release"]) {
-    it(`verifies both publisher checksums before extraction (${failure ?? "valid"})`, (t) => {
-      const fx = fixture(t);
+    it(`verifies both publisher checksums before extraction (${failure ?? "valid"})`, async (t) => {
+      const fx = await fixture(t);
       const archive = join(fx.root, "mcp-publisher_linux_amd64.tar.gz"), sums = join(fx.root, "registry_1.8.7_checksums.txt");
       const unpack = join(fx.root, "publisher-fixture"), install = join(fx.root, "publisher-bin"), githubPath = join(fx.root, "github-path");
       mkdirSync(unpack);
@@ -387,7 +431,7 @@ if (command === 'npm' && args[0] === 'view') {
       writeFileSync(sums, `${failure === "checksums" ? "0".repeat(64) : failure === "swapped-release" ? hash(archive) : expected}  mcp-publisher_linux_amd64.tar.gz\n`);
       updateRemote(fx, { downloads: { "mcp-publisher_linux_amd64.tar.gz": archive, "registry_1.8.7_checksums.txt": sums } });
       const script = `import { installPublisher, MCP_PUBLISHER } from './release.mjs'; installPublisher(process.cwd(), ${JSON.stringify(install)}, process.env, { ...MCP_PUBLISHER, sha256: ${JSON.stringify(expected)} });`;
-      const result = run(["--input-type=module", "-e", script], fx.root, { ...fx.env, GITHUB_PATH: githubPath });
+      const result = await run(["--input-type=module", "-e", script], fx.root, { ...fx.env, GITHUB_PATH: githubPath });
       assert.equal(result.status === 0, failure === null, result.stderr);
       assert.equal(existsSync(join(install, "mcp-publisher")), failure === null);
       assert.equal(existsSync(githubPath), failure === null);
@@ -401,12 +445,12 @@ if (command === 'npm' && args[0] === 'view') {
     });
   }
 
-  it("logs in through OIDC and publishes only the generated Registry file after npm and GitHub", (t) => {
-    const fx = fixture(t);
-    assert.equal(prepare(fx).status, 0);
-    assert.equal(publish(fx).status, 0);
+  it("logs in through OIDC and publishes only the generated Registry file after npm and GitHub", async (t) => {
+    const fx = await fixture(t);
+    assert.equal((await prepare(fx)).status, 0);
+    assert.equal((await publish(fx)).status, 0);
     const offset = calls(fx).length;
-    const result = registry(fx);
+    const result = await registry(fx);
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /Registry publish response/);
     assert.match(result.stderr, /Registry validation issue: mcpName mismatch \(HTTP 422\)/);
@@ -421,7 +465,7 @@ if (command === 'npm' && args[0] === 'view') {
     ]);
     assert.equal(generated.packages[1].fileSha256, hash(join(fx.release, "syncky-health.mcpb")));
     const completed = calls(fx).length;
-    const resumed = registry(fx);
+    const resumed = await registry(fx);
     assert.equal(resumed.status, 0, resumed.stderr);
     assert.match(resumed.stdout, /already exists.*skip/i);
     assert.deepEqual(calls(fx).slice(completed).map((call) => call[0]), ["npm", "curl"]);
@@ -429,14 +473,14 @@ if (command === 'npm' && args[0] === 'view') {
   });
 
   for (const patch of [{ registryStatus: 401 }, { registryStatus: 403 }, { registryStatus: 429 }, { registryStatus: 500 }, { registryStatus: 302 }, { registryError: true }, { publisherError: "login" }, { publisherError: "publish" }]) {
-    it(`fails Registry errors without rolling back npm or GitHub: ${JSON.stringify(patch)}`, (t) => {
-      const fx = fixture(t);
-      assert.equal(prepare(fx).status, 0);
-      assert.equal(publish(fx).status, 0);
+    it(`fails Registry errors without rolling back npm or GitHub: ${JSON.stringify(patch)}`, async (t) => {
+      const fx = await fixture(t);
+      assert.equal((await prepare(fx)).status, 0);
+      assert.equal((await publish(fx)).status, 0);
       const published = json(fx.state);
       updateRemote(fx, patch);
       const offset = calls(fx).length;
-      const result = registry(fx);
+      const result = await registry(fx);
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, /MCP Registry .*failed/);
       assert.doesNotMatch(result.stdout + result.stderr, /sensitive authentication output/);
@@ -462,25 +506,25 @@ if (command === 'npm' && args[0] === 'view') {
       assert.deepEqual(json(fx.state).npm, published.npm);
       assert.deepEqual(json(fx.state).release, published.release);
       updateRemote(fx, { registryStatus: 404, registryError: false, publisherError: null });
-      assert.equal(registry(fx).status, 0);
+      assert.equal((await registry(fx)).status, 0);
     });
   }
 
-  it("rejects a tampered Registry asset before lookup or authentication", (t) => {
-    const fx = fixture(t);
-    assert.equal(prepare(fx).status, 0);
+  it("rejects a tampered Registry asset before lookup or authentication", async (t) => {
+    const fx = await fixture(t);
+    assert.equal((await prepare(fx)).status, 0);
     writeFileSync(join(fx.release, "server.json"), readFileSync(join(fx.root, "server.json")));
-    assert.notEqual(registry(fx).status, 0);
+    assert.notEqual((await registry(fx)).status, 0);
     assert.equal(existsSync(fx.log), false);
   });
 
-  it("generates deterministic Registry bytes from actual MCPB bytes outside the build output", (t) => {
-    const fx = fixture(t);
+  it("generates deterministic Registry bytes from actual MCPB bytes outside the build output", async (t) => {
+    const fx = await fixture(t);
     const output = join(fx.root, "generated/server.json");
     const args = ["prepare-registry.mjs", "server.json", "agent/package.json", "agent/dist", output];
-    assert.equal(run(args, fx.root).status, 0);
+    assert.equal((await run(args, fx.root)).status, 0);
     const first = readFileSync(output);
-    assert.equal(run(args, fx.root).status, 0);
+    assert.equal((await run(args, fx.root)).status, 0);
     assert.ok(first.equals(readFileSync(output)));
     const generated = json(output);
     assert.equal(generated.description, registryDescription);
@@ -489,7 +533,7 @@ if (command === 'npm' && args[0] === 'view') {
     assert.equal(generated.packages[1].fileSha256, hash(join(fx.root, "agent/dist/syncky-health.mcpb")));
     assert.equal(Object.hasOwn(json(join(fx.root, "server.json")).packages[1], "fileSha256"), false);
     for (const bad of ["server.json", "agent/dist/server.json", "agent/dist/nested/server.json"]) {
-      const result = run([...args.slice(0, -1), bad], fx.root);
+      const result = await run([...args.slice(0, -1), bad], fx.root);
       assert.notEqual(result.status, 0, `unsafe output accepted: ${bad}`);
     }
   });
@@ -515,25 +559,25 @@ if (command === 'npm' && args[0] === 'view') {
     ["checksum list", (fx) => writeFileSync(join(fx.root, "agent/dist/SHA256SUMS"), "invalid\n")],
     ["MCPB bytes", (fx) => writeFileSync(join(fx.root, "agent/dist/syncky-health.mcpb"), "tampered")],
   ]) {
-    it(`rejects ${label} before writing a Registry asset or running side effects`, (t) => {
-      const fx = fixture(t);
+    it(`rejects ${label} before writing a Registry asset or running side effects`, async (t) => {
+      const fx = await fixture(t);
       mutate(fx);
       const output = join(fx.root, "generated/server.json");
-      assert.notEqual(run(["prepare-registry.mjs", "server.json", "agent/package.json", "agent/dist", output], fx.root).status, 0);
+      assert.notEqual((await run(["prepare-registry.mjs", "server.json", "agent/package.json", "agent/dist", output], fx.root)).status, 0);
       assert.equal(existsSync(output), false);
-      assert.notEqual(publish(fx).status, 0);
+      assert.notEqual((await publish(fx)).status, 0);
       assert.equal(existsSync(fx.log), false);
     });
   }
 
-  it("publishes only the tested tarball and attaches exactly the verified release assets", (t) => {
-    const fx = fixture(t);
-    const prepared = prepare(fx);
+  it("publishes only the tested tarball and attaches exactly the verified release assets", async (t) => {
+    const fx = await fixture(t);
+    const prepared = await prepare(fx);
     assert.equal(prepared.status, 0, prepared.stderr);
     const receipt = json(join(fx.release, "release.json"));
     assert.deepEqual(Object.keys(receipt.assets).sort(), assets);
     for (const [name, digest] of Object.entries(receipt.assets)) assert.equal(hash(join(fx.release, name)), digest);
-    const published = publish(fx);
+    const published = await publish(fx);
     assert.equal(published.status, 0, published.stderr);
     assert.deepEqual(calls(fx), [
       ["npm", "view", `@syncky/agent@${receipt.version}`, "version", "dist.integrity", "--json", "--prefer-online"],
@@ -552,22 +596,22 @@ if (command === 'npm' && args[0] === 'view') {
   });
 
   for (const output of ["", " \n\t"]) {
-    it(`publishes a missing version when npm view succeeds with ${JSON.stringify(output)} output`, (t) => {
-      const fx = fixture(t);
-      assert.equal(prepare(fx).status, 0);
+    it(`publishes a missing version when npm view succeeds with ${JSON.stringify(output)} output`, async (t) => {
+      const fx = await fixture(t);
+      assert.equal((await prepare(fx)).status, 0);
       updateRemote(fx, { npmEmpty: output });
-      const result = publish(fx);
+      const result = await publish(fx);
       assert.equal(result.status, 0, result.stderr);
       assert.equal(calls(fx).filter((call) => call[0] === "npm" && call[1] === "publish").length, 1);
       assert.equal(json(fx.state).release.draft, false);
     });
   }
 
-  it("waits for npm visibility and integrity after publishing and again before touching the Registry", (t) => {
-    const fx = fixture(t);
-    assert.equal(prepare(fx).status, 0);
+  it("waits for npm visibility and integrity after publishing and again before touching the Registry", async (t) => {
+    const fx = await fixture(t);
+    assert.equal((await prepare(fx)).status, 0);
     updateRemote(fx, { npmPublishLag: 2 });
-    const published = publish(fx);
+    const published = await publish(fx);
     assert.equal(published.status, 0, published.stderr);
     assert.deepEqual(calls(fx).slice(0, 5).map((call) => call.slice(0, 2)), [
       ["npm", "view"], ["npm", "publish"], ["npm", "view"], ["npm", "view"], ["npm", "view"],
@@ -575,23 +619,23 @@ if (command === 'npm' && args[0] === 'view') {
     assert.equal(calls(fx)[5][0], "gh");
     updateRemote(fx, { npmViewLag: 3 });
     const offset = calls(fx).length;
-    const result = registry(fx);
+    const result = await registry(fx);
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(calls(fx).slice(offset, offset + 4), Array(4).fill(npmView(fx)));
     assert.deepEqual(calls(fx).slice(offset + 4).map((call) => call[0]), ["curl", "mcp-publisher", "mcp-publisher"]);
   });
 
   for (const stage of ["publish", "registry"]) {
-    it(`bounds ${stage} visibility failures without touching the Registry`, (t) => {
-      const fx = fixture(t);
-      assert.equal(prepare(fx).status, 0);
-      if (stage === "registry") assert.equal(publish(fx).status, 0);
+    it(`bounds ${stage} visibility failures without touching the Registry`, async (t) => {
+      const fx = await fixture(t);
+      assert.equal((await prepare(fx)).status, 0);
+      if (stage === "registry") assert.equal((await publish(fx)).status, 0);
       updateRemote(fx, stage === "publish" ? { npmPublishNoop: true } : { npmNeverVisible: true });
       fx.env.RELEASE_NPM_WAIT_ATTEMPTS = "3";
       fx.env.RELEASE_NPM_WAIT_SECONDS = "0.001";
       const offset = existsSync(fx.log) ? calls(fx).length : 0;
       const before = json(fx.state);
-      const result = stage === "publish" ? publish(fx) : registry(fx);
+      const result = stage === "publish" ? await publish(fx) : await registry(fx);
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
       assert.equal(result.stderr, `release: npm @syncky/agent@${json(join(fx.release, "release.json")).version} not visible after 3 attempts (0.003s waited)\n`);
@@ -602,16 +646,16 @@ if (command === 'npm' && args[0] === 'view') {
       assert.deepEqual(json(fx.state).release, before.release);
       assert.deepEqual(json(fx.state).npm, before.npm);
       updateRemote(fx, { npmPublishNoop: false, npmNeverVisible: false });
-      assert.equal(publish(fx).status, 0);
-      assert.equal(registry(fx).status, 0);
+      assert.equal((await publish(fx)).status, 0);
+      assert.equal((await registry(fx)).status, 0);
     });
   }
 
-  it("defaults to thirty npm visibility attempts", (t) => {
-    const fx = fixture(t);
-    assert.equal(prepare(fx).status, 0);
+  it("defaults to thirty npm visibility attempts", async (t) => {
+    const fx = await fixture(t);
+    assert.equal((await prepare(fx)).status, 0);
     delete fx.env.RELEASE_NPM_WAIT_ATTEMPTS;
-    const result = registry(fx);
+    const result = await registry(fx);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /not visible after 30 attempts \(0s waited\)/);
     assert.deepEqual(calls(fx), Array(30).fill(npmView(fx)));
@@ -633,14 +677,14 @@ if (command === 'npm' && args[0] === 'view') {
   });
 
   for (const code of ["EPUBLISHCONFLICT", "E403", "E409"]) {
-    it(`resumes a publish rerun after a stale npm view and ${code}`, (t) => {
-      const fx = fixture(t);
-      assert.equal(prepare(fx).status, 0);
-      assert.equal(publish(fx).status, 0);
+    it(`resumes a publish rerun after a stale npm view and ${code}`, async (t) => {
+      const fx = await fixture(t);
+      assert.equal((await prepare(fx)).status, 0);
+      assert.equal((await publish(fx)).status, 0);
       const before = json(fx.state);
       updateRemote(fx, { npmViewLag: 3, npmConflictCode: code });
       const offset = calls(fx).length;
-      const result = publish(fx);
+      const result = await publish(fx);
       assert.equal(result.status, 0, result.stderr);
       const effects = calls(fx).slice(offset);
       assert.equal(effects.filter((call) => call[1] === "publish").length, 1);
@@ -652,14 +696,14 @@ if (command === 'npm' && args[0] === 'view') {
   }
 
   for (const stage of ["publish", "registry", "conflict"]) {
-    it(`rejects visible npm integrity mismatches during ${stage}`, (t) => {
-      const fx = fixture(t);
-      assert.equal(prepare(fx).status, 0);
-      if (stage !== "publish") assert.equal(publish(fx).status, 0);
+    it(`rejects visible npm integrity mismatches during ${stage}`, async (t) => {
+      const fx = await fixture(t);
+      assert.equal((await prepare(fx)).status, 0);
+      if (stage !== "publish") assert.equal((await publish(fx)).status, 0);
       if (stage === "publish") updateRemote(fx, { npmPublishedIntegrity: "sha512-different" });
       else updateRemote(fx, { npm: { ...json(fx.state).npm, "dist.integrity": "sha512-different" }, npmViewLag: stage === "conflict" ? 2 : 0 });
       const offset = existsSync(fx.log) ? calls(fx).length : 0;
-      const result = stage === "registry" ? registry(fx) : publish(fx);
+      const result = stage === "registry" ? await registry(fx) : await publish(fx);
       assert.equal(result.status, 1);
       assert.match(result.stderr, /existing npm version\/integrity mismatch/);
       assert.ok(calls(fx).slice(offset).every((call) => call[0] === "npm"));
@@ -667,11 +711,11 @@ if (command === 'npm' && args[0] === 'view') {
   }
 
   for (const command of ["npm view", "npm publish", "gh api", "gh release"]) {
-    it(`names a failing ${command} without exposing output or arguments`, (t) => {
-      const fx = fixture(t);
-      assert.equal(prepare(fx).status, 0);
+    it(`names a failing ${command} without exposing output or arguments`, async (t) => {
+      const fx = await fixture(t);
+      assert.equal((await prepare(fx)).status, 0);
       updateRemote(fx, { commandFailure: command });
-      const result = publish(fx);
+      const result = await publish(fx);
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
       assert.equal(result.stderr, `release: local command failed: ${command} (exit 1)\n`);
@@ -680,11 +724,11 @@ if (command === 'npm' && args[0] === 'view') {
     });
   }
 
-  it("names the signal that killed npm publish without exposing output or arguments", (t) => {
-    const fx = fixture(t);
-    assert.equal(prepare(fx).status, 0);
+  it("names the signal that killed npm publish without exposing output or arguments", async (t) => {
+    const fx = await fixture(t);
+    assert.equal((await prepare(fx)).status, 0);
     updateRemote(fx, { commandFailure: "npm publish", commandSignal: "SIGTERM" });
-    const result = publish(fx);
+    const result = await publish(fx);
     assert.equal(result.status, 1);
     assert.equal(result.stdout, "");
     assert.equal(result.stderr, "release: local command failed: npm publish (signal SIGTERM)\n");
@@ -692,27 +736,27 @@ if (command === 'npm' && args[0] === 'view') {
     assert.equal(calls(fx).at(-1).slice(0, 2).join(" "), "npm publish");
   });
 
-  it("does not expose a malformed command response in a JSON parse error", (t) => {
-    const fx = fixture(t);
-    assert.equal(prepare(fx).status, 0);
+  it("does not expose a malformed command response in a JSON parse error", async (t) => {
+    const fx = await fixture(t);
+    assert.equal((await prepare(fx)).status, 0);
     updateRemote(fx, { commandResponse: "npm view" });
-    const result = publish(fx);
+    const result = await publish(fx);
     assert.equal(result.status, 1);
     assert.equal(result.stdout, "");
     assert.equal(result.stderr, "release: invalid JSON response\n");
     assert.deepEqual(calls(fx), [npmView(fx)]);
   });
 
-  it("publishes downloaded prepared assets without dependencies, a build tree or executing the bundle", (t) => {
-    const fx = fixture(t);
-    assert.equal(prepare(fx).status, 0);
+  it("publishes downloaded prepared assets without dependencies, a build tree or executing the bundle", async (t) => {
+    const fx = await fixture(t);
+    assert.equal((await prepare(fx)).status, 0);
     rmSync(join(fx.root, "agent/dist"), { recursive: true });
     assert.equal(existsSync(join(fx.root, "agent/node_modules")), false);
     const audit = join(fx.root, "audit.cjs"), log = join(fx.root, "executions.jsonl");
     writeFileSync(audit, `require('node:fs').appendFileSync(process.env.EXEC_LOG, JSON.stringify(process.argv) + '\\n');\n`);
     fx.env.NODE_OPTIONS = `--require=${audit}`;
     fx.env.EXEC_LOG = log;
-    const result = publish(fx);
+    const result = await publish(fx);
     assert.equal(result.status, 0, result.stderr);
     const executions = readFileSync(log, "utf8").trim().split("\n").map(JSON.parse);
     assert.ok(executions.some((args) => args.includes("publish")));
@@ -720,12 +764,12 @@ if (command === 'npm' && args[0] === 'view') {
   });
 
   for (const failure of ["create-before", "create-after", "upload", "upload-starter", "publish-before", "publish-after"]) {
-    it(`resumes an immutable release after ${failure} failure without republishing npm or replacing existing assets`, (t) => {
-      const fx = fixture(t);
-      const prepared = prepare(fx);
+    it(`resumes an immutable release after ${failure} failure without republishing npm or replacing existing assets`, async (t) => {
+      const fx = await fixture(t);
+      const prepared = await prepare(fx);
       assert.equal(prepared.status, 0, prepared.stderr);
       updateRemote(fx, { fail: failure });
-      assert.notEqual(publish(fx).status, 0);
+      assert.notEqual((await publish(fx)).status, 0);
       const failed = json(fx.state);
       assert.ok(failed.npm, "npm publication must succeed before the failure");
       if (failed.release) assert.equal(failed.release.draft, failure !== "publish-after");
@@ -733,7 +777,7 @@ if (command === 'npm' && args[0] === 'view') {
       const placeholders = failed.release?.assets.filter((asset) => asset.state === "starter") ?? [];
       assert.equal(placeholders.length, failure === "upload-starter" ? 1 : 0);
       const offset = calls(fx).length;
-      const resumed = publish(fx);
+      const resumed = await publish(fx);
       assert.equal(resumed.status, 0, resumed.stderr);
       assert.equal(calls(fx).filter((call) => call[0] === "npm" && call[1] === "publish").length, 1);
       const uploads = calls(fx).slice(offset).filter((call) => call[2] === "upload").flatMap((call) => call.slice(4, call.indexOf("--repo")));
@@ -744,7 +788,7 @@ if (command === 'npm' && args[0] === 'view') {
       assert.equal(json(fx.state).release.draft, false);
       for (const name of assets) assert.equal(hash(join(fx.root, `remote-${name}`)), hash(join(fx.release, name)));
       const completed = calls(fx).length;
-      assert.equal(publish(fx).status, 0);
+      assert.equal((await publish(fx)).status, 0);
       assert.equal(calls(fx).slice(completed).filter((call) => call[1] === "publish" || ["create", "upload", "edit"].includes(call[2]) || call.includes("DELETE")).length, 0);
     });
   }
@@ -754,13 +798,13 @@ if (command === 'npm' && args[0] === 'view') {
     ["missing integrity", { "dist.integrity": undefined }],
     ["version mismatch", { version: "9.0.0" }],
   ]) {
-    it(`refuses an existing npm ${label} before GitHub writes`, (t) => {
-      const fx = fixture(t);
-      assert.equal(prepare(fx).status, 0);
+    it(`refuses an existing npm ${label} before GitHub writes`, async (t) => {
+      const fx = await fixture(t);
+      assert.equal((await prepare(fx)).status, 0);
       const receipt = json(join(fx.release, "release.json"));
       updateRemote(fx, { npm: { version: receipt.version,
         "dist.integrity": `sha512-${createHash("sha512").update(readFileSync(join(fx.release, receipt.tarball))).digest("base64")}`, ...metadata } });
-      const result = publish(fx);
+      const result = await publish(fx);
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, /existing npm version\/integrity mismatch/);
       assert.equal(calls(fx).length, 1);
@@ -768,30 +812,30 @@ if (command === 'npm' && args[0] === 'view') {
   }
 
   for (const patch of [{ npmError: "E403" }, { npmError: "ETIMEDOUT" }, { githubError: "403" }, { githubError: "500" }]) {
-    it(`does not treat lookup error ${JSON.stringify(patch)} as a missing publication`, (t) => {
-      const fx = fixture(t);
-      assert.equal(prepare(fx).status, 0);
-      if (patch.githubError) assert.equal(publish(fx).status, 0);
+    it(`does not treat lookup error ${JSON.stringify(patch)} as a missing publication`, async (t) => {
+      const fx = await fixture(t);
+      assert.equal((await prepare(fx)).status, 0);
+      if (patch.githubError) assert.equal((await publish(fx)).status, 0);
       updateRemote(fx, patch);
       const offset = existsSync(fx.log) ? calls(fx).length : 0;
-      assert.notEqual(publish(fx).status, 0);
+      assert.notEqual((await publish(fx)).status, 0);
       assert.ok(calls(fx).slice(offset).every((call) => call[1] === "view" || call[1] === "api"));
     });
   }
 
   for (const metadata of [{}, { state: "uploaded", size: 0 }, { state: "starter", size: 1 }, { state: "starter", size: undefined }]) {
-    it(`rejects a different existing asset ${JSON.stringify(metadata)} before deleting or uploading assets`, (t) => {
-      const fx = fixture(t);
-      assert.equal(prepare(fx).status, 0);
+    it(`rejects a different existing asset ${JSON.stringify(metadata)} before deleting or uploading assets`, async (t) => {
+      const fx = await fixture(t);
+      assert.equal((await prepare(fx)).status, 0);
       updateRemote(fx, { fail: "upload" });
-      assert.notEqual(publish(fx).status, 0);
+      assert.notEqual((await publish(fx)).status, 0);
       const remote = json(fx.state);
       Object.assign(remote.release.assets[0], metadata);
       updateRemote(fx, remote);
       const name = remote.release.assets[0].name;
       writeFileSync(join(fx.root, `remote-${name}`), "different bytes");
       const offset = calls(fx).length;
-      const result = publish(fx);
+      const result = await publish(fx);
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, /existing release asset hash mismatch/);
       assert.equal(calls(fx).slice(offset).filter((call) => ["upload", "edit"].includes(call[2]) || call.includes("DELETE")).length, 0);
@@ -811,21 +855,21 @@ if (command === 'npm' && args[0] === 'view') {
     ["release sidecar", (fx) => writeFileSync(join(fx.release, "syncky-health.mcpb.sha256"), "invalid\n")],
     ["release checksum list", (fx) => writeFileSync(join(fx.release, "SHA256SUMS"), "invalid\n")],
   ]) {
-    it(`rejects ${label} before npm publication and release creation`, (t) => {
-      const fx = fixture(t);
-      const prepared = prepare(fx);
+    it(`rejects ${label} before npm publication and release creation`, async (t) => {
+      const fx = await fixture(t);
+      const prepared = await prepare(fx);
       assert.equal(prepared.status, 0, prepared.stderr);
       mutate(fx);
-      const result = publish(fx);
+      const result = await publish(fx);
       assert.notEqual(result.status, 0);
       assert.equal(existsSync(fx.log), false);
     });
   }
 
   for (const field of ["repository", "version"]) {
-    it(`rejects a repacked ${field} mismatch even with an updated receipt hash`, (t) => {
-      const fx = fixture(t);
-      const prepared = prepare(fx);
+    it(`rejects a repacked ${field} mismatch even with an updated receipt hash`, async (t) => {
+      const fx = await fixture(t);
+      const prepared = await prepare(fx);
       assert.equal(prepared.status, 0, prepared.stderr);
       const receiptPath = join(fx.release, "release.json");
       const receipt = json(receiptPath);
@@ -841,7 +885,7 @@ if (command === 'npm' && args[0] === 'view') {
       assert.equal(spawnSync("tar", ["-czf", tarball, "-C", unpack, ...["package/LICENSE", "package/NOTICE", "package/README.md", "package/dist/syncky-agent.mjs", "package/dist/syncky-agent.mjs.sha256", "package/package.json"]]).status, 0);
       receipt.tarballSha256 = hash(tarball);
       writeFileSync(receiptPath, JSON.stringify(receipt));
-      const result = publish(fx);
+      const result = await publish(fx);
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, /packed package metadata\/repository mismatch/);
       assert.equal(existsSync(fx.log), false);

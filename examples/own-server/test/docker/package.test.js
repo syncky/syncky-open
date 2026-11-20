@@ -62,9 +62,10 @@ it("Worker dry-run wrapper fails on a warning or child failure and never exposes
 it("all runtime imports stay local; only Worker entry dispatches; no egress, logging or private references", () => {
   for (const directory of ["src", "worker", "docker"]) for (const name of readdirSync(new URL("../../" + directory + "/", import.meta.url)).filter(f => f.endsWith(".js") && f !== "build.js")) {
     const source = read(directory + "/" + name);
-    assert.doesNotMatch(source, /console\.|globalThis\.fetch|\b(?:await|return)\s+fetch\s*\(|https?:\/\/|setInterval|setTimeout|WebSocket|XMLHttpRequest|cloudflare:sockets|\.request\s*\(/);
+    const withoutSetupLink = directory === "src" && name === "crypto.js" ? source.replace('\n  return `https://syncky.app/connect#${parts.join("&")}`;\n', "\n") : source;
+    assert.doesNotMatch(withoutSetupLink, /console\.|globalThis\.fetch|\b(?:await|return)\s+fetch\s*\(|https?:\/\/|setInterval|setTimeout|WebSocket|XMLHttpRequest|cloudflare:sockets|\.request\s*\(/);
     if (directory !== "worker" || name !== "index.js") assert.doesNotMatch(source, /\.fetch\s*\(|\.getByName\s*\(|\.jurisdiction\s*\(/);
-    const scanned = directory === "src" && name === "security.js" ? source.replace('service = "syncky.app";', 'service = "";') : source;
+    const scanned = directory === "src" && name === "security.js" ? withoutSetupLink.replace('service = "syncky.app";', 'service = "";') : withoutSetupLink;
     assert.doesNotMatch(scanned, /C\u00a7|docs\/(?:planning|plans)|syncky\.app/);
     for (const [, specifier] of source.matchAll(/(?:from\s*|import\s*)["']([^"']+)["']/g)) assert.ok(specifier.startsWith(".") || directory === "docker" && ["node:http", "node:events", "node:stream", "node:stream/promises", "node:url", "node:sqlite"].includes(specifier) || directory === "worker" && specifier === "cloudflare:workers");
     if (directory === "docker" && name === "server.js") assert.match(source, /import \{ createServer \} from "node:http"/);

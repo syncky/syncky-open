@@ -1,4 +1,4 @@
-import { createHash, createHmac, createPrivateKey, createPublicKey, getRandomValues } from "node:crypto";
+import { createHash, createHmac, createPrivateKey, createPublicKey, getRandomValues, hkdfSync } from "node:crypto";
 import { CipherSuite, DeserializeError, HkdfSha256 } from "@hpke/core";
 import { DhkemX25519HkdfSha256 } from "@hpke/dhkem-x25519";
 import { Chacha20Poly1305 } from "@hpke/chacha20poly1305";
@@ -50,6 +50,10 @@ export function sha256(data) {
 
 export function hmacSha256(key, msg) {
   return bytes(createHmac("sha256", requireBytes(key, "hmac key")).update(requireBytes(msg, "hmac message")).digest());
+}
+
+export function hkdfSha256(ikm, salt, info) {
+  return bytes(hkdfSync('sha256', ikm, salt, info, KEY_LENGTH));
 }
 
 export async function generateKeyPair() {

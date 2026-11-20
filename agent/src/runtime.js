@@ -1,4 +1,4 @@
-import { maintainResponseWaits } from "./response-waits.js";
+import { maintainResponseWaits, responseWaitView } from "./response-waits.js";
 import { LocalStateError, loadConfig } from './config.js';
 import { loadSecrets } from './secrets.js';
 import { readHomeState, detectLegacyFiles, cipherEntries } from './home-state.js';
@@ -6,7 +6,7 @@ import { createInbox } from './inbox.js';
 import { createThinTransport } from './thin-transport.js';
 import { createThinInbound } from './thin-inbound.js';
 import { createThinPoller } from './thin-poller.js';
-import { createGenericSender } from './send.js';
+import { createGenericSender, queueV1Access } from './send.js';
 import { createPairingService } from "./pairing.js";
 import { createOutbox, sendReceipt } from './outbox.js';
 import { createSkillUpdater } from './skill-update.js';
@@ -60,8 +60,7 @@ export function localStatus(home, updater, at = Date.now()) {
     code_check: Boolean(m.pair_proof) || m.proof_invalidated === true, pairing_id: m.pairing_id ?? null, scope: m.scope ?? null, unpair_reason: m.unpair_reason ?? null,
     ...(m.scope_release && { scope_release: scopeReleaseView(m, entries) }),
     ...(Object.hasOwn(state.pairings, m.pairing_id) && state.pairings[m.pairing_id]?.requested_scope && { pairing_access: pairingAccessView(state.pairings[m.pairing_id]) }) }));
-  const responseWaits = transport.response_waits === undefined ? {} : { response_waits: Object.values(transport.response_waits).map(w =>
-    Object.fromEntries(['kind','member_id','state','opened_at','expires_at','completed_at'].filter(k => w[k] !== undefined).map(k => [k, w[k]]))) };
+  const responseWaits = transport.response_waits === undefined ? {} : { response_waits: Object.values(transport.response_waits).map(w => responseWaitView(w, at)) };
   return { ...state.identity, members, transport: { ...Object.fromEntries(['cursor','acked_seq','pending_ack','last_poll_at','last_ack_at','next_poll_at','poll_interval_s','poll_retry_at','ack_retry_at','heartbeat_day','hub_revoked','hub_deleted','hub_state','hub_state_error','fast_poll','poll_retry_after_until'].filter(k => transport[k] !== undefined).map(k => [k, transport[k]])), ...responseWaits, send_lanes: sendLanes },
     operator_notice: transport.hub_revoked ? 'Relay identity refused; tell the owner and retain local history.' :
       transport.hub_state?.state === 'unpaid' ? 'Choose a relay plan on the phone before sending data.' :
@@ -87,7 +86,15 @@ export function createRuntime({ home, flags = {}, env = process.env, fetch, slee
   const transport = new Proxy({}, { get: (_, key) => (...args) => latest()[key](...args) });
   const self = { memberId: state.identity.member_id, privateKey: secrets.privateKeyBytes };
   const relay = createRelayClient({ baseUrl: config.relay_url, token: secrets.token, fetch, sleep, random, now: () => now().getTime(), logger, pollIntervalS: config.poll_interval_s, timers });
-  const outbox = createOutbox({ home, relay, now, maxAttempts: outboxMaxAttempts, timers });
+  const queue = createOutbox({ home, relay, now, maxAttempts: outboxMaxAttempts, timers });
+  const sendV1Access = createGenericSender({ home, transport, self, now });
+  let queuingV1;
+  const outbox = { ...queue, async flush(options) {
+    await queue.flush(options);
+    if (options?.signal?.aborted) return;
+    queuingV1 ??= queueV1Access({ home, send: sendV1Access, now }).finally(() => { queuingV1 = undefined; });
+    if (await queuingV1) await queue.flush(options);
+  } };
   const inbound = createThinInbound({ home, transport, self, relay, now, onRecord });
   const pairing = createPairingService({ home, relay, publicKey: secrets.public_key, agentName: config.name, urlScheme: config.url_scheme, now });
   let checking = false, checkedAt = -Infinity;

@@ -6,16 +6,15 @@ import { join } from "node:path";
 import { buildLink } from "../server.mjs";
 import { run, tempDir } from "./helpers.js";
 
-const SCHEMES = ["syncky"];
 const ERROR = "unsupported URL scheme";
 const destination = { name: "Minimal server", url: "http://box.local:3000/syncky", format: "native", auth: { kind: "none" }, signing: false, types: null };
-const query = "webhook?v=1&name=Minimal%20server&url=http%3A%2F%2Fbox.local%3A3000%2Fsyncky&format=native&auth=none";
+const expectedLink = "https://syncky.app/connect#v=1&name=Minimal%20server&url=http%3A%2F%2Fbox.local%3A3000%2Fsyncky&format=native&auth=none";
 const args = (dir) => ["link", "--data", dir, "--auth", "none", "--host", "box.local"];
 const config = (dir, value) => writeFileSync(join(dir, "config.json"), JSON.stringify(value));
 
-function output(result, scheme) {
+function output(result) {
   assert.equal(result.status, 0, result.stderr);
-  assert.ok(result.stdout === `${scheme}://${query}\n`, "CLI link differs from the canonical bytes");
+  assert.ok(result.stdout === expectedLink + "\n", "CLI link differs from the canonical bytes");
   assert.match(result.stderr, /QR/);
 }
 
@@ -29,14 +28,12 @@ function refused(result, message = ERROR) {
 
 describe("URL scheme builder", () => {
   it("keeps the production bytes by default", () => {
-    assert.equal(buildLink(destination), `syncky://${query}`);
+    assert.equal(buildLink(destination), expectedLink);
   });
 
-  for (const scheme of SCHEMES) {
-    it(`builds ${scheme} explicitly`, () => {
-      assert.equal(buildLink(destination, {}, scheme), `${scheme}://${query}`);
-    });
-  }
+  it("accepts the explicit syncky label", () => {
+    assert.equal(buildLink(destination, {}, "syncky"), expectedLink);
+  });
 
   it("rejects every unsupported shape with a fixed error", () => {
     for (const value of [null, "", "auto", "SYNCKY", "syncky://", " syncky", "syncky ", "syncky-alpha", "syncky-lab", "syncky-preview", "syncky-lab-extra", "syncky-preview.evil", "https://do-not-print.invalid/?token=do-not-print", 0, false, [], {}]) {
@@ -44,43 +41,41 @@ describe("URL scheme builder", () => {
     }
   });
 
-  it("does not infer a scheme from the receiver hostname", () => {
+  it("uses the production site for every receiver hostname", () => {
     for (const host of ["relay-alpha.syncky.app", "relay-beta.syncky.app", "relay.syncky.app", "localhost", "custom.invalid"]) {
       const d = { ...destination, url: `http://${host}:3000/syncky` };
-      assert.equal(new URL(buildLink(d)).protocol, "syncky:");
-      for (const scheme of SCHEMES) assert.equal(new URL(buildLink(d, {}, scheme)).protocol, `${scheme}:`);
+      assert.equal(new URL(buildLink(d)).origin, "https://syncky.app");
+      assert.equal(new URL(buildLink(d, {}, "syncky")).origin, "https://syncky.app");
     }
   });
 });
 
 describe("link URL scheme selection", () => {
-  for (const scheme of SCHEMES) {
-    it(`prints ${scheme} from flag, environment and config`, (t) => {
-      const dir = tempDir(t);
-      config(dir, { url_scheme: scheme });
-      output(run(args(dir)), scheme);
-      output(run(args(dir), { env: { SYNCKY_URL_SCHEME: scheme } }), scheme);
-      output(run([...args(dir), "--url-scheme", scheme]), scheme);
-    });
-  }
+  it("accepts syncky from config, environment and flag", (t) => {
+    const dir = tempDir(t);
+    config(dir, { url_scheme: "syncky" });
+    output(run(args(dir)));
+    output(run(args(dir), { env: { SYNCKY_URL_SCHEME: "syncky" } }));
+    output(run([...args(dir), "--url-scheme", "syncky"]));
+  });
 
   it("selects flag before environment before config before production", (t) => {
     const dir = tempDir(t);
-    output(run(args(dir)), "syncky");
+    output(run(args(dir)));
     refused(run(args(dir), { env: { SYNCKY_URL_SCHEME: "syncky-alpha" } }));
     assert.equal(existsSync(join(dir, "config.json")), false);
     config(dir, { url_scheme: "syncky-alpha" });
     refused(run(args(dir)));
-    output(run(args(dir), { env: { SYNCKY_URL_SCHEME: "syncky" } }), "syncky");
+    output(run(args(dir), { env: { SYNCKY_URL_SCHEME: "syncky" } }));
     refused(run(args(dir), { env: { SYNCKY_URL_SCHEME: "" } }));
-    output(run([...args(dir), "--url-scheme", "syncky"], { env: { SYNCKY_URL_SCHEME: "syncky-other" } }), "syncky");
+    output(run([...args(dir), "--url-scheme", "syncky"], { env: { SYNCKY_URL_SCHEME: "syncky-other" } }));
   });
 
   it("treats absent and null config settings as unset", (t) => {
     const dir = tempDir(t);
     for (const value of [{}, { url_scheme: null }]) {
       config(dir, value);
-      output(run(args(dir)), "syncky");
+      output(run(args(dir)));
     }
   });
 
@@ -90,8 +85,10 @@ describe("link URL scheme selection", () => {
       const result = run(["link", "--data", dir, "--auth", "none", "--host", host]);
       assert.equal(result.status, 0, result.stderr);
       const link = new URL(result.stdout.trim());
-      assert.equal(link.protocol, "syncky:");
-      assert.equal(link.searchParams.get("url"), `http://${host}:3000/syncky`);
+      assert.equal(link.origin, "https://syncky.app");
+      assert.equal(link.pathname, "/connect");
+      assert.equal(link.search, "");
+      assert.equal(new URLSearchParams(link.hash.slice(1)).get("url"), `http://${host}:3000/syncky`);
     }
   });
 

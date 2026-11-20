@@ -365,8 +365,9 @@ export async function startRelayDouble({
       };
     },
 
-    createPairing: ({ hub, member }) => {
+    createPairing: ({ hub, member, text }) => {
       requireAgent(member);
+      const { pairing_scope_blob: pairingScopeBlob } = parseObject(text, 'invalid_request');
       const pairing = {
         pairingId: `p_${b64uRandom(16)}`,
         token: `pt_${b64uRandom(32)}`,
@@ -376,11 +377,13 @@ export async function startRelayDouble({
         memberId: null,
         deviceName: null,
         publicKey: null,
+        pairingScopeBlob,
       };
       hub.pairings.set(pairing.pairingId, pairing);
       return {
         status: 201,
-        body: { pairing_id: pairing.pairingId, pairing_token: pairing.token, expires_at: iso(pairing.expiresAt), hub_id: hub.hubId },
+        body: { pairing_id: pairing.pairingId, pairing_token: pairing.token, expires_at: iso(pairing.expiresAt), hub_id: hub.hubId,
+          ...(pairingScopeBlob !== undefined && { pairing_scope_stored: true }) },
       };
     },
 
@@ -413,6 +416,7 @@ export async function startRelayDouble({
       if (pairing.completedAt !== null || now() >= pairing.expiresAt) throw new ApiError("pairing_expired");
       if (activeMembers(hub).length >= maxMembers) throw new ApiError("hub_full");
       const device = addMember(hub, { role: "device", name: deviceName, publicKey });
+      delete pairing.pairingScopeBlob;
       Object.assign(pairing, { completedAt: now(), memberId: device.memberId, deviceName, publicKey });
       const members = activeMembers(hub);
       emit(

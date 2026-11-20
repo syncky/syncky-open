@@ -3,6 +3,10 @@ import { aeadOpen, aeadSeal, hpkeOpenAuth, hpkeSealAuth, randomBytes } from "./c
 import { b64uDecode, b64uEncode, exceedsJsonDepth, formatTimestamp, isB64u, isTimestamp, utf8, utf8Decode } from "./encoding.js";
 import { isHubId, isMemberId, isUuidV7, uuidv7 } from "./ids.js";
 
+export const MAX_CONTROL_ENVELOPE_BYTES = 4096;
+export const MAX_ACCESS_ENVELOPE_BYTES = 131072;
+export const isAccessEnvelope = e => e?.kind === 'control' && ['request', 'reply'].includes(e.access) && !Object.hasOwn(e, 'diagnostics');
+
 export class EnvelopeError extends Error {
   constructor(code, message) {
     super(message);
@@ -42,18 +46,24 @@ export function validateMessageTable(input) {
       || !sameSet(t.canonical.recipient_fields, recipientFields)
       || l.cek_bytes !== 32 || l.nonce_bytes !== 12 || l.enc_bytes !== 32 || l.wrapped_key_bytes !== 48 || l.tag_bytes !== 16
       || l.max_markers !== 1 || l.max_recipients !== 7 || l.max_member_id_length !== 64
-      || l.max_envelope_bytes !== 262144 || l.max_control_envelope_bytes !== 4096
+      || l.max_envelope_bytes !== 262144 || l.max_control_envelope_bytes !== MAX_CONTROL_ENVELOPE_BYTES
+      || (own(l, 'max_access_envelope_bytes') && l.max_access_envelope_bytes !== MAX_ACCESS_ENVELOPE_BYTES)
+      || !sameSet(t.markers.access, ['request', 'reply'])
       || t.default.kind !== "control" || t.default.marker !== undefined || t.default.max_envelope_bytes !== l.max_control_envelope_bytes) throw error("protocol_incompatible");
     for (const [field, values] of Object.entries(t.markers)) {
       if (!/^[a-z][a-z_]*$/.test(field) || fields.includes(field) || !Array.isArray(values) || !values.length
         || new Set(values).size !== values.length || !values.every(v => typeof v === "string" && /^[a-z][a-z_]*$/.test(v))) throw error("protocol_incompatible");
     }
-    for (const r of Object.values(t.messages)) {
+    for (const [type, r] of Object.entries(t.messages)) {
       if (!object(r) || !t.kinds.includes(r.kind) || !Number.isSafeInteger(r.max_envelope_bytes) || r.max_envelope_bytes < 1
         || r.max_envelope_bytes > (r.kind === "control" ? l.max_control_envelope_bytes : l.max_envelope_bytes)
         || (r.max_inner_bytes !== undefined && (!Number.isSafeInteger(r.max_inner_bytes) || r.max_inner_bytes < 1 || r.max_inner_bytes > l.max_envelope_bytes))
         || (r.marker && (!object(r.marker) || !t.markers[r.marker.field]?.includes(r.marker.value)))) throw error("protocol_incompatible");
+      if (['access_request', 'access_reply'].includes(type) || r.marker?.field === 'access') {
+        if (r.kind !== 'control' || r.marker?.field !== 'access' || type !== `access_${r.marker.value}`) throw error('protocol_incompatible');
+      }
     }
+    if (!own(t.messages, 'access_request') || !own(t.messages, 'access_reply')) throw error('protocol_incompatible');
     for (const [field, values] of Object.entries(t.markers)) for (const value of values) {
       const rules = Object.values(t.messages).filter(r => r.marker?.field === field && r.marker.value === value);
       if (!rules.length || new Set(rules.map(r => r.kind)).size !== 1) throw error("protocol_incompatible");
@@ -68,7 +78,12 @@ export function createThinTransport({ table, tablePath } = {}) {
     try { table = JSON.parse(readFileSync(tablePath, "utf8")); } catch { throw error("protocol_incompatible"); }
   }
   const t = validateMessageTable(table), l = t.limits, markers = t.aad.marker_order;
-  const rule = type => structuredClone(own(t.messages, type) ? t.messages[type] : t.default);
+  const accessCap = l.max_access_envelope_bytes ?? MAX_ACCESS_ENVELOPE_BYTES;
+  const rule = type => {
+    const r = structuredClone(own(t.messages, type) ? t.messages[type] : t.default);
+    if (r.marker?.field === 'access') r.max_envelope_bytes = accessCap;
+    return r;
+  };
   const serialize = envelope => JSON.stringify(Object.fromEntries(t.canonical.envelope_fields.filter(k => own(envelope, k)).map(k => [k, k === "recipients"
     ? envelope[k].map(r => Object.fromEntries(t.canonical.recipient_fields.map(f => [f, r[f]]))) : envelope[k]])));
   const aad = (hubId, e) => `syncky-v1|${hubId}|${e.msg_id}|${e.from}${t.aad.kind_suffixes[e.kind]}${markers.filter(f => own(e, f)).map(f => `|${f}=${e[f]}`).join("")}`;
@@ -113,7 +128,7 @@ export function createThinTransport({ table, tablePath } = {}) {
     try { ids = shape(e, caller); }
     catch (err) { if (typeof err.field === "string") return { status: 400, error: "invalid_envelope", field: err.field }; throw err; }
     const size = bytes ?? utf8(serialize(e)).length;
-    if (size > l.max_envelope_bytes || (e.kind === "control" && size > l.max_control_envelope_bytes)) return { status: 413, error: "payload_too_large" };
+    if (size > l.max_envelope_bytes || (e.kind === "control" && size > (isAccessEnvelope(e) ? accessCap : l.max_control_envelope_bytes))) return { status: 413, error: "payload_too_large" };
     const active = new Set(activeMembers ?? ids), unknown = ids.filter(id => !active.has(id));
     return unknown.length ? { status: 404, error: "unknown_recipient", member_ids: unknown } : { status: 201 };
   }

@@ -1,12 +1,13 @@
 import { createThinTransport } from "./thin-transport.js";
 import { isDeepStrictEqual } from "node:util";
 
-import { createAuthSenderContext, deriveKeyPair, hpkeOpenAuth, publicKeyOf } from "./crypto.js";
+import { createAuthSenderContext, deriveKeyPair, hkdfSha256, hpkeOpenAuth, publicKeyOf } from "./crypto.js";
 import { b64uDecode, b64uEncode, toHex, utf8 } from "./encoding.js";
 import { fingerprint } from "./fingerprint.js";
 import { pairCode, pairProof } from "./pair-code.js";
 import { buildPairUri, parsePairUri } from "./pair-uri.js";
 import { loadJson, loadVectors } from "./protocol-files.js";
+import { openPairingScope, sealPairingScope } from './pairing-scope-blob.js';
 
 const hex = (s) => new Uint8Array(Buffer.from(s, "hex"));
 const key32 = (s) => b64uDecode(s, { length: 32 });
@@ -148,6 +149,7 @@ const pairValue = (v) => ({
   agentPublicKey: v.agent_public_key,
   agentName: v.agent_name,
   ...(v.pair_secret !== undefined && { pairSecret: v.pair_secret }),
+  ...(v.scope_on_relay && { scopeOnRelay: true }),
   ...(v.requested_scope !== undefined && { requestedScope: v.requested_scope }),
 });
 
@@ -181,6 +183,24 @@ function pairCodeCases({ cases }) {
   }));
 }
 
+export function pairingScopeCases({ cases }) {
+  return cases.map(c => ({ name: c.name, async fn() {
+    const { ikm: pairSecret, hub_id: hubId, agent_public_key: agentPublicKey, blob } = c.input;
+    const binding = { pairSecret, hubId, agentPublicKey };
+    if (c.error) {
+      let code;
+      try { await openPairingScope(blob, binding); } catch (error) { code = error.code; }
+      expectEqual(code, c.error, 'scope failure');
+      return;
+    }
+    expectEqual(b64uEncode(hkdfSha256(b64uDecode(pairSecret), utf8(c.salt), utf8(c.info))), c.key, 'scope key');
+    const opened = await openPairingScope(blob, binding);
+    expectEqual(opened, c.requested_scope, 'opened scope');
+    expectEqual(JSON.stringify(opened), c.plaintext, 'scope plaintext');
+    expectEqual(await sealPairingScope(opened, binding, { random: () => b64uDecode(c.nonce) }), blob, 'scope ciphertext');
+  } }));
+}
+
 const BUILDERS = {
   "rfc9180-auth-x25519-sha256-chacha20poly1305.json": rfc9180Cases,
   "keys.json": keysCases,
@@ -190,6 +210,7 @@ const BUILDERS = {
   "fingerprints.json": fingerprintCases,
   "pair-uris.json": pairUriCases,
   "pair-codes.json": pairCodeCases,
+  "pairing-scope.json": pairingScopeCases,
 };
 
 export const SELFTEST_FILES = Object.freeze(Object.keys(BUILDERS));

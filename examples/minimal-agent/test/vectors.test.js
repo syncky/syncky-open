@@ -140,6 +140,41 @@ describe("seal and open round trip", () => {
   });
 });
 
+describe("canonical submitted envelope size", () => {
+  const size = envelope => Buffer.byteLength(JSON.stringify(envelope));
+  for (const [type, cap, markers] of [
+    ["confirmed", 4096, { kind: "control" }],
+    ["diagnostics_request", 4096, { kind: "control", diagnostics: "request" }],
+    ["access_request", 131072, { kind: "control", access: "request" }],
+    ["access_reply", 131072, { kind: "control", access: "reply" }],
+    ["sync", 262144, { kind: "data" }],
+  ]) it(`${type}: seals and opens at ${cap} bytes, rejects one byte over`, async () => {
+    const [recipient] = recipientsOf("dev1");
+    const options = { hubId: HUB, from: keys.agent.member_id, sk: keys.agent.sk, ...markers };
+    const inner = padding => JSON.stringify({ v: 1, type, padding });
+    const sample = await sealEnvelope({ ...options, recipients: [recipient], plaintext: inner("") });
+    const capacity = cap - size({ ...sample, ciphertext: "" });
+    // Unpadded base64url cannot have length 1 modulo 4, so spend that extra byte on the recipient ID.
+    const suffix = capacity % 4 === 1 ? "0" : "";
+    const plaintextBytes = Math.floor((capacity - suffix.length) * 3 / 4) - 16;
+    const paddingBytes = plaintextBytes - Buffer.byteLength(inner(""));
+    const plaintext = inner("é".repeat(Math.floor(paddingBytes / 2)) + "a".repeat(paddingBytes % 2));
+    const memberId = recipient.member_id + suffix;
+    const opts = { ...self("dev1"), registry: registryOf("agent"), kind: markers.kind, memberId };
+    const envelope = await sealEnvelope({ ...options, recipients: [{ ...recipient, member_id: memberId }], plaintext });
+    assert.equal(size(envelope), cap);
+    const [wrapped] = envelope.recipients;
+    const delivery = { ...envelope, seq: Number.MAX_SAFE_INTEGER, future: {}, recipients: [{ ...wrapped, future: {} }] };
+    assert.ok(await openEnvelope(delivery, opts) === plaintext, "opened bytes differ at the cap");
+
+    const largerId = `${memberId}0`;
+    const oversized = { ...envelope, recipients: [{ ...wrapped, member_id: largerId }] };
+    assert.equal(size(oversized), cap + 1);
+    await rejects(openEnvelope({ ...oversized, seq: 1 }, { ...opts, memberId: largerId }), "malformed");
+    await rejects(sealEnvelope({ ...options, recipients: [{ ...recipient, member_id: largerId }], plaintext }), "invalid_input");
+  });
+});
+
 describe("open error paths on freshly sealed envelopes", () => {
   const plaintext = '{"v":1,"type":"sync"}';
   const sealed = () => sealEnvelope({ hubId: HUB, from: "m_dev_1", sk: keys.dev1.sk, recipients: recipientsOf("agent"), plaintext });
@@ -235,17 +270,17 @@ describe("pair-uris.json", () => {
   const { cases } = vectors("pair-uris");
   const parseCases = cases.filter((c) => c.expect);
   const buildCases = cases.filter((c) => c.input);
-  const baseInput = ({ requested_scope, ...base }) => base;
+  const baseInput = ({ requested_scope, scope_on_relay, ...base }) => base;
   const baseUri = uri => {
     const at = uri.indexOf(uri.startsWith("https://") ? "#" : "?");
-    return uri.slice(0, at + 1) + uri.slice(at + 1).split("&").filter(part => !/^(request_ref|read|write)=/.test(part)).join("&");
+    return uri.slice(0, at + 1) + uri.slice(at + 1).split("&").filter(part => part !== "a" && !/^(request_ref|read|write|a)=/.test(part)).join("&");
   };
-  const baseExpected = ({ requested_scope, ...base }) => base;
+  const baseExpected = ({ requested_scope, scope_on_relay, ...base }) => base;
   const scoped = c => baseUri(c.uri) !== c.uri;
   const compatibilityExpected = c => {
     if (!scoped(c)) return c.expect;
     if (c.expect.ok) return baseExpected(c.expect);
-    if (!["request_ref", "read", "write", "scope", "encoding"].includes(c.expect.param)) return c.expect;
+    if (!["request_ref", "read", "write", "scope", "encoding", "a"].includes(c.expect.param)) return c.expect;
     if (c.name.endsWith("_encoding_before_version")) return parseCases.find(v => v.name === "unsupported_version_3").expect;
     const base = parseCases.find(v => v.expect.ok && baseUri(v.uri) === baseUri(c.uri) && v.allow_insecure === c.allow_insecure);
     assert.ok(base, `${c.name}: missing successful base vector`);
@@ -357,6 +392,9 @@ describe("access marker authentication", () => {
     await rejects(make({ diagnostics: "reply" }), "invalid_input");
     await rejects(make({ kind: "data" }), "invalid_input");
     for (const plaintext of ['{"v":1,"type":"pair_proof"}', '{"v":2,"type":"access_reply"}', 'null', 'bad']) await rejects(openEnvelope(await make({ plaintext }), me), "inner_invalid");
+    const wrongType = access === "request" ? "access_reply" : "access_request";
+    const wrongInner = await make({ plaintext: JSON.stringify({ v: 1, type: wrongType, padding: "a".repeat(4096) }) });
+    await rejects(openEnvelope(wrongInner, me), "inner_invalid");
   });
 });
 

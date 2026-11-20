@@ -172,6 +172,11 @@
           "type": "integer",
           "minimum": 1
         },
+        "max_access_envelope_bytes": {
+          "type": "integer",
+          "const": 131072,
+          "description": "Effective serialized UTF-8 cap for the access_request/request and access_reply/reply rules. Takes precedence over both control limits."
+        },
         "max_recipients": {
           "type": "integer",
           "minimum": 1

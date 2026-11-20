@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { browser, origin } from "./browser.js";
+import { browser, origin, setupParams } from "./browser.js";
 import { native, messageRequest, at } from "./helpers.js";
 
 export function rpc(b, token, method, params, headers = {}, extra = {}) {
@@ -20,9 +20,9 @@ export async function tool(b, token, name, args = {}) {
 export async function connected(t, options = {}) {
   const b = await browser(t, options);
   const { link } = await b.login();
-  const setup = new URL(link);
-  b.config.token = setup.searchParams.get("token");
-  b.config.hmac = setup.searchParams.get("hmac");
+  const params = setupParams(link);
+  b.config.token = params.get("token");
+  b.config.hmac = params.get("hmac");
   if (options.write) assert.equal((await b.post("/admin/settings", { writes_enabled: "true" })).status, 200);
   b.client = await b.register();
   b.tokens = await b.access(b.client, { scope: options.scope ?? (options.write ? "read:steps write:dietary_water write:sleep_analysis" : "read:steps") });

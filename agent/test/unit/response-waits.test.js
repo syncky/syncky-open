@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { activateResponseWaits, completeResponseWaits, responseWaitKey, validResponseCorrelation } from '../../src/response-waits.js';
+import { activateResponseWaits, completeResponseWaits, hasResponseWait, maintainResponseWaits, responseWaitKey, responseWaitView, validResponseCorrelation } from '../../src/response-waits.js';
 import { createCipherFiles, newHomeState, readHomeState, validateHomeState } from '../../src/home-state.js';
 import { createInbox } from '../../src/inbox.js';
 import { setup, identity, keys, now, messageId } from '../support/thin-transport.js';
@@ -73,4 +73,22 @@ test('restoring a sent receipt preserves its original time boundary and any reco
     assert.equal(queue.put(entry), true); assert.equal(queue.put(entry), false);
     assert.deepEqual(queue.list().find(e => e.msg_id === entry.msg_id).response_waits, [w]);
   }
+});
+
+test('expired access notices are bounded, member-bound and no longer affect polling', () => {
+  const s = state(), at = now().getTime();
+  s.transport.response_waits = {};
+  const correlations = Array.from({ length: 110 }, (_, i) => ({ kind: 'access', member_id: 'm_dev_1', public_key: keys.dev1.pk,
+    opened_at: at, expires_at: at + i + 1, request_ref: i.toString(16).padStart(32, '0'), msg_id: messageId(i + 1),
+    large_access: true, read: ['steps'], write: [] }));
+  activateResponseWaits(s, [{ state: 'sent', sent_at: now().toISOString(), response_waits: correlations }], at);
+  assert.equal(hasResponseWait(s, at), true);
+  maintainResponseWaits(s, at + 110);
+  assert.equal(hasResponseWait(s, at + 110), false);
+  const expired = Object.values(s.transport.response_waits).map(w => responseWaitView(w, at + 110));
+  assert.equal(expired.length, 100);
+  assert.ok(expired.every(w => w.state === 'no_reply' && w.msg_id && !w.request_ref && !w.public_key && !w.read), 'expired wait leaked private correlation');
+  s.members.m_dev_1.public_key = keys.dev2.pk;
+  maintainResponseWaits(s, at + 110);
+  assert.equal(Object.keys(s.transport.response_waits).length, 0);
 });

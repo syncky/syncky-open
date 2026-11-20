@@ -104,7 +104,7 @@ export function createMcpServer({ handlers, version, logger }) {
       return reply(id, response);
     } catch (err) {
       const code = safeCode(err); logger?.warn('mcp_tool_failed', { code });
-      return reply(id, { ...result({ code, ...errorDetail(err), hint: errorHint(code) }), isError: true });
+      return reply(id, { ...result({ code, ...errorDetail(err), hint: errorHint(code, err?.detail) }), isError: true });
     }
   }
   async function handleLine(line) {

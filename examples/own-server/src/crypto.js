@@ -100,5 +100,5 @@ export function buildLink(destination, secrets = {}, scheme = "syncky") {
     if (!Array.isArray(destination.types) || !destination.types.every(t => typeof t === "string" && /^[a-z][a-z0-9_]{1,63}$/.test(t))) return fail();
     parts.push(`types=${destination.types.map(percentEncode).join(",")}`);
   }
-  return `${scheme}://webhook?${parts.join("&")}`;
+  return `https://syncky.app/connect#${parts.join("&")}`;
 }

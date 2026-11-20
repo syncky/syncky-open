@@ -1,9 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://syncky.app/protocol/schemas/envelope.schema.json",
-  "title": "Syncky client envelope (kind data or control): the client-submitted form (E10 body) and the delivered form with seq. A serialized control envelope is at most 4096 bytes, checked by the implementations",
+  "title": "Syncky client envelope (kind data or control)",
+  "description": "Implementations limit the serialized UTF-8 body to 262144 bytes overall, 4096 for ordinary control, and 131072 for control with access request or reply and no diagnostics.",
   "$defs": {
     "submitted": {
+      "description": "E10 measures the submitted body in raw UTF-8 bytes.",
       "type": "object",
       "additionalProperties": false,
       "required": ["v", "msg_id", "kind", "from", "created_at", "recipients", "nonce", "ciphertext"],
@@ -32,6 +34,7 @@
       }
     },
     "delivered": {
+      "description": "Receivers measure the canonical submitted form in UTF-8 bytes with seq removed.",
       "type": "object",
       "required": ["v", "msg_id", "kind", "from", "created_at", "recipients", "nonce", "ciphertext", "seq"],
       "allOf": [

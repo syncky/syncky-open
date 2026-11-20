@@ -185,7 +185,7 @@ function coerce(key, value, source) {
   if (key === "poll_interval_s") {
     const n = typeof value === "number" ? value : typeof value === "string" && /^[0-9]+$/.test(value) ? Number(value) : NaN;
     if (!Number.isSafeInteger(n) || n < POLL_INTERVAL_MIN_S || n > POLL_INTERVAL_MAX_S) {
-      throw new LocalStateError("invalid_config", `${key} from ${source}: must be at least ${POLL_INTERVAL_MIN_S} and at most ${POLL_INTERVAL_MAX_S} whole seconds`);
+      throw new LocalStateError("invalid_config", `${key} from ${source}: must be at least ${POLL_INTERVAL_MIN_S} and at most ${POLL_INTERVAL_MAX_S} whole seconds`, { detail: key });
     }
     return n;
   }

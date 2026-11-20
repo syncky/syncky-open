@@ -70,26 +70,36 @@ describe("link", () => {
       { name: "Minimal server", url: "http://box.local:3001/syncky", format: "native", auth: { kind: "bearer" }, signing: true, types: null },
       { token: secretOf(dir, "token"), hmac: secretOf(dir, "hmac") },
     );
-    assert.equal(r.stdout, `${expected}\n`);
-    assert.match(r.stdout, /^syncky:\/\/webhook\?v=1&name=Minimal%20server&url=http%3A%2F%2Fbox\.local%3A3001%2Fsyncky&format=native&auth=bearer&token=srv_[A-Za-z0-9_-]+&hmac=whsec_[A-Za-z0-9_-]{43}\n$/);
+    assert.ok(r.stdout === `${expected}\n`, "CLI link bytes differ");
+    assert.ok(/^https:\/\/syncky\.app\/connect#v=1&name=Minimal%20server&url=http%3A%2F%2Fbox\.local%3A3001%2Fsyncky&format=native&auth=bearer&token=srv_[A-Za-z0-9_-]+&hmac=whsec_[A-Za-z0-9_-]{43}\n$/.test(r.stdout), "CLI bearer link has unexpected framing");
     assert.match(r.stderr, /QR/);
   });
 
   it("prints header and basic links, with the environment's secrets before the files'", (t) => {
     const dir = tempDir(t);
     run(["init", "--data", dir]);
-    const env = { SYNCKY_SERVER_TOKEN: "env-token", SYNCKY_SERVER_HMAC: "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c" };
+    const env = { SYNCKY_SERVER_TOKEN: "env-token +&?#%", SYNCKY_SERVER_HMAC: "whsec_mgHtkTuuLB_wsJa221vi031K8GmN9QbtPNq_RV8uD8c" };
     const header = run(["link", "--data", dir, "--host", "box.local", "--auth", "header", "--header", "X-Api-Key", "--format", "hae", "--name", "Домашний сервер"], { env });
-    assert.equal(header.stdout, `${buildLink({ name: "Домашний сервер", url: "http://box.local:3000/syncky", format: "hae", auth: { kind: "header", header_name: "X-Api-Key" }, signing: true, types: null }, { header_value: "env-token", hmac: env.SYNCKY_SERVER_HMAC })}\n`);
+    assert.ok(header.stdout === `${buildLink({ name: "Домашний сервер", url: "http://box.local:3000/syncky", format: "hae", auth: { kind: "header", header_name: "X-Api-Key" }, signing: true, types: null }, { header_value: env.SYNCKY_SERVER_TOKEN, hmac: env.SYNCKY_SERVER_HMAC })}\n`, "CLI header link bytes differ");
     const basic = run(["link", "--data", dir, "--host", "box.local", "--auth", "basic", "--user", "phone", "--format", "csv"], { env });
-    assert.match(basic.stdout, /&format=csv&auth=basic&user=phone&token=env-token&hmac=whsec_/);
+    assert.ok(/&format=csv&auth=basic&user=phone&token=env-token%20%2B%26%3F%23%25&hmac=whsec_/.test(basic.stdout), "CLI Basic password was encoded incorrectly");
+    for (const output of [header, basic]) {
+      assert.equal(output.status, 0);
+      const link = new URL(output.stdout.trim());
+      assert.equal(link.origin, "https://syncky.app");
+      assert.equal(link.pathname, "/connect");
+      assert.equal(link.search, "");
+      const params = new URLSearchParams(link.hash.slice(1));
+      assert.ok(params.get("token") === env.SYNCKY_SERVER_TOKEN, "fragment token did not round-trip");
+      assert.ok(params.get("hmac") === env.SYNCKY_SERVER_HMAC, "fragment HMAC did not round-trip");
+    }
   });
 
   it("a link without auth and without an hmac file carries no secret", (t) => {
     const dir = tempDir(t);
     const r = run(["link", "--data", dir, "--host", "box.local", "--auth", "none", "--format", "influx"]);
     assert.equal(r.status, 0, r.stderr);
-    assert.equal(r.stdout, "syncky://webhook?v=1&name=Minimal%20server&url=http%3A%2F%2Fbox.local%3A3000%2Fsyncky&format=influx&auth=none\n");
+    assert.equal(r.stdout, "https://syncky.app/connect#v=1&name=Minimal%20server&url=http%3A%2F%2Fbox.local%3A3000%2Fsyncky&format=influx&auth=none\n");
   });
 
   it("exits 1 when a token is needed but neither the environment nor the data dir has one", (t) => {

@@ -10,7 +10,7 @@ The smallest complete server for the Syncky iPhone app's direct connections ("Se
 ./server.mjs link --host "$(scutil --get LocalHostName).local"   # the setup link for the iPhone
 ```
 
-Open the link on the iPhone (Connections › **+** › Paste a setup link) or show it as a QR code with any QR tool, for example `qrencode -t ansiutf8 "<link>"`. The link carries the token and the HMAC secret: share it only with the phone. On a plain `http://` address the app accepts write commands only when they are signed, so keep the `hmac` file.
+Open the `https://syncky.app/connect#…` link on the iPhone, or paste or scan it in Settings › Connections › **+** › Paste a setup link. Review the receiver and confirm the import in Syncky. The fragment carries the token and HMAC secret. Share the link only with the iPhone's owner. On a plain `http://` address the app accepts write commands only when they are signed, so keep the `hmac` file.
 
 ## Commands and options
 
@@ -18,20 +18,20 @@ Open the link on the iPhone (Connections › **+** › Paste a setup link) or sh
 | --- | --- |
 | `init` | creates the data dir (mode 700) and the files `token` (`srv_…`) and `hmac` (`whsec_…`), mode 600; existing files are kept |
 | `serve [--port 3000] [--bind 127.0.0.1]` | accepts `POST` on any path, `GET /health` answers `200` |
-| `link [--host <name>.local] [--port 3000] [--format native\|hae\|csv\|influx] [--name <name>] [--url-scheme <scheme>]` | prints the setup link for `http://<host>:<port>/syncky`, with signing on when an HMAC secret exists; scheme defaults to `syncky` |
+| `link [--host <name>.local] [--port 3000] [--format native\|hae\|csv\|influx] [--name <name>] [--url-scheme syncky]` | prints the setup link for `http://<host>:<port>/syncky`, with signing on when an HMAC secret exists |
 | `write <type> <value> <unit> [--at <rfc3339>]` | queues a HealthKit write (`c_<n>`, version 1) for the next reply, for example `write dietary_water 0.25 L`; a negative value needs `--` before the type: `write -- water_temperature -1 degC` |
 | `delete <command_id>` | queues the deletion of what that write created (the same id, version + 1) |
 | `status` | prints counts only: stored samples, deletions, inbox files, queued commands, results |
 
 Every command takes `--data <dir>` (default `./syncky-data`). `serve` and `link` take `--auth none|bearer|basic|header` (default `bearer`), `--user <name>` for Basic and `--header <Name>` for a custom header such as `X-Api-Key`. Secrets never come from flags: `SYNCKY_SERVER_TOKEN` and `SYNCKY_SERVER_HMAC` override the `token` and `hmac` files. Without an HMAC secret (no `hmac` file, no variable) requests are not checked for a signature and replies are not signed. Exit codes: 0 ok, 1 runtime error, 2 bad arguments.
 
-For `link`, the scheme defaults to `syncky`. Selection order is `--url-scheme` → `SYNCKY_URL_SCHEME` → optional `<data>/config.json` key `url_scheme` → `syncky`. Only `syncky` is supported. The receiver hostname never selects a scheme. A missing config file, absent or null key, and empty environment variable are unset; an empty flag or config string is invalid. Malformed config or an invalid selected value exits 2 with a fixed message. Other commands ignore this environment variable and config file; the flag is accepted only by `link`.
+For `link`, the label comes from `--url-scheme` → `SYNCKY_URL_SCHEME` → optional `<data>/config.json` key `url_scheme` → `syncky`. Only `syncky` is accepted, and every link uses `https://syncky.app/connect`. A missing config file, absent or null key, and empty environment variable are unset; an empty flag or config string is invalid. Malformed config or an invalid selected value exits 2 with a fixed message. Other commands ignore this environment variable and config file; the flag is accepted only by `link`.
 
 ```sh
-./server.mjs link --host box.local
+./server.mjs link --host box.local | qrencode -t ansiutf8
 ```
 
-An optional `syncky-data/config.json` can contain `{"url_scheme":"syncky"}`. The file must contain a JSON object. The link opens Syncky for import review and confirmation.
+This displays the setup QR code locally. An optional `syncky-data/config.json` can contain `{"url_scheme":"syncky"}`. The file must contain a JSON object.
 
 ## What it does with a request
 

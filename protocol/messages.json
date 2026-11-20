@@ -112,6 +112,7 @@
   "limits": {
     "max_envelope_bytes": 262144,
     "max_control_envelope_bytes": 4096,
+    "max_access_envelope_bytes": 131072,
     "max_recipients": 7,
     "max_member_id_length": 64,
     "max_markers": 1,
