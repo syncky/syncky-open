@@ -56,7 +56,7 @@ describe("pair-uris.json version 2", () => {
     assert.ok(v2Builds.length >= 2);
     for (const c of buildCases) {
       const [scheme, rest] = c.uri.split("://");
-      assert.equal(scheme, c.input.url_scheme ?? "https", c.name);
+      assert.equal(scheme, "https", c.name);
       assert.equal(/[?#]v=2&/.test(rest), c.input.pair_secret !== undefined, c.name);
     }
     for (const c of parseCases.filter((x) => x.expect.ok)) assert.equal(c.expect.pair_secret !== undefined, /[?#&]v=2(&|$)/.test(c.uri), c.name);

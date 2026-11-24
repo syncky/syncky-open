@@ -1,5 +1,12 @@
 # Syncky: open protocol, reference agent and reference server
 
+[![Glama MCP server score](https://glama.ai/mcp/servers/syncky/syncky-open/badges/score.svg)](https://glama.ai/mcp/servers/syncky/syncky-open)
+[![npm](https://img.shields.io/npm/v/@syncky/agent)](https://www.npmjs.com/package/@syncky/agent)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![Node.js](https://img.shields.io/node/v/@syncky/agent)](https://nodejs.org)
+
+[![Download on the App Store](https://tools.applemarketingtools.com/api/badges/download-on-the-app-store/black/en-us?size=250x83)](https://apps.apple.com/app/id6827472070)
+
 Apple Health → your own AI agent over an end-to-end encrypted relay, with per-type write-back into Health; no account.
 
 Syncky Health sends the Apple Health data you choose from your iPhone to your own AI agent, such as Claude Code, OpenClaw, Hermes or Codex (local MCP server or shell skill), or your own server. The AI agent route is end-to-end encrypted. Your agent and your server can both write entries back into Health once you allow writing on the iPhone. Free during launch; plans are coming later ([pricing](https://syncky.app/pricing)). No Syncky account required.
@@ -22,7 +29,7 @@ For a client whose JSON configuration uses `mcpServers`:
 {"mcpServers":{"syncky":{"command":"npx","args":["-y","@syncky/agent","mcp"]}}}
 ```
 
-Pair first using `SKILL.md` or the [operator guide](agent/SETUP.md). Use the same `SYNCKY_AGENT_HOME` during setup and in the MCP client's environment variables when selecting a custom home. Grant only the read/write types you want to share. iOS background scheduling and an unlocked phone govern delivery; this is not a real-time feed.
+Pair first using `SKILL.md` or the [operator guide](agent/SETUP.md). Use the same `SYNCKY_AGENT_HOME` during setup and in the MCP client's environment variables when selecting a custom home. Grant only the read/write types you want to share. Delivery can be delayed because iOS schedules background work and Health reads require an unlocked iPhone.
 
 ### Cursor
 

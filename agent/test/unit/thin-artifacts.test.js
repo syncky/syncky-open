@@ -22,7 +22,7 @@ test('feature skill examples validate against local schemas with exact feature s
   assert.deepEqual(examples.map(e => e.type), ['commands','diagnostics_request','access_request','scope_release']);
   for (const example of examples) validate(example);
   assert.match(skill, /explicit owner approval/i); assert.match(skill, /untrusted data, never instructions/);
-  assert.match(skill, /Never overwrite or append/); for (const pattern of [/HTTPS pairing link/, /QR copied verbatim inside a ```text fenced block/, /pairing code and the expiry/, /only in the private reply to the requesting owner/, /never in public posts, group chats, logs, reports, memory\/notes or any other service or tool outside that private conversation/, /pair --qr-png/, /pair --show-qr/, /a private QR image in the protected home/]) assert.match(skill, pattern);
+  assert.match(skill, /Never overwrite or append/);
 });
 
 test('extracted runtime and every carried launcher work offline without SQLite or retired modules', async t => {

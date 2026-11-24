@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { spawn as nodeSpawn } from 'node:child_process';
 import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { agentErrorCode, errorHint } from './error-guidance.js';
 import { LocalStateError, POLL_INTERVAL_MIN_S, agentHome, errorDetail, resolveConfig } from './config.js';
 import { LEVELS, createLogger } from './log.js';
@@ -28,7 +29,10 @@ export const EXIT = Object.freeze({ ok: 0, usage: 1, relay: 2, invalidToken: 3, 
 export class UsageError extends Error { constructor(message) { super(message); this.name = 'UsageError'; this.code = 'invalid_arguments'; } }
 const internalCommands = { 'pair-waiter': { max: 1 } };
 const PAIR_WAITER_GRACE_MS = 60000;
-export function generalHelp() { return `usage: syncky-agent <command> [options]\n\n${Object.values(commands).map(c => '  ' + c.usage).join('\n')}\n\nGlobal: --home <dir> --relay <url> --url-scheme <scheme> --log-level <level> --help\nJSON output: --json (send instead requires --json <file|-> as input).\nExit: 0 success, 1 usage, 2 relay, 3 invalid_token, 4 local state.\n`; }
+const PAIR_WAITER_COLLECTION_MS = 30 * 60_000;
+const CLI_ENTRY = fileURLToPath(typeof __SYNCKY_AGENT_BUNDLE__ === 'undefined'
+  ? new URL('../bin/syncky-agent.js', import.meta.url) : import.meta.url);
+export function generalHelp() { return `usage: syncky-agent <command> [options]\n\n${Object.values(commands).map(c => '  ' + c.usage).join('\n')}\n\nGlobal: --home <dir> --relay <url> --url-scheme <scheme> --log-level <level> --help\n--url-scheme selects the HTTPS pairing site: syncky uses syncky.app, syncky-<label> uses <label>.syncky.app; on a syncky.app relay the label must match relay-<label>, otherwise invalid_url_scheme. The app accepts a labelled site only with its matching relay; for other relays use syncky or leave it unset.\nJSON output: --json (send instead requires --json <file|-> as input).\nExit: 0 success, 1 usage, 2 relay, 3 invalid_token, 4 local state.\n`; }
 export function commandHelp(command) { return `usage: syncky-agent ${commands[command]?.usage ?? '<command>'}\n${commands[command]?.details ? '\n' + commands[command].details + '\n' : ''}`; }
 export function parseArgs(argv) {
   const command = argv.find((arg, i) => !arg.startsWith('-') && (i === 0 || !['--home','--relay','--url-scheme','--log-level'].includes(argv[i - 1])));
@@ -74,9 +78,80 @@ async function inputText(path, input) {
   catch { throw new LocalStateError('invalid_input','JSON input must be UTF-8'); }
 }
 const confirmationReceipt = (runtime, id) => runtime.outbox.receipts().find(e => e.type === 'confirmed' && e.to?.includes(id));
-async function waitPair(runtime, pairing, started, { timeout = 900, signal, sleep, now, deadline = now().getTime() + timeout * 1000, deadlineOf, isCurrent, retryRelayErrors = false }) {
+async function waitPair(runtime, pairing, started, { timeout = 900, signal, sleep, now, deadline = now().getTime() + timeout * 1000, deadlineOf, isCurrent, retryRelayErrors = false, collectionOptions }) {
   let outcome, completedResult, failures = 0;
   const until = () => deadlineOf?.() ?? deadline;
+  let end = deadline, wakePending = false, hinted = false, sleeping, collection, socketEnd;
+  const connection = runtime.pairingSocket?.({ signal,
+    canConnect(retrying) {
+      if (now().getTime() >= end || receiverLockHeld(runtime.home)) return false;
+      if (collection) return now().getTime() < collection.joinUntil;
+      if (!retrying) return true;
+      try { return isCurrent ? isCurrent() : pairing.currentPairing({ includeCompleted: true, includeExpired: true })?.pairing_id === started.pairing_id; }
+      catch { return false; }
+    },
+    onWake(event, reason) {
+      wakePending = true;
+      hinted = event !== 'failure';
+      socketEnd = reason;
+      if (reason) collection?.finish(reason);
+      sleeping?.abort();
+    },
+  });
+  const hints = { pending: () => hinted && connection.healthy, consume: () => { hinted = false; },
+    hasWindow: () => connection.firstSync || Boolean(collection && now().getTime() < collection.joinUntil) };
+  const onRetryAfter = at => connection?.deferRetriesUntil(at);
+  async function pause(ms, interruptible, waitSignal = signal) {
+    if (!interruptible || !connection) return abortableSleep(ms, sleep, waitSignal);
+    if (wakePending) return;
+    const wake = new AbortController();
+    sleeping = wake;
+    try { await abortableSleep(ms, sleep, waitSignal ? AbortSignal.any([waitSignal, wake.signal]) : wake.signal); }
+    catch (error) { if (!wake.signal.aborted || waitSignal?.aborted) throw error; }
+    finally { sleeping = undefined; }
+  }
+  async function collect(member, joinUntil) {
+    const { begin, timers } = collectionOptions;
+    const at = now().getTime();
+    end = (Date.parse(member.confirmed_at) || at) + PAIR_WAITER_COLLECTION_MS;
+    const controller = new AbortController(), collectSignal = AbortSignal.any([signal, controller.signal]);
+    let reason;
+    collection = { joinUntil, finish(why) { reason ??= why; controller.abort(); } };
+    begin();
+    const timer = timers.setTimeout(() => collection.finish('window_cap'), Math.max(0, end - at));
+    let pollAt = 0, blockedUntil = 0;
+    try {
+      while (!collectSignal.aborted) {
+        const at = now().getTime();
+        if (receiverLockHeld(runtime.home)) return 'receiver';
+        if (at >= end) return 'window_cap';
+        if (!connection.firstSync && at >= joinUntil) return 'join_window_ended';
+        if (connection.healthy && at >= blockedUntil && (hinted || at >= pollAt)) {
+          wakePending = false;
+          try {
+            const result = await runtime.poller.once({ signal: collectSignal, deadline: end, operator: false, hints, yieldToReceiver: true });
+            pollAt = result?.capped ? at : result?.next_poll_at ?? Infinity;
+            blockedUntil = ['cadence', 'poll_floor'].includes(result?.reason) ? 0 : result?.next_poll_at ?? 0;
+            if (result?.reason === 'retry_after') onRetryAfter(blockedUntil);
+          } catch (error) {
+            if (collectSignal.aborted) break;
+            if (error.code === 'invalid_token') return 'invalid_token';
+            const delay = Number.isFinite(error.retryAfterS) ? Math.max(1000, error.retryAfterS * 1000) : 1000;
+            pollAt = blockedUntil = now().getTime() + delay;
+            if (Number.isFinite(error.retryAfterS)) onRetryAfter(blockedUntil);
+          }
+          continue;
+        }
+        wakePending = false;
+        await pause(Math.min(1000, end - at), true, collectSignal);
+      }
+    } catch (error) {
+      if (!collectSignal.aborted) throw error;
+    } finally {
+      timers.clearTimeout(timer);
+    }
+    return reason ?? 'stopped';
+  }
   function confirmation() {
     const state = readHomeState(runtime.home), member = state.members[outcome.member.member_id], row = state.pairings[started.pairing_id];
     if (member?.role !== 'device' || member.pairing_id !== started.pairing_id || row?.status !== 'completed' || row.member_id !== member.member_id
@@ -88,56 +163,81 @@ async function waitPair(runtime, pairing, started, { timeout = 900, signal, slee
   }
   const withAccess = (confirmed, row, ended = false) => row?.requested_scope
     ? { ...confirmed, member: { ...confirmed.member, pairing_access: pairingAccessView(row, { ended }) } } : confirmed;
-  while (now().getTime() < until()) {
-    signal?.throwIfAborted();
-    if (isCurrent && !await isCurrent()) return;
-    let delayMs = 2000;
-    try {
-      if (!outcome) {
-        const result = await pairing.refreshPairing(started.pairing_id, { signal, deadline: until() });
-        if (result.status === 'expired') throw new LocalStateError('pairing_expired','pairing expired');
-        if (result.status === 'completed') outcome = result;
-      }
-      if (outcome) {
-        if (isCurrent && !await isCurrent()) return;
-        let row = readHomeState(runtime.home).pairings[started.pairing_id];
-        const confirmed = confirmation();
-        if (!confirmed && (started.version === 1 || (!retryRelayErrors && Date.parse(started.expires_at) <= now().getTime()))) return outcome;
-        if (!confirmed || row?.access?.state === 'awaiting') await runtime.poller.once({ signal, deadline: until(), operator: false });
-        if (confirmation()) {
-          await runtime.inbound.releaseHeld({ signal, deadline: until() });
-          await runtime.outbox.flush({ signal });
-          const completed = confirmation();
-          if (!completed) throw new LocalStateError('invalid_transition', 'phone is no longer confirmed');
-          row = readHomeState(runtime.home).pairings[started.pairing_id];
-          const result = withAccess(completed, row);
-          completedResult = result;
-          if (!retryRelayErrors && row?.access?.state !== 'awaiting') return result;
-          const receipt = confirmationReceipt(runtime, outcome.member.member_id);
-          if (receipt?.state === 'sent' && row?.access?.state !== 'awaiting') return result;
-          if (receipt?.state === 'failed') throw new LocalStateError('invalid_transition', 'pairing confirmation delivery failed');
-          delayMs = Math.max(delayMs, (typeof receipt?.next_attempt_at === 'string' ? Date.parse(receipt.next_attempt_at) : receipt?.next_attempt_at ?? 0) - now().getTime());
-          if (receipt?.state === 'sent' && row?.access?.state === 'awaiting') {
-            const transport = readHomeState(runtime.home).transport;
-            delayMs = Math.max(delayMs, Math.min(30000, Math.max(transport.next_poll_at ?? 0, transport.poll_retry_at ?? 0) - now().getTime()));
+  try {
+    while (now().getTime() < (end = until())) {
+      signal?.throwIfAborted();
+      if (isCurrent && !await retryHomeLock(isCurrent)) return;
+      connection?.start();
+      wakePending = false;
+      let delayMs = 2000, interruptible = true;
+      try {
+        if (!outcome) {
+          const result = await pairing.refreshPairing(started.pairing_id, { signal, deadline: until(), onRetryAfter });
+          if (result.status === 'expired') throw new LocalStateError('pairing_expired','pairing expired');
+          if (result.status === 'completed') outcome = result;
+        }
+        if (outcome) {
+          if (isCurrent && !await retryHomeLock(isCurrent)) return;
+          let row = readHomeState(runtime.home).pairings[started.pairing_id];
+          const confirmed = confirmation();
+          if (!confirmed && (started.version === 1 || (!retryRelayErrors && Date.parse(started.expires_at) <= now().getTime()))) return outcome;
+          if (!confirmed || row?.access?.state === 'awaiting') {
+            const cycle = await runtime.poller.once({ signal, deadline: until(), operator: false, ...(connection && { hints }) });
+            if (cycle?.reason === 'retry_after') connection?.deferRetriesUntil(cycle.next_poll_at);
+          }
+          if (confirmation()) {
+            await runtime.inbound.releaseHeld({ signal, deadline: until() });
+            await runtime.outbox.flush({ signal });
+            const completed = confirmation();
+            if (!completed) throw new LocalStateError('invalid_transition', 'phone is no longer confirmed');
+            row = readHomeState(runtime.home).pairings[started.pairing_id];
+            const result = withAccess(completed, row);
+            completedResult = result;
+            if (!retryRelayErrors && row?.access?.state !== 'awaiting') return result;
+            const receipt = confirmationReceipt(runtime, outcome.member.member_id);
+            if (receipt?.state === 'sent' && collectionOptions) {
+              const state = await retryHomeLock(() => readHomeState(runtime.home));
+              const member = state.members[outcome.member.member_id];
+              const joinUntil = member?.join_grace_until ?? 0;
+              if (member && connection?.healthy && (connection.firstSync || joinUntil > now().getTime())) {
+                return { collectionReason: await collect(member, joinUntil) };
+              }
+              if (socketEnd && row?.access?.state !== 'awaiting') return { collectionReason: socketEnd };
+            }
+            if (receipt?.state === 'sent' && row?.access?.state !== 'awaiting') return result;
+            if (receipt?.state === 'failed') throw new LocalStateError('invalid_transition', 'pairing confirmation delivery failed');
+            const receiptDue = typeof receipt?.next_attempt_at === 'string' ? Date.parse(receipt.next_attempt_at) : receipt?.next_attempt_at ?? 0;
+            if (receiptDue > now().getTime()) {
+              delayMs = Math.max(delayMs, receiptDue - now().getTime());
+              interruptible = false;
+            }
+            if (receipt?.state === 'sent' && row?.access?.state === 'awaiting') {
+              const transport = readHomeState(runtime.home).transport;
+              delayMs = Math.max(delayMs, Math.min(30000, Math.max(transport.next_poll_at ?? 0, transport.poll_retry_at ?? 0) - now().getTime()));
+            }
           }
         }
+        failures = 0;
+      } catch (err) {
+        if (!signal?.aborted && now().getTime() >= until()) break;
+        const recoverable = err.status === 0 || err.status === 429 || err.status >= 500 || err.name === 'AbortError' || ['network_error', 'timeout'].includes(err.code);
+        if (signal?.aborted || (err.code !== 'home_locked' && err.status !== 429 && !(retryRelayErrors && recoverable))) throw err;
+        interruptible = false;
+        if (retryRelayErrors && recoverable) delayMs = Math.min(30000, 1000 * 2 ** Math.min(++failures, 5));
+        if ((err.status === 429 || (retryRelayErrors && recoverable)) && Number.isFinite(err.retryAfterS) && err.retryAfterS >= 0) {
+          delayMs = Math.max(1000, err.retryAfterS * 1000);
+          connection?.deferRetriesUntil(now().getTime() + delayMs);
+        }
       }
-      failures = 0;
-    } catch (err) {
-      if (!signal?.aborted && now().getTime() >= until()) break;
-      const recoverable = err.status === 0 || err.status === 429 || err.status >= 500 || err.name === 'AbortError' || ['network_error', 'timeout'].includes(err.code);
-      if (signal?.aborted || (err.code !== 'home_locked' && err.status !== 429 && !(retryRelayErrors && recoverable))) throw err;
-      if (retryRelayErrors && recoverable) delayMs = Math.min(30000, 1000 * 2 ** Math.min(++failures, 5));
-      if ((err.status === 429 || (retryRelayErrors && recoverable)) && Number.isFinite(err.retryAfterS) && err.retryAfterS >= 0) delayMs = Math.max(1000, err.retryAfterS * 1000);
+      if (interruptible && connection?.healthy) delayMs = 30000;
+      await pause(Math.min(delayMs, Math.max(0, (end = until()) - now().getTime())), interruptible);
     }
-    await abortableSleep(Math.min(delayMs, Math.max(0, until() - now().getTime())), sleep, signal);
-  }
-  if (outcome && ((!retryRelayErrors && completedResult) || confirmationReceipt(runtime, outcome.member.member_id)?.state === 'sent') && confirmation()) {
-    await retryHomeLock(() => pairing.currentPairing({ includeCompleted: true, includeExpired: true }));
-    return withAccess(confirmation(), readHomeState(runtime.home).pairings[started.pairing_id], true);
-  }
-  throw new LocalStateError('timeout','pairing wait timed out; receive can continue automatic code-proof confirmation');
+    if (outcome && ((!retryRelayErrors && completedResult) || confirmationReceipt(runtime, outcome.member.member_id)?.state === 'sent') && confirmation()) {
+      await retryHomeLock(() => pairing.currentPairing({ includeCompleted: true, includeExpired: true }));
+      return withAccess(confirmation(), readHomeState(runtime.home).pairings[started.pairing_id], true);
+    }
+    throw new LocalStateError('timeout','pairing wait timed out; receive can continue automatic code-proof confirmation');
+  } finally { connection?.stop(); }
 }
 function spawnPairWaiter(home, id, { spawn, env, logger, flags }) {
   if (receiverLockHeld(home)) return;
@@ -145,7 +245,7 @@ function spawnPairWaiter(home, id, { spawn, env, logger, flags }) {
   try {
     fd = openPrivateAppend(join(home, 'pair-waiter.log'), { maxBytes: 256 * 1024 });
     const overrides = ['relay', 'url-scheme'].flatMap(key => flags[key] === undefined ? [] : [`--${key}`, flags[key]]);
-    const child = spawn(process.execPath, [process.argv[1], '--home', resolve(home), ...overrides, 'pair-waiter', id], {
+    const child = spawn(process.execPath, [CLI_ENTRY, '--home', resolve(home), ...overrides, 'pair-waiter', id], {
       detached: true, stdio: ['ignore', 'ignore', fd], windowsHide: true, env,
     });
     child.once('error', () => logger.warn('pair_waiter_spawn_failed'));
@@ -164,7 +264,7 @@ function pairingErrorHint(error, { command, home, id }) {
     if (reject && member.state === 'rejected') return 'The phone is already rejected locally. Run syncky revoke <member_id> after the relay is reachable or the token is fixed to finish relay revocation. After invalid_token, stop and tell the owner.';
   } catch {}
 }
-export async function main(argv, { env = process.env, stdout = process.stdout, stderr = process.stderr, stdin = process.stdin, fetch = globalThis.fetch, now = () => new Date(), sleep, random, signal, spawn = nodeSpawn, createPoller, timers = globalThis } = {}) {
+export async function main(argv, { env = process.env, stdout = process.stdout, stderr = process.stderr, stdin = process.stdin, fetch = globalThis.fetch, WebSocket, now = () => new Date(), sleep, random, signal, spawn = nodeSpawn, createPoller, timers = globalThis } = {}) {
   const print = text => stdout.write(text), json = value => print(JSON.stringify(value) + '\n');
   let parsed, hint;
   try {
@@ -203,7 +303,7 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
         syncky_ack: args => runtime().poller.ack(args.up_to_seq), syncky_skill: args => readSkill(createSkillUpdater({ home }), args),
       } }); return 0;
     }
-    const runtime = createRuntime({ home, flags, env, fetch, now, sleep, random, logger, outboxMaxAttempts: command === 'pair-waiter' ? Infinity : undefined, createPoller, timers, onRecord: command === 'receive' && flags['emit-records'] ? json : undefined });
+    const runtime = createRuntime({ home, flags, env, fetch, WebSocket, now, sleep, random, logger, outboxMaxAttempts: command === 'pair-waiter' ? Infinity : undefined, createPoller, timers, onRecord: command === 'receive' && flags['emit-records'] ? json : undefined });
     if (command === 'status') { json(await retryHomeLock(() => runtime.status())); return 0; }
     if (command === 'inbox') { json(await retryHomeLock(() => runtime.inbox(inboxArgs(flags)))); return 0; }
     if (command === 'send') {
@@ -229,7 +329,7 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
       const current = () => pairing.currentPairing({ includeCompleted: true, graceMs: PAIR_WAITER_GRACE_MS });
       const started = await retryHomeLock(current);
       if (!started || started.pairing_id !== positionals[0] || started.version !== 2) return 0;
-      const isCurrent = () => retryHomeLock(() => {
+      const isCurrent = () => {
         if (receiverLockHeld(home)) return false;
         if (current()?.pairing_id !== started.pairing_id) return false;
         const state = readHomeState(home), member = state.members[state.pairings[started.pairing_id]?.member_id];
@@ -238,7 +338,7 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
           return Boolean(state.pairings[started.pairing_id]?.access?.state === 'awaiting' || member.confirmation || (receipt && receipt.state !== 'sent'));
         }
         return !member || (member.state === 'joined' && !member.proof_invalidated);
-      });
+      };
       const deadline = Date.parse(started.expires_at) + PAIR_WAITER_GRACE_MS, controller = new AbortController();
       const scoped = Boolean(readHomeState(home).pairings[started.pairing_id]?.requested_scope);
       const deadlineOf = () => {
@@ -249,8 +349,11 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
       const timer = timers.setTimeout(() => controller.abort(), Math.max(0, deadline + (scoped ? PAIRING_REPLY_MS * 2 : 0) - now().getTime()));
       logger.info('pair_waiter_started', { pid: process.pid });
       try {
-        await waitPair(runtime, pairing, started, { now, sleep, signal: waiterSignal, deadline, ...(scoped && { deadlineOf }), isCurrent, retryRelayErrors: true });
-        logger.info('pair_waiter_finished');
+        const result = await waitPair(runtime, pairing, started, {
+          now, sleep, signal: waiterSignal, deadline, ...(scoped && { deadlineOf }), isCurrent, retryRelayErrors: true,
+          collectionOptions: { timers, begin() { timers.clearTimeout(timer); logger.info('pair_waiter_collecting'); } },
+        });
+        logger.info('pair_waiter_finished', { reason: result?.collectionReason ?? 'pairing_finished' });
       } catch { logger.info('pair_waiter_stopped'); }
       finally {
         timers.clearTimeout(timer);

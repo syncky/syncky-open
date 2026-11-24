@@ -74,7 +74,7 @@ function manifests(root) {
   assert.equal(readFileSync(join(pluginRoot, plugin.skills, "syncky/SKILL.md"), "utf8"), skill);
   for (const phrase of [`npx -y @syncky/agent@${version} mcp`,'Use Syncky and start onboarding with a QR code.','Scanning alone does not confirm trust','one receiver per home','untrusted data','Never force registration','exclusive creation','relay sees delivery metadata','Needs attention','uploads wait']) assert.ok(skill.includes(phrase), `skill missing ${phrase}`);
   assert.doesNotMatch(skill, /SYNCKY_INVITE|\binvites?\b/i);
-  for (const pattern of [/Without an answer, wait before installing services or schedules/, /continuous explicitly authorizes installation\/start/, /login startup and restart on failure/, /receive --once/, /Do not automatically schedule writes or reports/, /HTTPS pairing link/, /QR copied verbatim inside a ```text fenced block/, /pairing code and the expiry/, /only in the private reply to the requesting owner/, /never in public posts, group chats, logs, reports, memory\/notes or any other service or tool outside that private conversation/, /pair --qr-png/, /pair --show-qr/, /a private QR image in the protected home/, /explicit owner approval/, /Never overwrite or append/, /permission to write Health values/i]) assert.match(skill,pattern);
+  for (const pattern of [/Wait for the answer.*before completing setup/, /Install and start a service.*only if the owner chooses continuous receive/, /login startup and restart on failure/, /receive --once/, /Do not automatically schedule writes or reports/, /explicit owner approval/, /Never overwrite or append/, /permission to write Health values/i]) assert.match(skill,pattern);
   const recipe = /```sh\nset -eu\n([\s\S]*?)\n```/.exec(skill)?.[1];
   assert.ok(recipe); assert.match(recipe, /syncky_run pair/); assert.doesNotMatch(recipe, /SYNCKY_RUNNER|--force|--wait|--no-qr|--json|--v1/);
   assert.match(skill, /syncky_run\(\) \{ npx -y @syncky\/agent/);
@@ -111,11 +111,12 @@ describe("public installation manifests", () => {
   it("opens both READMEs with user-facing copy and preserves privacy and installation links", () => {
     const lede = "Syncky Health sends the Apple Health data you choose from your iPhone to your own AI agent, such as Claude Code, OpenClaw, Hermes or Codex (local MCP server or shell skill), or your own server. The AI agent route is end-to-end encrypted. Your agent and your server can both write entries back into Health once you allow writing on the iPhone. Free during launch; plans are coming later ([pricing](https://syncky.app/pricing)). No Syncky account required.";
     const readme = readFileSync(join(PUBLIC, "README.md"), "utf8");
+    const paragraphs = readme.split("\n\n").filter(block => !block.startsWith("[!["));
     const agentReadme = readFileSync(join(SOURCE, "agent/README.md"), "utf8");
-    assert.equal(readme.split("\n\n")[1], "Apple Health → your own AI agent over an end-to-end encrypted relay, with per-type write-back into Health; no account.");
-    assert.equal(readme.split("\n\n")[2], lede);
+    assert.equal(paragraphs[1], "Apple Health → your own AI agent over an end-to-end encrypted relay, with per-type write-back into Health; no account.");
+    assert.equal(paragraphs[2], lede);
     assert.equal(agentReadme.split("\n\n")[1], lede);
-    assert.equal(readme.split("\n\n")[3], "Client health-data envelopes are end-to-end encrypted (HPKE Auth + ChaCha20-Poly1305): the relay sees delivery metadata and emits plaintext hub notices, but sees no health values. The app can also send straight to a server the user runs, with no relay at all. The user's agent or server receives plaintext, and a chosen model sees what the agent supplies.");
+    assert.equal(paragraphs[3], "Client health-data envelopes are end-to-end encrypted (HPKE Auth + ChaCha20-Poly1305): the relay sees delivery metadata and emits plaintext hub notices, but sees no health values. The app can also send straight to a server the user runs, with no relay at all. The user's agent or server receives plaintext, and a chosen model sees what the agent supplies.");
     assert.match(agentReadme.split("\n\n")[2], /^A Node.js ≥22.15 encrypted transport/);
     assert.ok(readme.includes("https://syncky.app"));
     assert.ok(readme.includes("https://apps.apple.com/app/id6827472070"));
@@ -220,34 +221,37 @@ describe("Registry generation and release gates", { concurrency: RELEASE_CASE_CO
     assert.equal(existsSync(join(SOURCE, "agent-go")), false, "the Go agent must be deleted");
     cpSync(PUBLIC, source, { recursive: true, filter: (path) => ![join(PUBLIC, "agent"), join(PUBLIC, "protocol"), join(PUBLIC, "examples")].includes(path) });
     assert.equal(existsSync(join(source, "agent-go")), false, "release sources must not include the Go agent");
-    for (const dir of ["agent", "protocol"]) cpSync(join(SOURCE, dir), join(source, dir), { recursive: true,
-      filter: (path) => ![join(SOURCE, dir, "node_modules"), join(SOURCE, dir, "dist")].includes(path) });
-    const pkg = json(join(source, "agent/package.json"));
-    const lock = json(join(source, "agent/package-lock.json"));
+    const agent = join(SOURCE, "agent");
+    const stagedAgent = join(source, "agent");
+    mkdirSync(stagedAgent);
+    const packageInputs = readdirSync(agent, { withFileTypes: true }).filter(({ name }) => name !== "node_modules" && name !== "dist");
+    await Promise.all(packageInputs.map((entry) =>
+      copyFixture(join(agent, entry.name), join(stagedAgent, entry.name), entry.isDirectory())));
+    const pkg = json(join(stagedAgent, "package.json"));
+    const lock = json(join(stagedAgent, "package-lock.json"));
     for (const [name, version] of Object.entries({ ...pkg.dependencies, ...pkg.devDependencies })) {
       assert.equal(lock.packages[`node_modules/${name}`].version, version);
-      assert.equal(json(join(SOURCE, "agent/node_modules", name, "package.json")).version, version);
+      assert.equal(json(join(agent, "node_modules", name, "package.json")).version, version);
     }
-    cpSync(join(SOURCE, "agent/node_modules"), join(source, "agent/node_modules"), { recursive: true });
-    const { buildAgent } = await import(pathToFileURL(join(source, "agent/build.mjs")));
-    await buildAgent();
+    const { buildAgent } = await import(pathToFileURL(join(agent, "build.mjs")));
+    const dist = join(stagedAgent, "dist");
+    await buildAgent({ outdir: dist });
     env = { GITHUB_REPOSITORY: "syncky/syncky-open", GITHUB_REF_TYPE: "tag", GITHUB_REF_NAME: `v${pkg.version}` };
     prepared = await run(["release.mjs", "prepare", join(base, "prepared")], source, env);
     assert.equal(prepared.status, 0, prepared.stderr);
     const keep = new Set(["package.json", "package-lock.json", "LICENSE", "NOTICE", "README.md", "dist"]);
-    for (const name of readdirSync(join(source, "agent"))) if (!keep.has(name)) renameSync(join(source, "agent", name), join(base, `unused-agent-${name}`));
-    for (const entry of readdirSync(join(source, "agent/dist"), { withFileTypes: true })) if (entry.isDirectory()) renameSync(join(source, "agent/dist", entry.name), join(base, `unused-dist-${entry.name}`));
-    for (const name of ["protocol", "test"]) renameSync(join(source, name), join(base, `unused-${name}`));
+    for (const { name } of packageInputs) if (!keep.has(name)) renameSync(join(stagedAgent, name), join(base, `unused-agent-${name}`));
+    for (const entry of readdirSync(dist, { withFileTypes: true })) if (entry.isDirectory()) renameSync(join(dist, entry.name), join(base, `unused-dist-${entry.name}`));
+    renameSync(join(source, "test"), join(base, "unused-test"));
   });
   after(() => { if (base) rmSync(base, { recursive: true, force: true }); });
 
-  // Each case needs a private writable tree, so the shared one keeps only what release.mjs reads after
-  // prepare. Per-file metadata dominates under load, and libuv's COPYFILE_FICLONE does not clone on
-  // macOS, so APFS clones go through cp -c.
-  async function copySource(root) {
-    if (process.platform !== "darwin") return cp(source, root, { recursive: true });
+  // Each case needs writable copies of the staged source and prepared assets. libuv's
+  // COPYFILE_FICLONE does not clone on macOS, so APFS clones go through cp -c.
+  async function copyFixture(from, to, directory = true) {
+    if (process.platform !== "darwin") return cp(from, to, { recursive: true });
     const result = await new Promise((done) => {
-      const child = spawn("/bin/cp", ["-cR", `${source}/`, root], { stdio: ["ignore", "ignore", "pipe"] });
+      const child = spawn("/bin/cp", ["-cR", directory ? `${from}/` : from, to], { stdio: ["ignore", "ignore", "pipe"] });
       let stderr = "";
       child.stderr.setEncoding("utf8").on("data", (chunk) => { stderr += chunk; });
       child.on("error", (error) => done({ status: null, stderr: error.message }));
@@ -258,20 +262,22 @@ describe("Registry generation and release gates", { concurrency: RELEASE_CASE_CO
 
   async function fixture(t) {
     const root = mkdtempSync(join(base, "case-"));
-    await copySource(root);
+    await copyFixture(source, root);
     const bin = join(root, "stub-bin");
     mkdirSync(bin);
     const log = join(root, "side-effects.jsonl");
     const state = join(root, "remote.json");
     writeFileSync(state, JSON.stringify({ npm: null, release: null, immutable: true }));
     const stub = `#!${process.execPath}
-import { appendFileSync, copyFileSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { appendFileSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { basename, dirname, join } from 'node:path';
 const command = basename(process.argv[1]), args = process.argv.slice(2);
 appendFileSync(process.env.EFFECTS, JSON.stringify([command, ...args]) + '\\n');
 const file = process.env.REMOTE, state = JSON.parse(readFileSync(file, 'utf8'));
 const save = () => writeFileSync(file, JSON.stringify(state));
+// Model the transferred bytes without the per-file metadata cost of macOS copyfile.
+const transfer = (from, to) => writeFileSync(to, readFileSync(from));
 const reply = (value) => process.stdout.write(JSON.stringify(value));
 const fail = (value) => { reply(value); process.exit(1); };
 const once = (point) => { if (state.fail === point) { delete state.fail; save(); fail({ message: 'simulated timeout' }); } };
@@ -286,7 +292,7 @@ const upload = (paths) => {
       save();
       once('upload-starter');
     }
-    copyFileSync(path, join(dirname(file), 'remote-' + name));
+    transfer(path, join(dirname(file), 'remote-' + name));
     state.release.assets.push({ id, name, state: 'uploaded', size: statSync(path).size });
     save();
     once('upload');
@@ -349,14 +355,14 @@ if (command === 'npm' && args[0] === 'view') {
   save();
   once('publish-after');
 } else if (command === 'gh' && args[1] === 'download') {
-  copyFileSync(join(dirname(file), 'remote-' + args[args.indexOf('--pattern') + 1]), args[args.indexOf('--output') + 1]);
+  transfer(join(dirname(file), 'remote-' + args[args.indexOf('--pattern') + 1]), args[args.indexOf('--output') + 1]);
 } else if (command === 'curl') {
   if (state.downloadError === args.at(-1).split('/').at(-1)) {
     process.stderr.write('private curl diagnostic\\n');
     fail({ message: 'private download output' });
   }
   if (state.downloads) {
-    copyFileSync(state.downloads[args.at(-1).split('/').at(-1)], args[args.indexOf('--output') + 1]);
+    transfer(state.downloads[args.at(-1).split('/').at(-1)], args[args.indexOf('--output') + 1]);
   } else {
     if (state.registryError) fail({ message: 'lookup transport failed' });
     process.stdout.write(String(state.registryStatus ?? 404));
@@ -386,8 +392,10 @@ if (command === 'npm' && args[0] === 'view') {
       RELEASE_NPM_WAIT_ATTEMPTS: "4", RELEASE_NPM_WAIT_SECONDS: "0" } };
   }
 
-  const prepare = async (fx) => {
-    await cp(join(base, "prepared"), fx.release, { recursive: true });
+  const prepare = async (fx, { writable = false } = {}) => {
+    const assets = join(base, "prepared");
+    if (writable) await copyFixture(assets, fx.release);
+    else fx.release = assets;
     return prepared;
   };
   const publish = (fx) => run(["release.mjs", "publish", fx.release], fx.root, fx.env);
@@ -512,7 +520,7 @@ if (command === 'npm' && args[0] === 'view') {
 
   it("rejects a tampered Registry asset before lookup or authentication", async (t) => {
     const fx = await fixture(t);
-    assert.equal((await prepare(fx)).status, 0);
+    assert.equal((await prepare(fx, { writable: true })).status, 0);
     writeFileSync(join(fx.release, "server.json"), readFileSync(join(fx.root, "server.json")));
     assert.notEqual((await registry(fx)).status, 0);
     assert.equal(existsSync(fx.log), false);
@@ -749,7 +757,7 @@ if (command === 'npm' && args[0] === 'view') {
 
   it("publishes downloaded prepared assets without dependencies, a build tree or executing the bundle", async (t) => {
     const fx = await fixture(t);
-    assert.equal((await prepare(fx)).status, 0);
+    assert.equal((await prepare(fx, { writable: true })).status, 0);
     rmSync(join(fx.root, "agent/dist"), { recursive: true });
     assert.equal(existsSync(join(fx.root, "agent/node_modules")), false);
     const audit = join(fx.root, "audit.cjs"), log = join(fx.root, "executions.jsonl");
@@ -857,7 +865,7 @@ if (command === 'npm' && args[0] === 'view') {
   ]) {
     it(`rejects ${label} before npm publication and release creation`, async (t) => {
       const fx = await fixture(t);
-      const prepared = await prepare(fx);
+      const prepared = await prepare(fx, { writable: true });
       assert.equal(prepared.status, 0, prepared.stderr);
       mutate(fx);
       const result = await publish(fx);
@@ -869,7 +877,7 @@ if (command === 'npm' && args[0] === 'view') {
   for (const field of ["repository", "version"]) {
     it(`rejects a repacked ${field} mismatch even with an updated receipt hash`, async (t) => {
       const fx = await fixture(t);
-      const prepared = await prepare(fx);
+      const prepared = await prepare(fx, { writable: true });
       assert.equal(prepared.status, 0, prepared.stderr);
       const receiptPath = join(fx.release, "release.json");
       const receipt = json(receiptPath);

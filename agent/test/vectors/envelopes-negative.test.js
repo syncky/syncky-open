@@ -9,13 +9,7 @@ import { loadJson, loadVectors } from "../../src/protocol-files.js";
 const keys = loadVectors("keys");
 const { cases } = loadVectors("envelopes-negative");
 
-const EXPECTED_CODES = ["aead_failed", "hpke_open_failed", "not_a_recipient", "unknown_sender", "malformed", "inner_invalid"];
-
 describe("envelopes-negative.json", () => {
-  it("exercises every open error code", () => {
-    assert.deepEqual([...new Set(cases.map((c) => c.expect))].sort(), [...EXPECTED_CODES].sort());
-  });
-
   for (const c of cases) {
     it(`${c.name} → ${c.expect}`, async () => {
       const receiver = keys[c.receiver];

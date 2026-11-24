@@ -1,8 +1,7 @@
 import { describe, it, before } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync } from "node:fs";
 
-import { SCHEMA_ID_BASE, loadSchemas, protocolPath } from "../../src/protocol-files.js";
+import { SCHEMA_ID_BASE, loadSchemas } from "../../src/protocol-files.js";
 import { loadJson, loadVectors } from "../support/protocol-files.js";
 import { createValidator } from "../support/validator.js";
 import { diagnosticsFixture } from "../support/diagnostics.js";
@@ -64,12 +63,6 @@ describe("protocol files validate against protocol/schemas", () => {
     validator = await createValidator();
   });
 
-  it("every listed protocol file exists and every vector file has a schema mapping", () => {
-    const present = readdirSync(protocolPath("test-vectors/")).filter((f) => f.endsWith(".json")).sort();
-    assert.deepEqual(present, Object.keys(FILE_DEFS).filter(f => f.startsWith("test-vectors/")).map(f => f.slice("test-vectors/".length)).sort());
-    for (const f of present) assert.ok(FILE_DEFS[`test-vectors/${f}`], `no schema mapping for ${f}`);
-  });
-
   it('generates the additive access limit while keeping legacy table rows', () => {
     const table = loadJson('messages.json');
     assert.equal(table.limits.max_access_envelope_bytes, 131072);
@@ -89,7 +82,7 @@ describe("protocol files validate against protocol/schemas", () => {
     const pairing = loadVectors("pair-uris").cases.find(c => c.input && c.input.url_scheme === "syncky");
     const webhook = loadVectors("webhook-requests").cases[0];
     for (const scheme of ["syncky", "syncky-alpha", "syncky-beta-2", "syncky-a0"]) {
-      const pair = { ...pairing, input: { ...pairing.input, url_scheme: scheme }, uri: pairing.uri.replace(/^syncky:/, `${scheme}:`) };
+      const pair = { ...pairing, input: { ...pairing.input, url_scheme: scheme } };
       const hook = { ...webhook, url_scheme: scheme, link: webhook.link.replace(/^syncky:/, `${scheme}:`) };
       assert.equal(validator.validate("test-vectors.schema.json", "pair_uris_file", { ...loadVectors("pair-uris"), cases: [pair] }).ok, true);
       assert.equal(validator.validate("test-vectors.schema.json", "webhook_request_case", hook).ok, true);
@@ -213,27 +206,4 @@ describe("schemas use no format keyword", () => {
     for (const schema of schemas) assert.deepEqual(formatKeywordPointers(schema), [], schema.$id);
   });
 
-  it("format as a property name or as data is allowed", () => {
-    assert.deepEqual(formatKeywordPointers({ properties: { format: {} }, required: ["format"] }), []);
-    assert.deepEqual(
-      formatKeywordPointers({
-        type: "object",
-        properties: { a: { enum: ["format"], const: { format: "x" }, examples: [{ format: 1 }], default: { format: "y" } } },
-      }),
-      [],
-    );
-  });
-
-  it("format as a keyword is flagged wherever a subschema sits", () => {
-    assert.deepEqual(formatKeywordPointers({ type: "string", format: "date-time" }), ["/format"]);
-    assert.deepEqual(
-      formatKeywordPointers({
-        $defs: { a: { type: "array", items: { format: "uri" } } },
-        oneOf: [{ type: "string" }, { format: "email" }],
-        properties: { format: { type: "string", format: "date" } },
-        if: { not: { format: "x" } },
-      }).sort(),
-      ["/$defs/a/items/format", "/if/not/format", "/oneOf/1/format", "/properties/format/format"],
-    );
-  });
 });

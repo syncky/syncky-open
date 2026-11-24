@@ -8,3 +8,7 @@ export function pairingSite(relayHost) {
   const label = /^relay-([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\.syncky\.app$/.exec(relayHost.toLowerCase())?.[1];
   return label ? `${label}.syncky.app` : "syncky.app";
 }
+export function schemeSite(scheme, relayHost) {
+  if (!isUrlScheme(scheme, relayHost)) return null;
+  return scheme === "syncky" ? "syncky.app" : `${scheme.slice(7)}.syncky.app`;
+}

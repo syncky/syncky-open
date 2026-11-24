@@ -7,6 +7,14 @@ async function configure(runtime, auth, token, hmac) {
   await runtime.run("INSERT INTO settings(key, value_json) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json", "upload_credentials", JSON.stringify(credentials));
 }
 
+export function representativeVectors(load) {
+  return {
+    requests: [load("requests").find(c => c.format === "native" && c.destination.signing)],
+    signatures: [load("signatures").find(c => c.expect !== "valid")],
+    exchanges: [load("exchanges").find(c => c.kind === "results_request")],
+  };
+}
+
 export async function conformance(runtime, vectors) {
   for (const c of vectors.requests) {
     for (const table of ["samples", "summaries", "upload_targets"]) await runtime.run("DELETE FROM " + table);

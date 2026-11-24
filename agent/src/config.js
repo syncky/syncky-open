@@ -15,6 +15,7 @@ export const CONFIG_DEFAULTS = Object.freeze({
   name: null,
   poll_interval_s: 1800,
   heartbeat: "on",
+  fast_path: "on",
 });
 
 export const POLL_INTERVAL_MIN_S = 300;
@@ -33,6 +34,7 @@ export const CONFIG_ENV = Object.freeze({
   name: "SYNCKY_AGENT_NAME",
   poll_interval_s: "SYNCKY_POLL_INTERVAL_S",
   heartbeat: "SYNCKY_HEARTBEAT",
+  fast_path: "SYNCKY_FAST_PATH",
 });
 
 export const LOCAL_STATE_ERROR_CODES = Object.freeze([
@@ -181,6 +183,9 @@ function coerce(key, value, source) {
   if (key === "heartbeat") {
     if (!HEARTBEAT_VALUES.has(value)) throw new LocalStateError("invalid_config", `${key} from ${source}: expected "on" or "off"`);
     return HEARTBEAT_VALUES.get(value);
+  }
+  if (key === "fast_path" && value !== "on" && value !== "off") {
+    throw new LocalStateError("invalid_config", `${key} from ${source}: expected "on" or "off"`);
   }
   if (key === "poll_interval_s") {
     const n = typeof value === "number" ? value : typeof value === "string" && /^[0-9]+$/.test(value) ? Number(value) : NaN;

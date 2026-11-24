@@ -18,6 +18,7 @@ import { createRuntime, readSkill } from '../../src/runtime.js';
 import { skillTrustForTests } from '../../src/skill-document.js';
 import { createSkillUpdater } from '../../src/skill-update.js';
 import { createThinInbound } from '../../src/thin-inbound.js';
+import { createThinPairing } from '../../src/thin-pairing.js';
 import { createThinPoller } from '../../src/thin-poller.js';
 import { runCli } from '../support/helpers.js';
 import { fixture, identity, keys, messageId } from '../support/thin-home.js';
@@ -60,6 +61,38 @@ test('synchronous runtime initialization retries receiver state renames', t => {
   assert.equal(runtime.self.memberId, identity.member_id);
   assert.equal(race.writes, 3);
   assert.equal(readHomeState(home).transport.heartbeat_day, 'receiver-3');
+});
+
+test('CLI reject completes when the receiver takes the state lock after each local transaction', async t => {
+  const home = homeFixture(t), id = keys.dev1.member_id;
+  createThinPairing(home, { now }).join({ member_id: id, public_key: keys.dev1.pk, role: 'device' }, { verified: true });
+  const held = createCipherFiles(home, 'held'), outbox = createCipherFiles(home, 'outbox');
+  held.put({ msg_id: messageId(1), seq: 1, kind: 'control', body: 'sealed', from: id });
+  outbox.put({ msg_id: messageId(2), kind: 'control', body: 'sealed', to: [id], state: 'pending' });
+
+  const stateLock = join(home, '.state.lock'), rmdirSync = fs.rmdirSync;
+  let receiver, handoffs = 0, revocations = 0;
+  // The receiver briefly acquires the state lock between local operations.
+  const mock = t.mock.method(fs, 'rmdirSync', (path, ...args) => {
+    rmdirSync(path, ...args);
+    if (path !== stateLock || receiver) return;
+    receiver = acquireHomeLock(home, 'state'); handoffs++;
+    queueMicrotask(() => { receiver.release(); receiver = undefined; });
+  });
+  let result;
+  try {
+    result = await runCli(['--home', home, 'reject', id, '--json'], { now, fetch: async (url, { method }) => {
+      assert.equal(method, 'DELETE'); assert.equal(new URL(url).pathname, `/v1/members/${id}`);
+      revocations++;
+      return new Response(null, { status: 204 });
+    } });
+  } finally { mock.mock.restore(); }
+  assert.ok(handoffs > 0);
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).member.state, 'rejected');
+  assert.equal(held.list().length, 0);
+  assert.equal(outbox.list()[0].code, 'target_revoked');
+  assert.equal(revocations, 1);
 });
 
 for (const stage of ['access maintenance', 'join', 'expiry', 'join cleanup']) {
@@ -440,7 +473,7 @@ for (const stage of ['current pairing', 'member state']) test(`pair-waiter survi
   const started = await pairing.startPairing(), race = replaceDuringRead(t, home), timers = new Set();
   let stderr = '', requests = 0, sleeps = 0;
   const code = await main(['--home', home, 'pair-waiter', started.pairing_id], {
-    env: {}, now, stdout: { write: () => assert.fail('unexpected stdout') },
+    env: {}, now, WebSocket: null, stdout: { write: () => assert.fail('unexpected stdout') },
     stderr: { write: line => {
       stderr += line;
       if (JSON.parse(line).event === 'pair_waiter_started') race.arm(stage === 'member state' ? 1 : 0);

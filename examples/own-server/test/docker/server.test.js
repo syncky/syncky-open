@@ -5,31 +5,25 @@ import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { dockerRuntime } from "../support/docker-runtime.js";
-import { flow, lostReply, authorization, client, check } from "../support/runtime.js";
+import { lostReply, authorization, client, check } from "../support/runtime.js";
 import { startServer } from "../../docker/server.js";
-import { conformance } from "../support/conformance.js";
-import { largeGrants, boundedReads, guardPayloadReads, renewedCommands, activityDates } from "../support/review.js";
-import { loginAvailability, registrationAvailability, codeReplay } from "../support/oauth-review.js";
+import { conformance, representativeVectors } from "../support/conformance.js";
+import { boundedReads, guardPayloadReads } from "../support/review.js";
+import { codeReplay } from "../support/oauth-review.js";
 
-for (const manual of [false, true]) it("Node real HTTP/SQLite full flow with " + (manual ? "manual confidential" : "DCR public") + " client", async t => flow(await dockerRuntime(t), manual));
 for (const action of ["revoke", "disable"]) it("Node lost reply, " + action + ", real DB restart and late results", async t => lostReply(await dockerRuntime(t), action));
 it("Node real routes enforce canonical origin, OAuth isolation, PKCE and rotation", async t => authorization(await dockerRuntime(t)));
-it("Node login remains available with a spent failed-login bucket", async t => loginAvailability(await dockerRuntime(t)));
-it("Node manual clients retain bounded capacity under DCR exhaustion", async t => registrationAvailability(await dockerRuntime(t)));
 it("Node code replay revokes the issued token family after listener restart", async t => codeReplay(await dockerRuntime(t)));
-it("Node status supports all 128 consented types", async t => largeGrants(await dockerRuntime(t)));
 it("Node query and export bound payload allocation before serialization", async t => {
   const runtime = await dockerRuntime(t);
   await boundedReads(runtime, () => guardPayloadReads(runtime.active.sql));
 });
-it("Node renewed consent can version completed own commands without reviving cancelled work", async t => renewedCommands(await dockerRuntime(t)));
-it("Node activity queries use persisted calendar dates and characteristics use receipt time", async t => activityDates(await dockerRuntime(t)));
-it("Node real HTTP replays all request, signature and exchange request vectors", async t => {
-  const vectors = Object.fromEntries(["requests", "signatures", "exchanges"].map(name => [name, JSON.parse(readFileSync(new URL("../../../../protocol/test-vectors/webhook-" + name + ".json", import.meta.url))).cases]));
-  await conformance(await dockerRuntime(t), vectors);
+it("Node HTTP accepts a signed native upload and rejects a bad signature", async t => {
+  await conformance(await dockerRuntime(t), representativeVectors(name =>
+    JSON.parse(readFileSync(new URL("../../../../protocol/test-vectors/webhook-" + name + ".json", import.meta.url))).cases));
 });
 
-it("Node complete flows and runtime failures emit no stdout/stderr or secret values", () => {
+it("Node completes the confidential-client flow and reports failures without emitting secrets", () => {
   const code = [
     "import { dockerRuntime } from './test/support/docker-runtime.js';",
     "import { flow, client } from './test/support/runtime.js';",

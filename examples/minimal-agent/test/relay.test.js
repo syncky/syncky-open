@@ -1097,14 +1097,12 @@ describe("retries", () => {
     assert.equal(relay.requests.length, 1);
   });
 
-  for (const status of [400, 404, 409]) {
-    it(`never retries a ${status}`, async (t) => {
-      const relay = await flaky(t, [json(status, { error: "invalid_request", message: "no" }, { "retry-after": "0" }), page([])]);
-      const s = await seeded(t, relay.url);
-      assert.equal((await run(["poll", "--once"], { home: s.home })).status, 1);
-      assert.equal(relay.requests.length, 1);
-    });
-  }
+  it("does not retry an invalid poll request even with Retry-After", async (t) => {
+    const relay = await flaky(t, [json(400, { error: "invalid_request", message: "no" }, { "retry-after": "0" }), page([])]);
+    const s = await seeded(t, relay.url);
+    assert.equal((await run(["poll", "--once"], { home: s.home })).status, 1);
+    assert.equal(relay.requests.length, 1);
+  });
 
   it("a 2xx that is not JSON is an error", async (t) => {
     const relay = await startRelay(t, () => ({ status: 200, json: undefined, headers: { "content-type": "text/plain" } }));
@@ -1446,7 +1444,7 @@ for (const mode of ['added', 'stripped', 'wrong_inner', 'invalid', 'wrong_kind']
   assert.equal(loadState(s.home).acked_seq, 1);
 });
 
-for (const mode of ['request', 'reply', 'added', 'stripped', 'wrong_inner', 'invalid', 'dual']) it(`access ${mode} is authenticated/skipped and ACKed; sync works after reopen`, async t => {
+for (const mode of ['request', 'added', 'stripped', 'wrong_inner', 'invalid', 'dual']) it(`access ${mode} is authenticated/skipped and ACKed; sync works after reopen`, async t => {
   let message;
   const relay = await startRelay(t, r => {
     if (r.url.startsWith('/v1/messages?')) return page([message]);
@@ -1470,9 +1468,9 @@ for (const mode of ['request', 'reply', 'added', 'stripped', 'wrong_inner', 'inv
   assert.equal(loadState(s.home).last_seq, 2); assert.deepEqual(ackRequests(relay.requests), [1, 2]);
 });
 
-const accessReplies = JSON.parse(readFileSync(new URL('../../../protocol/test-vectors/envelopes.json', import.meta.url))).cases
-  .filter(c => c.name.startsWith('access_reply_'));
-for (const c of accessReplies) it(`${c.name}: skips extended access semantics privately, ACKs, then reopens for sync`, async t => {
+const extendedAccessReply = JSON.parse(readFileSync(new URL('../../../protocol/test-vectors/envelopes.json', import.meta.url))).cases
+  .find(c => c.name === 'access_reply_resolved_merged');
+it("skips an authenticated extended access reply privately, ACKs and reopens for sync", async t => {
   let message;
   const relay = await startRelay(t, r => {
     if (r.url.startsWith('/v1/messages?')) return page([message]);
@@ -1480,10 +1478,10 @@ for (const c of accessReplies) it(`${c.name}: skips extended access semantics pr
   });
   const s = await seeded(t, relay.url), before = loadState(s.home);
   const envelope = await sealMarkedEnvelope({ hubId: HUB, from: 'm_dev_1', senderPrivateKey: b64uDecode(s.device.sk),
-    recipients: [{ memberId: 'm_agent_1', publicKey: b64uDecode(s.agent.pk) }], kind: 'control', access: 'reply', plaintext: c.plaintext });
+    recipients: [{ memberId: 'm_agent_1', publicKey: b64uDecode(s.agent.pk) }], kind: 'control', access: 'reply', plaintext: extendedAccessReply.plaintext });
   message = { ...envelope, seq: 1 };
   const first = await run(['poll', '--once'], { home: s.home });
-  assert.equal(first.status, 0); assert.equal(first.stdout.trim(), 'seq 1: skipped (control message)');
+  assert.equal(first.status, 0); assert.doesNotMatch(first.stdout, /request_ref|merged_refs|next_available_at/);
   assert.equal(first.stderr, '');
   assert.equal(loadState(s.home).last_seq, 1); assert.equal(loadState(s.home).acked_seq, 1);
   assert.deepEqual(loadState(s.home).members, before.members); assert.deepEqual(loadState(s.home).commands, {});

@@ -22,6 +22,7 @@ const STATUS_CODES = {
   pairing_expired: 410,
   payload_too_large: 413,
   unsupported_media_type: 415,
+  upgrade_required: 426,
   rate_limited: 429,
   internal_error: 500,
 };
@@ -55,6 +56,7 @@ const ROUTES = [
   { name: "ack", method: "POST", re: /^\/v1\/acks$/, auth: true },
   { name: "hubState", method: "GET", re: /^\/v1\/hub\/state$/, auth: true },
   { name: "heartbeat", method: "POST", re: /^\/v1\/agents\/heartbeat$/, auth: true },
+  { name: "socket", method: "GET", re: /^\/v1\/socket$/, auth: true },
 ];
 
 const ROUTE_ALIASES = {
@@ -496,6 +498,8 @@ export async function startRelayDouble({
         ...(state.operatorNotice !== null && { notice: state.operatorNotice }),
       },
     }),
+
+    socket: () => { throw new ApiError("upgrade_required"); },
 
     heartbeat: ({ member, text }) => {
       requireAgent(member);

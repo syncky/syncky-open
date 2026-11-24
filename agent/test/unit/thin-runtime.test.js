@@ -6,6 +6,8 @@ import { Readable } from 'node:stream';
 import { test } from 'node:test';
 import Ajv from 'ajv/dist/2020.js';
 import { main, commandNames, parseArgs } from '../../src/cli.js';
+import { createPairingService } from '../../src/pairing.js';
+import { createThinPoller } from '../../src/thin-poller.js';
 import { createMcpServer, TOOLS } from '../../src/mcp.js';
 import { createInbox } from '../../src/inbox.js';
 import { readHomeState, updateHomeState, createCipherFiles } from '../../src/home-state.js';
@@ -18,7 +20,7 @@ import { setup, keys, identity, now, delivery, messageId } from '../support/thin
 import { scopedRequest, pairingId, requestedScope, resolvedReply } from '../support/pairing-scope.js';
 import { PAIRING_ACCESS_NOTICE } from '../../src/pairing-access.js';
 import { runCli } from '../support/helpers.js';
-import { createPairingService } from '../../src/pairing.js';
+import { fakeSockets, pairingWaitHome, socketClock, stepSleep } from '../support/relay-socket.js';
 import { b64uDecode, formatTimestamp } from '../../src/encoding.js';
 import { parsePairUri } from '../../src/pair-uri.js';
 import { LARGE_ACCESS_ACCEPTED_NOTICE, LARGE_ACCESS_EXPIRED_NOTICE, V1_ACCESS_EXPIRED_NOTICE } from '../../src/error-guidance.js';
@@ -628,6 +630,201 @@ for (const [reason, delay, interval] of [['poll_floor', 300000, 86400], ['retry_
   assert.equal(eligible.stdout, '');
   assert.equal(receiveCycle(eligible).pages, 1);
   assert.deepEqual(polls, [String(interval)]);
+});
+
+for (const mode of ['once', 'off']) test(`receive ${mode} stays on HTTP inside a first-sync window`, async t => {
+  const { home } = homeFixture(t), clock = socketClock(now().getTime()), steps = stepSleep();
+  const { WebSocket, sockets } = fakeSockets();
+  const env = { SYNCKY_HEARTBEAT: 'off', ...(mode === 'off' && { SYNCKY_FAST_PATH: 'off' }) };
+  let polls = 0;
+  const options = { env, now, WebSocket, timers: clock.timers, sleep: steps.sleep, fetch: async url => {
+    if (new URL(url).pathname === '/v1/hub/state') return Response.json({ state: 'active' });
+    polls++;
+    return Response.json({ messages: [] });
+  } };
+  const runtime = createRuntime({ home, ...options });
+  await runtime.poller.startFastPoll(keys.dev1.member_id, clock.now() + 900000);
+  if (mode === 'once') {
+    assert.equal((await runCli(['--home', home, 'receive', '--once'], options)).code, 0);
+  } else {
+    const receiver = runtime.poller.start();
+    try { await steps.next(); }
+    finally { await receiver.stop(); }
+  }
+  assert.equal(polls, 1);
+  assert.equal(sockets.length, 0);
+});
+
+function pendingReceiver(t, options = {}) {
+  const f = pairingWaitHome(t, { heartbeat: 'off' }), checks = [], polls = [];
+  const fetch = async (url, { method }) => {
+    const path = new URL(url).pathname;
+    if (method === 'POST' && path === '/v1/pairings') return Response.json(f.pending);
+    if (path === `/v1/pairings/${f.pending.pairing_id}`) {
+      checks.push(f.clock.now());
+      if (options.refused?.()) return Response.json({ error: 'rate_limited' }, { status: 429, headers: { 'Retry-After': '90' } });
+      return Response.json({ status: 'pending' });
+    }
+    if (path === '/v1/hub/state') return Response.json({ state: 'active' });
+    if (path === '/v1/messages') { polls.push(f.clock.now()); return Response.json({ messages: [] }); }
+    assert.fail('unexpected relay request');
+  };
+  const runtimeOptions = { home: f.home, now: f.now, env: {}, timers: f.clock.timers, WebSocket: f.WebSocket, fetch, random: () => 0.5 };
+  const runtime = createRuntime({ ...runtimeOptions, createPoller: options.createPoller });
+  const pairing = createPairingService({ home: f.home, relay: runtime.relay, now: f.now, publicKey: keys.agent.pk, agentName: 'Test' });
+  return { ...f, checks, polls, pairing, runtimeOptions };
+}
+
+for (const close of [4409, 1006]) test(`receiver takes over the pairing waiter after close ${close} without competing retries`, async t => {
+  const f = pendingReceiver(t), waiterSleep = stepSleep(), receiverSleep = stepSleep(), aborter = new AbortController();
+  const start = f.clock.now();
+  await f.pairing.startPairing();
+  const waiter = runCli(['--home', f.home, 'pair-waiter', f.pending.pairing_id], { ...f.runtimeOptions, sleep: waiterSleep.sleep, signal: aborter.signal });
+  let receiver;
+  try {
+    assert.equal((await waiterSleep.next()).ms, 2000);
+    assert.equal(f.sockets.length, 1);
+    f.sockets[0].open();
+    assert.equal((await waiterSleep.next()).ms, 30000);
+    receiver = createRuntime({ ...f.runtimeOptions, sleep: receiverSleep.sleep }).poller.start();
+    await receiverSleep.next();
+    assert.equal(f.sockets.length, 2);
+    f.sockets[0].peerClose(close);
+    f.clock.advance(500);
+    assert.equal(f.sockets.length, 2);
+    assert.equal((await waiter).code, 0);
+    f.sockets[1].open();
+    f.sockets[1].peerClose(4403);
+    const paused = await receiverSleep.next();
+    f.clock.advance(start + 300000 - f.clock.now());
+    paused.resume();
+    await receiverSleep.next();
+    assert.deepEqual(f.polls, [start]);
+    assert.equal(f.sockets.length, 2);
+    assert.equal(readHomeState(f.home).transport.hub_revoked, undefined);
+  } finally {
+    aborter.abort();
+    await receiver?.stop();
+    await waiter;
+  }
+});
+
+test('a waiter handshake still in flight when the receiver starts cannot leave the receiver disconnected', async t => {
+  const f = pendingReceiver(t), waiterSleep = stepSleep(), receiverSleep = stepSleep(), aborter = new AbortController();
+  await f.pairing.startPairing();
+  const waiter = runCli(['--home', f.home, 'pair-waiter', f.pending.pairing_id], { ...f.runtimeOptions, sleep: waiterSleep.sleep, signal: aborter.signal });
+  let receiver;
+  try {
+    assert.equal((await waiterSleep.next()).ms, 2000);
+    assert.equal(f.sockets.length, 1);
+    receiver = createRuntime({ ...f.runtimeOptions, sleep: receiverSleep.sleep }).poller.start();
+    await receiverSleep.next();
+    assert.equal(f.sockets.length, 2);
+    f.sockets[1].open();
+    f.sockets[0].open();
+    f.sockets[1].peerClose(4409);
+    f.clock.advance(499);
+    assert.equal(f.sockets.length, 2);
+    f.clock.advance(1);
+    assert.equal(f.sockets.length, 3);
+    const link = f.sockets[2];
+    link.send = () => link.message('pong');
+    link.open();
+    f.sockets[0].peerClose(4409);
+    assert.equal((await waiter).code, 0);
+    f.clock.advance(120000);
+    assert.equal(f.sockets.length, 3);
+    assert.equal(f.sockets[0].closes, 1);
+    assert.equal(f.sockets[2].closes, 0);
+    assert.equal(readHomeState(f.home).transport.hub_revoked, undefined);
+  } finally {
+    aborter.abort();
+    await receiver?.stop();
+    await waiter;
+  }
+  assert.equal(f.sockets[2].closes, 1);
+});
+
+test('pairing watch takes a hint, checks every 30 seconds while healthy and honors HTTP Retry-After', async t => {
+  let watch, refused = false;
+  const f = pendingReceiver(t, { createPoller: options => { watch = options.watchPairing; return createThinPoller(options); }, refused: () => refused });
+  await f.pairing.startPairing();
+  const start = f.clock.now();
+  await watch({ healthy: false });
+  f.clock.advance(1000);
+  await watch({ healthy: true });
+  assert.deepEqual(f.checks, [start]);
+  let wakes = 0;
+  const hint = { healthy: true, wake: () => { wakes++; } };
+  await watch(hint);
+  f.clock.advance(29999);
+  await watch({ healthy: true });
+  assert.deepEqual(f.checks, [start, start + 1000]);
+  f.clock.advance(1);
+  await watch({ healthy: true });
+  f.clock.advance(2000);
+  refused = true;
+  let retryAt;
+  await assert.rejects(watch({ healthy: false, deferRetriesUntil: at => { retryAt = at; } }), { status: 429 });
+  assert.equal(retryAt, f.clock.now() + 90000);
+  f.clock.advance(89999);
+  await watch(hint);
+  assert.equal(wakes, 1);
+  assert.deepEqual(f.checks, [start, start + 1000, start + 31000, start + 33000]);
+  f.clock.advance(1);
+  refused = false;
+  await watch(hint);
+  assert.equal(wakes, 2);
+  assert.equal(f.checks.at(-1), retryAt);
+});
+
+test('a send from another runtime opens a reply window with its 25-second safety poll', async t => {
+  const { home, transport } = homeFixture(t), clock = socketClock(now().getTime()), steps = stepSleep();
+  const { WebSocket, sockets } = fakeSockets(), polls = [], acks = [];
+  const reply = await delivery(transport, 2, { v: 1, type: 'sync', acks: [{ command_id: 'one', version: 1, status: 'applied' }] });
+  const options = { home, now: () => new Date(clock.now()), env: { SYNCKY_HEARTBEAT: 'off', SYNCKY_POLL_INTERVAL_S: '1800' },
+    WebSocket, timers: clock.timers, sleep: steps.sleep, fetch: async (url, { method }) => {
+      const path = new URL(url).pathname;
+      if (path === '/v1/hub/state') return Response.json({ state: 'active' });
+      if (path === '/v1/acks') { acks.push(clock.now()); return new Response(null, { status: 204 }); }
+      assert.equal(path, '/v1/messages');
+      if (method === 'POST') return Response.json({ seq: 1 }, { status: 201 });
+      polls.push(clock.now());
+      return Response.json(polls.length === 3 ? { messages: [reply], next_after: 2 } : { messages: [] });
+    } };
+  const receiver = createRuntime(options).poller.start();
+  try {
+    const start = clock.now(), idle = await steps.next();
+    assert.deepEqual(polls, [start]);
+    assert.equal(sockets.length, 0);
+    const sender = createRuntime(options);
+    const sent = await sender.send({ type: 'commands', inner: { v: 1, type: 'commands', commands: [{ command_id: 'one', version: 1 }] } });
+    assert.equal(sent.state, 'sent');
+    clock.advance(idle.ms);
+    idle.resume();
+    await steps.next();
+    assert.equal(sockets.length, 1);
+    const link = sockets[0];
+    link.send = () => link.message('pong');
+    link.open();
+    const safety = await steps.next(), caughtUpAt = clock.now();
+    assert.deepEqual(polls, [start, caughtUpAt]);
+    clock.advance(24999);
+    safety.resume();
+    const edge = await steps.next();
+    assert.equal(edge.ms, 1);
+    assert.deepEqual(polls, [start, caughtUpAt]);
+    clock.advance(1);
+    edge.resume();
+    await steps.next();
+    assert.deepEqual(polls, [start, caughtUpAt, caughtUpAt + 25000]);
+    assert.deepEqual(acks, [clock.now()]);
+    assert.equal(link.closes, 1);
+    const state = readHomeState(home).transport;
+    assert.equal(state.acked_seq, 2);
+    assert.equal(state.next_poll_at, clock.now() + 1800000);
+  } finally { await receiver.stop(); }
+  assert.equal(clock.pending.size, 0);
 });
 
 

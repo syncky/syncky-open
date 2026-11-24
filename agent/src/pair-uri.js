@@ -1,6 +1,6 @@
 import { isB64u, utf8, utf8Decode } from "./encoding.js";
 import { isHubId, isPairingToken } from "./ids.js";
-import { isUrlScheme, pairingSite } from "./url-scheme.js";
+import { isUrlScheme, pairingSite, schemeSite } from "./url-scheme.js";
 import { validateAccessScope } from './access-scope.js';
 import { MAX_CONTROL_ENVELOPE_BYTES } from './thin-transport.js';
 
@@ -150,13 +150,36 @@ function relayHostOf(relayBase) {
   return { host: relayBase.slice((insecure ? HTTP : HTTPS).length), insecure };
 }
 
+const ISSUED_SITE = /^https:\/\/([a-z][a-z0-9]*(?:-[a-z0-9]+)*\.)?syncky\.app\/pair#/;
+const ISSUED_LEGACY = /^(syncky(?:-[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?):\/\/pair\?/;
+
+// An explicit labelled scheme may put its site beside a relay outside syncky.app. The app accepts that, while
+// parsePairUri keeps binding labelled sites to their relay, so a link this agent issued is checked under syncky.app
+// and its site against the rule the builder applied.
+export function parseIssuedPairUri(uri) {
+  const site = typeof uri === "string" ? ISSUED_SITE.exec(uri) : null;
+  if (!site) return parsePairUri(uri, { allowInsecureRelay: true });
+  const result = parsePairUri(`https://syncky.app/pair#${uri.slice(site[0].length)}`, { allowInsecureRelay: true });
+  const label = site[1]?.slice(0, -1);
+  if (result.ok && label && !isUrlScheme(`syncky-${label}`, relayHostOf(result.value.relayBase).host.split(":")[0].toLowerCase())) return invalid("host");
+  return result;
+}
+
+// A pending link from an agent that still issued custom-scheme links is shown again as the matching HTTPS link.
+export function issuedHttpsPairUri(uri) {
+  const legacy = ISSUED_LEGACY.exec(uri);
+  if (!legacy) return uri;
+  const scheme = legacy[1];
+  return `https://${scheme === "syncky" ? "syncky.app" : `${scheme.slice(7)}.syncky.app`}/pair#${uri.slice(legacy[0].length)}`;
+}
+
 export function buildPairUri({ relayBase, hubId, pairingToken, agentPublicKey, agentName, pairSecret, requestedScope, scopeOnRelay = false, urlScheme = null }) {
   const { host, insecure } = relayHostOf(relayBase);
   const relayHost = host.split(":")[0].toLowerCase();
-  if (urlScheme !== null && !isUrlScheme(urlScheme, relayHost)) throw Object.assign(new TypeError("unsupported URL scheme"), { code: "invalid_url_scheme" });
-  const site = pairingSite(relayHost);
+  const site = urlScheme === null ? pairingSite(relayHost) : schemeSite(urlScheme, relayHost);
+  if (site === null) throw Object.assign(new TypeError("unsupported URL scheme"), { code: "invalid_url_scheme" });
   const v2 = pairSecret !== undefined && pairSecret !== null;
-  let uri = `${urlScheme === null ? `https://${site}/pair#` : `${urlScheme}://pair?`}v=${v2 ? 2 : 1}`;
+  let uri = `https://${site}/pair#v=${v2 ? 2 : 1}`;
   const params = [
     ["r", host],
     ["h", hubId],
@@ -176,7 +199,7 @@ export function buildPairUri({ relayBase, hubId, pairingToken, agentPublicKey, a
     if (!result.ok) throw new TypeError(`invalid pairing scope (${result.param})`);
     for (const key of SCOPE_KEYS) uri += `&${key}=${percentEncode(key === 'request_ref' ? result.value[key] : JSON.stringify(result.value[key]))}`;
   }
-  const check = parsePairUri(uri, { allowInsecureRelay: true });
+  const check = parseIssuedPairUri(uri);
   if (!check.ok) throw new TypeError(`pairing info does not form a valid pair URI (${check.code}${check.param ? `: ${check.param}` : ""})`);
   return uri;
 }

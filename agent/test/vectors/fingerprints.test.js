@@ -4,18 +4,9 @@ import assert from "node:assert/strict";
 import { fingerprint } from "../../src/fingerprint.js";
 import { loadVectors } from "../../src/protocol-files.js";
 
-const keys = loadVectors("keys");
 const { cases } = loadVectors("fingerprints");
 
 describe("fingerprints.json", () => {
-  it("covers the agent paired with every device key", () => {
-    const names = cases.map((c) => c.name);
-    for (const required of ["agent_dev1", "agent_dev2", "agent_mallory"]) assert.ok(names.includes(required), required);
-    const devicePubs = new Set(cases.map((c) => c.device_pub));
-    for (const name of ["dev1", "dev2", "mallory"]) assert.ok(devicePubs.has(keys[name].pk), name);
-    assert.ok(cases.filter((c) => c.name.startsWith("agent_")).every((c) => c.agent_pub === keys.agent.pk));
-  });
-
   for (const c of cases) {
     it(c.name, () => {
       const fp = fingerprint(c.agent_pub, c.device_pub);

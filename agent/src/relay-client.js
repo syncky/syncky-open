@@ -104,6 +104,7 @@ const warnedInsecureHosts = new Set();
 export function createRelayClient({
   baseUrl,
   token,
+  WebSocket = globalThis.WebSocket,
   fetch = globalThis.fetch,
   sleep,
   random = Math.random,
@@ -205,6 +206,7 @@ export function createRelayClient({
       maxBytes = MAX_RESPONSE_BYTES,
       quiet = false,
       onFailure,
+      onRetryAfter,
       signal,
       deadline = Infinity,
       requestTimeoutMs = timeoutMs,
@@ -241,6 +243,7 @@ export function createRelayClient({
         throw error;
       }
       const delayMs = error.retryAfterS !== undefined ? error.retryAfterS * 1000 : backoffMs(attempt);
+      if (error.status === 429 && error.retryAfterS !== undefined) onRetryAfter?.(now() + delayMs);
       logger.debug("relay_retry", { method, path, status: error.status, code: error.code, attempt, delay_ms: delayMs });
       const waitMs = Math.max(0, Math.min(delayMs, deadline - now()));
       await (sleep ? abortableSleep(waitMs, sleep, signal) : defaultSleep(waitMs, signal));
@@ -254,6 +257,12 @@ export function createRelayClient({
   return {
     baseUrl: base,
       get pollIntervalS() { return effectivePollIntervalS(); },
+    openSocket: typeof WebSocket === "function" ? () => {
+      if (typeof token !== "string") throw new TypeError("relay client has no token");
+      const endpoint = new URL("/v1/socket", base);
+      endpoint.protocol = endpoint.protocol === "https:" ? "wss:" : "ws:";
+      return new WebSocket(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+    } : undefined,
 
     health: () => bodyOf(request("GET", "/v1/health", { auth: false })),
 
@@ -273,8 +282,8 @@ export function createRelayClient({
 
     createPairing: (pairingScopeBlob) => bodyOf(request("POST", "/v1/pairings", pairingScopeBlob === undefined
       ? { body: "{}" } : { body: json({ pairing_scope_blob: pairingScopeBlob }), secrets: [pairingScopeBlob] })),
-    getPairing: (pairingId, { signal, deadline } = {}) => bodyOf(request("GET", `/v1/pairings/${encodeURIComponent(pairingId)}`, { signal, deadline })),
-    listMembers: ({ retry: retrying = true, signal, deadline } = {}) => bodyOf(request("GET", "/v1/members", { attempts: retrying ? retry.maxAttempts : 1, signal, deadline })),
+    getPairing: (pairingId, { signal, deadline, onRetryAfter } = {}) => bodyOf(request("GET", `/v1/pairings/${encodeURIComponent(pairingId)}`, { signal, deadline, onRetryAfter })),
+    listMembers: ({ retry: retrying = true, signal, deadline, onRetryAfter } = {}) => bodyOf(request("GET", "/v1/members", { attempts: retrying ? retry.maxAttempts : 1, signal, deadline, onRetryAfter })),
     getHubState: ({ attempts = 1, quiet, signal, deadline } = {}) => bodyOf(request("GET", "/v1/hub/state", { attempts, quiet, signal, deadline })),
     heartbeat: async ({ version, platform }, { signal, deadline } = {}) => {
       const { body } = await request("POST", "/v1/agents/heartbeat", { body: json({ version, platform }), attempts: 1, quiet: true, signal, deadline });
@@ -293,11 +302,12 @@ export function createRelayClient({
       return { ...body, duplicate: status === 200 || body?.duplicate === true };
     },
 
-    getMessages({ after, limit } = {}, { signal, deadline, pollIntervalS: interval = effectivePollIntervalS() } = {}) {
+    getMessages({ after, limit } = {}, { signal, deadline, pollIntervalS: interval = effectivePollIntervalS(), commandAck = false } = {}) {
       const query = new URLSearchParams();
       if (after !== undefined) query.set("after", queryInt("after", after));
       if (limit !== undefined) query.set("limit", queryInt("limit", limit));
       query.set("poll_interval_s", String(interval));
+      if (commandAck) query.set("command_ack", "1");
       return bodyOf(request("GET", `/v1/messages?${query}`, {
         maxBytes: MAX_PAGE_RESPONSE_BYTES, attempts: 1, signal, deadline,
       })).then(page => {

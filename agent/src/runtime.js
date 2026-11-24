@@ -11,6 +11,7 @@ import { createPairingService } from "./pairing.js";
 import { createOutbox, sendReceipt } from './outbox.js';
 import { createSkillUpdater } from './skill-update.js';
 import { createRelayClient } from './relay-client.js';
+import { createRelaySocket } from './relay-socket.js';
 import { createHubObserver } from './hub-state.js';
 import { retryHomeLock, retryHomeLockSync } from './thin-lock.js';
 import metadata from '../package.json' with { type: 'json' };
@@ -72,7 +73,7 @@ export function localStatus(home, updater, at = Date.now()) {
     skill: updater.status(), legacy_files: detectLegacyFiles(home) };
 }
 
-export function createRuntime({ home, flags = {}, env = process.env, fetch, sleep, random, now = () => new Date(), logger, onRecord, outboxMaxAttempts, createPoller = createThinPoller, timers = globalThis } = {}) {
+export function createRuntime({ home, flags = {}, env = process.env, fetch, WebSocket, sleep, random, now = () => new Date(), logger, onRecord, outboxMaxAttempts, createPoller = createThinPoller, timers = globalThis } = {}) {
   const state = retryHomeLockSync(() => readHomeState(home)), secrets = loadSecrets(home);
   if (state.identity.public_key !== secrets.public_key) throw new LocalStateError('key_mismatch', 'home identity and secrets disagree');
   const config = loadConfig(home, { initialized: true, env, flags: { relay_url: flags.relay, url_scheme: flags['url-scheme'], poll_interval_s: flags['poll-interval'] } });
@@ -85,7 +86,7 @@ export function createRuntime({ home, flags = {}, env = process.env, fetch, slee
   };
   const transport = new Proxy({}, { get: (_, key) => (...args) => latest()[key](...args) });
   const self = { memberId: state.identity.member_id, privateKey: secrets.privateKeyBytes };
-  const relay = createRelayClient({ baseUrl: config.relay_url, token: secrets.token, fetch, sleep, random, now: () => now().getTime(), logger, pollIntervalS: config.poll_interval_s, timers });
+  const relay = createRelayClient({ baseUrl: config.relay_url, token: secrets.token, fetch, WebSocket, sleep, random, now: () => now().getTime(), logger, pollIntervalS: config.poll_interval_s, timers });
   const queue = createOutbox({ home, relay, now, maxAttempts: outboxMaxAttempts, timers });
   const sendV1Access = createGenericSender({ home, transport, self, now });
   let queuingV1;
@@ -97,23 +98,33 @@ export function createRuntime({ home, flags = {}, env = process.env, fetch, slee
   } };
   const inbound = createThinInbound({ home, transport, self, relay, now, onRecord });
   const pairing = createPairingService({ home, relay, publicKey: secrets.public_key, agentName: config.name, urlScheme: config.url_scheme, now });
-  let checking = false, checkedAt = -Infinity;
+  const pairingSocket = config.fast_path === 'on' && relay.openSocket ? options =>
+    createRelaySocket({ ...options, connect: relay.openSocket, now: () => now().getTime(), random, timers }) : undefined;
+  let checking = false, checkedAt = -Infinity, pairingRetryAt = 0;
   async function watchPairing(context) {
-    if (checking || now().getTime() - checkedAt < 2000) return;
+    const at = now().getTime(), { healthy, wake, deferRetriesUntil } = context;
+    if (checking || at < pairingRetryAt || (!wake && at - checkedAt < (healthy ? 30000 : 2000))) return;
     checking = true;
+    wake?.();
     try {
       const pending = await retryHomeLock(() => pairing.currentPairing({ includeExpired: true }));
       if (!pending) return;
       checkedAt = now().getTime();
-      await pairing.refreshPairing(pending.pairing_id, context);
+      await pairing.refreshPairing(pending.pairing_id, { ...context, onRetryAfter: deferRetriesUntil });
+    } catch (err) {
+      if (Number.isFinite(err.retryAfterS) && err.retryAfterS >= 0) {
+        pairingRetryAt = now().getTime() + Math.max(1000, err.retryAfterS * 1000);
+        deferRetriesUntil?.(pairingRetryAt);
+      }
+      throw err;
     } finally { checking = false; }
   }
-  const poller = createPoller({ home, transport, self, relay, now, intervalS: config.poll_interval_s, sleep, onRecord, watchPairing, timers, observeHubState: createHubObserver({ home, relay, now }),
+  const poller = createPoller({ home, transport, self, relay, now, intervalS: config.poll_interval_s, sleep, onRecord, watchPairing, pairingSocket, timers, observeHubState: createHubObserver({ home, relay, now }),
     heartbeat: config.heartbeat === 'off' ? undefined : async ({ signal }) => {
       const reply = await relay.heartbeat({ version: AGENT_VERSION, platform: ['darwin','linux','win32'].includes(process.platform) ? process.platform : 'other' }, { signal, attempts: 1 });
       await retryHomeLock(() => updater.observeHeartbeat(reply));
     }, outbox: { flush: options => Promise.all([outbox.flush(options), updater.tick(options)]) } });
-  return { home, self, relay, config, updater, transport, inbound, outbox, poller,
+  return { home, self, relay, config, updater, transport, inbound, outbox, poller, pairingSocket,
     status: () => localStatus(home, updater, now().getTime()),
     inbox: args => readInbox(home, args),
     skill: args => readSkill(updater, args),

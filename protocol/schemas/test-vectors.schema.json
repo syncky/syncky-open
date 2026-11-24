@@ -474,17 +474,11 @@
           }
         },
         "uri": {
-          "description": "Absent input.url_scheme selects an inferred HTTPS site with fragment payload; explicit url_scheme selects the legacy query form. v=2 with c exactly when input has pair_secret; a=1 after c when scope_on_relay is true",
+          "description": "Always an HTTPS site with fragment payload: absent input.url_scheme infers the site from the relay, explicit syncky selects syncky.app. v=2 with c exactly when input has pair_secret; a=1 after c when scope_on_relay is true",
           "type": "string",
-          "pattern": "^(?:syncky(?:-[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?://pair\\?|https://(?:syncky\\.app|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.syncky\\.app)/pair#)(v=1&r=[^&#?]+&h=[^&#?]+&t=[^&#?]+&k=[^&#?]+&n=[^&#?]+|v=2&r=[^&#?]+&h=[^&#?]+&t=[^&#?]+&k=[^&#?]+&n=[^&#?]+&c=[A-Za-z0-9_-]{22}(?:&a=1)?)(&s=http)?(&request_ref=[0-9a-f]{32}&read=%5B[^&#?]*%5D&write=%5B[^&#?]*%5D)?$"
+          "pattern": "^(?:https://(?:syncky\\.app|[a-z][a-z0-9]*(?:-[a-z0-9]+)*\\.syncky\\.app)/pair#)(v=1&r=[^&#?]+&h=[^&#?]+&t=[^&#?]+&k=[^&#?]+&n=[^&#?]+|v=2&r=[^&#?]+&h=[^&#?]+&t=[^&#?]+&k=[^&#?]+&n=[^&#?]+&c=[A-Za-z0-9_-]{22}(?:&a=1)?)(&s=http)?(&request_ref=[0-9a-f]{32}&read=%5B[^&#?]*%5D&write=%5B[^&#?]*%5D)?$"
         }
       },
-      "if": {
-        "type": "object",
-        "properties": { "input": { "type": "object", "properties": { "url_scheme": true }, "required": ["url_scheme"] } }
-      },
-      "then": { "type": "object", "properties": { "uri": { "type": "string", "pattern": "^syncky(?:-[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?://pair\\?" } } },
-      "else": { "type": "object", "properties": { "uri": { "type": "string", "pattern": "^https://" } } },
       "not": { "type": "object", "properties": { "expect": true }, "required": ["expect"] }
     },
     "pair_codes_file": {

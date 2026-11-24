@@ -28,13 +28,8 @@ describe("public npm package", () => {
     root = mkdtempSync(join(tmpdir(), "syncky npm package "));
     packageSource = join(root, "source");
     cpSync(AGENT, packageSource, { recursive: true, filter: (path) => path !== join(AGENT, "node_modules") && path !== join(AGENT, "dist") });
-    if (process.env.SYNCKY_AGENT_BUNDLE_FIXTURE) {
-      release = json(process.env.SYNCKY_AGENT_BUNDLE_FIXTURE).release;
-      cpSync(dirname(release.bundlePath), join(packageSource, "dist"), { recursive: true });
-    } else {
-      const { buildAgent } = await import("../../build.mjs");
-      release = await buildAgent({ outdir: join(packageSource, "dist") });
-    }
+    const { buildAgent } = await import("../../build.mjs");
+    release = await buildAgent({ outdir: join(packageSource, "dist") });
     for (const parts of [
       [".run", "sentinel"], [".env"], [".dev.vars"], ["secrets.json"], ["config.json"], ["agent.db"],
       [".syncky-agent", "sentinel"], ["cache", "sentinel"], ["src", "sentinel.js"], ["bin", "sentinel.js"],

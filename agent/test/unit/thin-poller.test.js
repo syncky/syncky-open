@@ -1,4 +1,4 @@
-import { scopedRequest, resolvedReply } from "../support/pairing-scope.js";
+import { pairingId, scopedRequest, resolvedReply } from "../support/pairing-scope.js";
 import { waitFor } from "../support/helpers.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -18,7 +18,305 @@ import { createOutbox } from "../../src/outbox.js";
 import { acquireHomeLock } from "../../src/protected-files.js";
 import { pairProof } from "../../src/pair-code.js";
 import { b64uDecode } from "../../src/encoding.js";
+import { createRelaySocket } from "../../src/relay-socket.js";
+import { fakeSockets, socketClock, stepSleep } from "../support/relay-socket.js";
 import { setup, delivery, self, now, identity, keys, messageId, tablePath } from "../support/thin-transport.js";
+
+function receiverFixture(t, relay, homeFixture = setup(t), extra = {}) {
+  const { home, transport } = homeFixture;
+  const clock = socketClock(now().getTime()), steps = stepSleep(), { sockets, connect } = fakeSockets();
+  const poller = createThinPoller({ home, transport, self, relay, now: () => new Date(clock.now()),
+    intervalS: 1800, sleep: steps.sleep, timers: clock.timers, ...extra,
+    pairingSocket: options => createRelaySocket({ ...options, connect, now: clock.now, timers: clock.timers, random: () => 0.5 }),
+  });
+  return { home, clock, steps, sockets, poller };
+}
+
+test('subscription and hints wake the single cursor owner after ACK, including hints during pagination', async t => {
+  const homeFixture = setup(t), calls = [];
+  const deliveryRow = await delivery(homeFixture.transport, 6);
+  const ackStarted = Promise.withResolvers(), acked = Promise.withResolvers();
+  const fetchStarted = Promise.withResolvers(), firstPage = Promise.withResolvers();
+  const relay = {
+    async ack(seq) {
+      calls.push(`ack:${seq}`);
+      if (seq === 5) { ackStarted.resolve(); await acked.promise; }
+    },
+    async getMessages({ after }) {
+      calls.push(`get:${after}`);
+      if (after !== 5) return { messages: [] };
+      fetchStarted.resolve();
+      return firstPage.promise;
+    },
+  };
+  const { home, clock, steps, sockets, poller } = receiverFixture(t, relay, homeFixture);
+  updateHomeState(home, s => Object.assign(s.transport, { last_poll_at: clock.now(), cursor: 5, pending_ack: { up_to_seq: 5 } }));
+  await poller.startFastPoll(keys.dev1.member_id, clock.now() + 900000);
+  const loop = poller.start();
+  try {
+    await ackStarted.promise;
+    sockets[0].open();
+    assert.deepEqual(calls, ['ack:5']);
+    acked.resolve();
+    await fetchStarted.promise;
+    sockets[0].message('changed');
+    sockets[0].message('changed');
+    assert.deepEqual(calls, ['ack:5', 'get:5']);
+    firstPage.resolve({ messages: [deliveryRow], next_after: 6, has_more: true });
+    await steps.next();
+    assert.deepEqual(calls, ['ack:5', 'get:5', 'ack:6', 'get:6', 'get:6']);
+    assert.equal(readHomeState(home).transport.acked_seq, 6);
+    sockets[0].message('changed');
+    await steps.next();
+    assert.deepEqual(calls, ['ack:5', 'get:5', 'ack:6', 'get:6', 'get:6', 'get:6']);
+  } finally {
+    acked.resolve();
+    firstPage.resolve({ messages: [] });
+    await loop.stop();
+  }
+  assert.equal(sockets[0].closes, 1);
+  assert.equal(clock.pending.size, 0);
+});
+
+for (const retryAfterS of [4, undefined]) test(`a refused early poll respects ${retryAfterS ?? 'local'} retry timing`, async t => {
+  const polls = [], relay = { async getMessages() {
+    polls.push(clock.now());
+    if (polls.length === 1) throw { status: 429, retryAfterS };
+    return { messages: [] };
+  } };
+  const { home, clock, steps, sockets, poller } = receiverFixture(t, relay);
+  const at = clock.now(), last = at - 300000, retryMs = (retryAfterS ?? 1) * 1000;
+  updateHomeState(home, s => {
+    s.transport.last_poll_at = s.transport.poll_attempt_at = last;
+    s.pairings[pairingId] = { pairing_id: pairingId, status: 'pending', expires_at: new Date(at + 60000).toISOString() };
+  });
+  const loop = poller.start();
+  try {
+    await steps.next();
+    assert.deepEqual(polls, []);
+    sockets[0].open();
+    await steps.next();
+    assert.deepEqual(polls, [at]);
+    const checkpoint = readHomeState(home).transport;
+    assert.equal(checkpoint.poll_attempt_at, last);
+    assert.equal(checkpoint.poll_retry_at, at + retryMs);
+    assert.equal(checkpoint.poll_retry_after_until, retryAfterS === undefined ? 0 : at + retryMs);
+    sockets[0].message('changed');
+    const blocked = await steps.next();
+    clock.advance(retryMs - 1);
+    blocked.resume();
+    const edge = await steps.next();
+    assert.deepEqual(polls, [at]);
+    assert.equal(edge.ms, 1);
+    clock.advance(1);
+    edge.resume();
+    await steps.next();
+    assert.deepEqual(polls, [at, at + retryMs]);
+  } finally { await loop.stop(); }
+});
+
+test('receiver spends one retry budget across overlapping windows and renews it after eligibility ends', async t => {
+  const polls = [], relay = { async getMessages() { polls.push(clock.now()); return { messages: [] }; } };
+  const { home, clock, steps, sockets, poller } = receiverFixture(t, relay);
+  const at = clock.now();
+  await poller.startFastPoll(keys.dev1.member_id, at + 63000);
+  const loop = poller.start();
+  try {
+    await steps.next();
+    assert.equal(sockets.length, 1);
+    for (const [index, retryMs] of [500, 1000].entries()) {
+      sockets[index].error();
+      const paused = await steps.next();
+      clock.advance(retryMs - 1);
+      assert.equal(sockets.length, index + 1);
+      clock.advance(1);
+      paused.resume();
+      await steps.next();
+      assert.equal(sockets.length, index + 2);
+    }
+    updateHomeState(home, s => {
+      s.pairings[pairingId] = { pairing_id: pairingId, status: 'pending', expires_at: new Date(at + 6000).toISOString() };
+    });
+    sockets[2].error();
+    let paused = await steps.next();
+    clock.advance(at + 3000 - clock.now());
+    paused.resume();
+    paused = await steps.next();
+    assert.equal(sockets.length, 3);
+    clock.advance(3000);
+    paused.resume();
+    paused = await steps.next();
+    assert.equal(sockets.length, 3);
+    await poller.startFastPoll(keys.dev1.member_id, clock.now() + 62000);
+    paused.resume();
+    await steps.next();
+    assert.equal(sockets.length, 4);
+    assert.deepEqual(polls, [at]);
+    assert.equal(readHomeState(home).transport.hub_revoked, undefined);
+  } finally { await loop.stop(); }
+  assert.ok(sockets.every(link => link.closes === 1));
+  assert.equal(clock.pending.size, 0);
+});
+
+for (const overlap of [false, true]) test(`a 4403 during a slow drain is ${overlap ? 'kept across an overlapping trigger' : 'dropped when a new window opens after a gap'}`, async t => {
+  const fetching = Promise.withResolvers(), page = Promise.withResolvers();
+  const relay = { async getMessages() { fetching.resolve(); return page.promise; } };
+  const { home, clock, steps, sockets, poller } = receiverFixture(t, relay);
+  const at = clock.now();
+  const openPairing = () => updateHomeState(home, s => {
+    s.pairings[pairingId] = { pairing_id: pairingId, status: 'pending', expires_at: new Date(at + 60000).toISOString() };
+  });
+  await poller.startFastPoll(keys.dev1.member_id, at + 63000);
+  const loop = poller.start();
+  try {
+    await fetching.promise;
+    assert.equal(sockets.length, 1);
+    sockets[0].open();
+    sockets[0].peerClose(4403);
+    clock.advance(1000);
+    if (overlap) openPairing();
+    clock.advance(2000);
+    if (!overlap) openPairing();
+    page.resolve({ messages: [] });
+    await steps.next();
+    assert.equal(sockets.length, overlap ? 1 : 2);
+  } finally {
+    page.resolve({ messages: [] });
+    await loop.stop();
+  }
+  assert.ok(sockets.every(link => link.closes === 1));
+  assert.equal(clock.pending.size, 0);
+});
+
+test('a retry skipped on a transient state read resumes at the next refresh with its attempt count', async t => {
+  let failRead = false;
+  const flaky = new Proxy(fs, { get(target, key) {
+    if (key !== 'openSync') return target[key];
+    return (...args) => {
+      if (failRead && String(args[0]).endsWith('/state.json')) { failRead = false; throw Object.assign(new Error('fixture busy'), { code: 'EBUSY' }); }
+      return target.openSync(...args);
+    };
+  } });
+  const polls = [], relay = { async getMessages() { polls.push(clock.now()); return { messages: [] }; } };
+  const { home, clock, steps, sockets, poller } = receiverFixture(t, relay, setup(t), { fs: flaky });
+  const at = clock.now();
+  updateHomeState(home, s => {
+    s.pairings[pairingId] = { pairing_id: pairingId, status: 'pending', expires_at: new Date(at + 600000).toISOString() };
+  });
+  const loop = poller.start();
+  try {
+    await steps.next();
+    assert.equal(sockets.length, 1);
+    sockets[0].error();
+    let paused = await steps.next();
+    failRead = true;
+    clock.advance(500);
+    assert.equal(failRead, false);
+    assert.equal(sockets.length, 1);
+    paused.resume();
+    paused = await steps.next();
+    assert.equal(sockets.length, 2);
+    sockets[1].error();
+    paused.resume();
+    paused = await steps.next();
+    clock.advance(999);
+    assert.equal(sockets.length, 2);
+    clock.advance(1);
+    assert.equal(sockets.length, 3);
+    sockets[2].error();
+    paused.resume();
+    paused = await steps.next();
+    clock.advance(120000);
+    paused.resume();
+    await steps.next();
+    assert.equal(sockets.length, 3);
+    assert.deepEqual(polls, [at]);
+  } finally { await loop.stop(); }
+  assert.ok(sockets.every(link => link.closes === 1));
+  assert.equal(clock.pending.size, 0);
+});
+
+test('the last sync page leaves the open connection under relay control', async t => {
+  const fixture = setup(t), row = await delivery(fixture.transport, 1, { type: 'sync', more: false });
+  let gets = 0;
+  const relay = { async getMessages() {
+    return ++gets === 1 ? { messages: [row], next_after: 1 } : { messages: [] };
+  }, ack: async () => {} };
+  const { home, clock, steps, sockets, poller } = receiverFixture(t, relay, fixture);
+  updateHomeState(home, s => { s.transport.last_poll_at = clock.now(); });
+  await poller.startFastPoll(keys.dev1.member_id, clock.now() + 900000);
+  const loop = poller.start();
+  try {
+    await steps.next();
+    sockets[0].open();
+    sockets[0].message('first_sync');
+    await steps.next();
+    assert.equal(readHomeState(home).transport.acked_seq, 1);
+    assert.equal(sockets[0].closes, 0);
+    sockets[0].peerClose(4403, 'first_sync_done');
+    assert.equal(sockets[0].closes, 1);
+    sockets[0].message('changed');
+    sockets[0].error();
+    const polling = await steps.next();
+    clock.advance(polling.ms);
+    polling.resume();
+    await steps.next();
+    assert.equal(gets, 1);
+    assert.equal(sockets.length, 1);
+  } finally { await loop.stop(); }
+});
+
+for (const firstSync of [false, true]) test(firstSync
+  ? 'a first_sync connection stays open past join grace until 4403, then polls without redialing'
+  : 'a healthy connection closes when join grace ends without first_sync', async t => {
+  const polls = [], relay = { async getMessages() { polls.push(clock.now()); return { messages: [] }; } };
+  const { home, clock, steps, sockets, poller } = receiverFixture(t, relay);
+  const grace = clock.now() + 900_000;
+  await poller.startFastPoll(keys.dev1.member_id, grace);
+  clock.advance(839_000);
+  const at = clock.now();
+  updateHomeState(home, s => { s.transport.last_poll_at = at; });
+  const loop = poller.start();
+  try {
+    await steps.next();
+    const link = sockets[0];
+    link.open();
+    if (firstSync) link.message('first_sync');
+    const idle = await steps.next();
+    assert.deepEqual(polls, [at]);
+    for (const elapsed of [30_000, 30_000, 1_000]) {
+      clock.advance(elapsed);
+      link.message('pong');
+    }
+    assert.equal(clock.now(), grace);
+    assert.equal(link.closes, firstSync ? 0 : 1);
+    idle.resume();
+    let polling = await steps.next();
+    if (firstSync) {
+      assert.equal(link.closes, 0);
+      link.message('changed');
+      await steps.next();
+      link.peerClose(4403);
+      assert.equal(link.closes, 1);
+      polling = await steps.next();
+    }
+    const caughtUp = firstSync ? [at, grace] : [at];
+    assert.deepEqual(polls, caughtUp);
+
+    clock.advance(60_000);
+    polling.resume();
+    const next = await steps.next();
+    assert.equal(sockets.length, 1);
+    assert.deepEqual(polls, caughtUp);
+    const nextPoll = caughtUp.at(-1) + 1_800_000;
+    clock.advance(nextPoll - clock.now());
+    next.resume();
+    await steps.next();
+    assert.deepEqual(polls, [...caughtUp, nextPoll]);
+    assert.equal(sockets.length, 1);
+    assert.equal(clock.pending.size, 0);
+  } finally { await loop.stop(); }
+});
 
 for (const [kind, size] of [["control", 10], ["data", 10], ["data", 180010]]) test(`unlisted ${kind} inner (${size} bytes) reaches the durable inbox before ACK`, async t => {
   const { home, transport } = setup(t), raw = JSON.stringify({ type: "future_data", extra: "x".repeat(size) });
@@ -806,7 +1104,7 @@ test('simultaneous waiter, operator and receiver share the E11 gate', async t =>
   const loop = create().start(); await new Promise(r => setTimeout(r, 20)); await loop.stop(); assert.equal(calls, 1);
 });
 
-test('join completion restores the response floor, then response completion restores configured cadence', async t => {
+test('a final first-sync page keeps fast polling while a command acknowledgment is pending', async t => {
   const { home, transport } = setup(t); let at = now().getTime(), calls = 0, seq = 0;
   const send = createGenericSender({ home, transport, self, now });
   await send({ type: 'commands', innerText: JSON.stringify({ v: 1, type: 'commands', commands: [{ command_id: 'one', version: 1 }] }) });
@@ -815,10 +1113,51 @@ test('join completion restores the response floor, then response completion rest
   const create = () => createThinPoller({ home, transport, self, relay, now: () => new Date(at), intervalS: 1800 });
   await create().startFastPoll('m_dev_1', at + 900000);
   await create().once(); at += 24999; assert.equal((await create().once()).reason, 'poll_floor');
-  at++; await create().once(); assert.equal(readHomeState(home).transport.next_poll_at, at + 300000);
-  at += 299999; assert.equal((await create().once()).reason, 'poll_floor');
+  at++; await create().once(); assert.equal(readHomeState(home).transport.next_poll_at, at + 25000);
+  at += 24999; assert.equal((await create().once()).reason, 'poll_floor');
   at++; await create().once(); assert.equal(calls, 3);
   assert.equal(readHomeState(home).transport.next_poll_at, at + 1800000);
+});
+
+for (const [name, failure] of [
+  ['a new command wakes the receiver from an earlier transient fetch failure', { status: 503 }],
+  ['a new command wakes the receiver as soon as a 503 Retry-After expires', { status: 503, retryAfterS: 2 }],
+]) test(name, async t => {
+  const { home, transport } = setup(t), steps = stepSleep();
+  const started = now().getTime(), polls = [], acks = [];
+  let at = started;
+  const clock = () => new Date(at);
+  const reply = await delivery(transport, 2, { v: 1, type: 'sync', acks: [{ command_id: 'one', version: 1, status: 'applied' }] });
+  const relay = {
+    async getMessages(_, { commandAck }) {
+      polls.push({ at, commandAck });
+      if (polls.length === 1) throw failure;
+      return { messages: [reply], next_after: 2 };
+    },
+    postMessage: async () => ({ seq: 1 }),
+    ack: async seq => { acks.push(seq); },
+  };
+  const loop = createThinPoller({ home, transport, self, relay, now: clock, intervalS: 1800, sleep: steps.sleep }).start();
+  try {
+    const pause = await steps.next();
+    at += pause.ms;
+    await createGenericSender({ home, transport, self, now: clock })({ type: 'commands',
+      innerText: JSON.stringify({ v: 1, type: 'commands', commands: [{ command_id: 'one', version: 1 }] }) });
+    await createOutbox({ home, relay, now: clock }).flush();
+    pause.resume();
+    const next = await steps.next();
+    if (failure.retryAfterS) {
+      assert.deepEqual(polls, [{ at: started, commandAck: false }]);
+      at += next.ms;
+      assert.equal(at, started + 2000);
+      next.resume();
+      await steps.next();
+    }
+
+    assert.deepEqual(polls, [{ at: started, commandAck: false }, { at, commandAck: true }]);
+    assert.deepEqual(acks, [2]);
+    assert.equal(createInbox(home).read()[0].inner.acks[0].status, 'applied');
+  } finally { await loop.stop(); }
 });
 
 test('an already sleeping receiver notices a newly sent response wait without waiting for configured cadence', async t => {

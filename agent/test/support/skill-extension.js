@@ -68,9 +68,8 @@ export async function proveSkillExtension(t) {
     fs.writeFileSync(path, text.replace(pattern, match => match.replace(/(['"])\1/, JSON.stringify(pin))));
   };
   provisionPin(join(source, 'src/skill-document.js'), /SKILL_PUBLIC_KEY = ''/g);
-  let release;
-  if (process.env.SYNCKY_AGENT_BUNDLE_FIXTURE) release = JSON.parse(fs.readFileSync(process.env.SYNCKY_AGENT_BUNDLE_FIXTURE)).release;
-  else { const { buildAgent } = await import('../../build.mjs'); release = await buildAgent({ outdir: join(root, 'release') }); }
+  const { buildAgent } = await import("../../build.mjs");
+  const release = await buildAgent({ outdir: join(root, "release") });
   const bundle = join(root, 'test-agent.mjs'); fs.copyFileSync(release.bundlePath, bundle);
   provisionPin(bundle, /SKILL_PUBLIC_KEY = ""/g);
   const sourceModules = Object.fromEntries(await Promise.all(['cli.js', 'runtime.js', 'thin-poller.js', 'home-state.js'].map(async name => [name, await import(pathToFileURL(join(source, 'src', name)))])));

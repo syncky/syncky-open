@@ -162,8 +162,24 @@ export function completeResponseWaits(state, memberId, publicKey, inner, at, rec
   maintainResponseWaits(state, at);
 }
 
-export const hasResponseWait = (state, at = 0) => Object.values(state.transport.response_waits ?? {}).some(w => w.expires_at > at
-  && w.completed_at === undefined && (w.state === 'sent' || w.kind === 'pairing'));
+const unanswered = w => w.completed_at === undefined && (w.state === 'sent' || w.kind === 'pairing');
+export const hasResponseWait = (state, at = 0) => Object.values(state.transport.response_waits ?? {}).some(w => w.expires_at > at && unanswered(w));
+
+export function latestCommandWaitStart(state, at) {
+  let latest = -1;
+  for (const wait of Object.values(state.transport.response_waits ?? {})) {
+    if (wait.kind === 'command' && wait.expires_at > at && unanswered(wait)) latest = Math.max(latest, wait.opened_at);
+  }
+  return latest;
+}
+
+export function responseWaitUntil(state) {
+  let until = 0;
+  for (const wait of Object.values(state.transport.response_waits ?? {})) {
+    if (unanswered(wait)) until = Math.max(until, wait.expires_at);
+  }
+  return until;
+}
 
 export function responseWaitView(w, at) {
   const view = Object.fromEntries(['kind', 'member_id', 'msg_id', 'state', 'opened_at', 'expires_at', 'completed_at']

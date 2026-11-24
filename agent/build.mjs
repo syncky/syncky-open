@@ -249,6 +249,7 @@ export async function buildAgent({ outdir = join(ROOT, "dist") } = {}) {
     platform: "node",
     format: "esm",
     target: "node22.15",
+    define: { __SYNCKY_AGENT_BUNDLE__: "true" },
     splitting: false,
     sourcemap: false,
     legalComments: "inline",

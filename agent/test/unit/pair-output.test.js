@@ -20,6 +20,33 @@ const limits = { hosted_defaults: { pairing_link_ttl_s: 600, unjoined_hub_ttl_s:
   max_pairing_scope_blob_base64url_chars: 16000, max_pairing_request_body_bytes: 16384,
   max_control_envelope_bytes: 4096, max_access_envelope_bytes: 131072 };
 
+test('plain pair uses the configured home and ends with copy-ready details for the owner', async t => {
+  const tmp = tempHome(), relay = await startRelayDouble({ invite: 'output-fixture' });
+  t.after(async () => { await relay.stop(); tmp.cleanup(); });
+  const home = join(tmp.root, 'configured home');
+  const env = { SYNCKY_AGENT_HOME: home };
+  assert.equal((await runCli(['--home', home, 'init', '--name', 'Lab', '--relay', relay.url], { env: { SYNCKY_INVITE: 'output-fixture' } })).code, 0);
+  const fetchLocal = (url, options) => {
+    assert.equal(new URL(url).origin, relay.url);
+    return fetch(url, options);
+  };
+  const result = await runCli(['pair'], { env, fetch: fetchLocal });
+  assert.equal(result.code, 0);
+  const { uri, pair_secret, expires_at } = readPairingFile(home);
+  assert.ok(uri.startsWith('https://'), 'the owner needs a tappable HTTPS link');
+  assert.ok(result.stdout.endsWith(`\n${uri}\n\n\`\`\`text\n${renderTerminalQr(uri)}\`\`\`\n\nPairing code: ${pairCode(pair_secret)}\nLink expires_at: ${expires_at}\n`),
+    'the QR, link, matching code and expiry must be ready to copy from the end of stdout');
+  assert.ok(!result.stdout.includes(home) && !result.stdout.includes('Private QR'), 'default pairing must not substitute file paths');
+
+  relay.failNext('createPairing', 401);
+  const refused = await runCli(['pair'], { env, fetch: fetchLocal,
+    spawn: () => assert.fail('a refused pairing must not start a waiter') });
+  assert.equal(refused.code, 3);
+  assert.equal(JSON.parse(refused.stderr.trim().split('\n').at(-1)).error, 'invalid_token');
+  assert.ok(refused.stdout === '', 'a refused pairing must not print instructions or credentials to copy');
+  assert.ok(!refused.stderr.includes(uri) && !refused.stderr.includes(pair_secret), 'a refused pairing must not disclose existing credentials');
+});
+
 test('every pair presentation labels hosted defaults without inventing a new registration deadline', async t => {
   const tmp = tempHome(), home = tmp.home;
   fs.mkdirSync(home, { mode: 0o700 });
@@ -50,9 +77,9 @@ test('every pair presentation labels hosted defaults without inventing a new reg
       assert.equal(output.qr_text, noQr ? null : renderTerminalQr(pairing.uri));
       assert.deepEqual(Object.keys(output).sort(), ['pairing_id', 'uri', 'expires_at', 'version', 'limits', 'qr_text', ...(v1 ? [] : ['code'])].sort());
     } else {
-      assert.ok(result.stdout.split('\n')[1] === pairing.uri, 'private URI changed');
-      const qr = noQr ? '' : renderTerminalQr(pairing.uri);
-      assert.ok(result.stdout === `Pairing link (open on the iPhone with Syncky Health, single use, expires ${expires}):\n${pairing.uri}\n${qr}${v1 ? '' : 'Pairing code: ' + pairCode(pairing.pair_secret) + '\n'}${limitsNotice}Link expires_at: ${expires}\n`, 'pair presentation changed');
+      assert.ok(result.stdout.includes('\n' + pairing.uri + '\n'), 'private URI changed');
+      const qr = noQr ? '' : '\n```text\n' + renderTerminalQr(pairing.uri) + '```\n\n';
+      assert.ok(result.stdout === `${limitsNotice}\nPairing link (open on the iPhone with Syncky Health, single use):\n${pairing.uri}\n${qr}${v1 ? '' : 'Pairing code: ' + pairCode(pairing.pair_secret) + '\n'}Link expires_at: ${expires}\n`, 'pair presentation changed');
     }
     for (const secret of [pairing.uri, parsed.value.pairingToken, parsed.value.pairSecret].filter(Boolean)) {
       assert.ok(!result.stderr.includes(secret), 'credential leaked into logs');
@@ -95,9 +122,9 @@ test('pair output follows flag > environment > saved config, leaving config inta
   for (const [saved, envScheme, flagScheme, prefix] of [
     [undefined, undefined, undefined, 'https://alpha.syncky.app/pair#'],
     [null, '', undefined, 'https://alpha.syncky.app/pair#'],
-    ['syncky', undefined, undefined, 'syncky://pair?'],
-    ['syncky', "syncky-alpha", undefined, "syncky-alpha://pair?"],
-    ['syncky', "syncky-beta", "syncky-alpha", "syncky-alpha://pair?"],
+    ['syncky', undefined, undefined, 'https://syncky.app/pair#'],
+    ['syncky', "syncky-alpha", undefined, "https://alpha.syncky.app/pair#"],
+    ['syncky', "syncky-beta", "syncky-alpha", "https://alpha.syncky.app/pair#"],
   ]) {
     saveConfig(tmp.home, { ...config, ...(saved === undefined ? {} : { url_scheme: saved }) });
     const before = fs.readFileSync(path, 'utf8'), env = envScheme === undefined ? {} : { SYNCKY_URL_SCHEME: envScheme };
@@ -110,10 +137,10 @@ test('pair output follows flag > environment > saved config, leaving config inta
       assert.equal(parsed.value.relayBase, origin);
       if (json) assert.ok(JSON.parse(result.stdout).uri === uri, 'JSON differs from persisted link');
       else {
-        assert.ok(result.stdout.split('\n')[1] === uri, 'printed link differs from persisted link');
+        assert.ok(result.stdout.includes('\n' + uri + '\n'), 'printed link differs from persisted link');
         const qr = renderTerminalQr(uri);
         assert.ok(qr.length > 0, 'expected QR is empty');
-        assert.ok(result.stdout === `Pairing link (${uri.startsWith('https://') ? 'open on the iPhone with Syncky Health' : 'scan inside Syncky Health or paste there'}, single use, expires ${pairing.expires_at}):\n${uri}\n${qr}Pairing code: ${pairCode(pairing.pair_secret)}\n${limitsNotice}Link expires_at: ${pairing.expires_at}\n`, 'QR differs from printed link');
+        assert.ok(result.stdout === `${limitsNotice}\nPairing link (open on the iPhone with Syncky Health, single use):\n${uri}\n\n\`\`\`text\n${qr}\`\`\`\n\nPairing code: ${pairCode(pairing.pair_secret)}\nLink expires_at: ${pairing.expires_at}\n`, 'QR differs from printed link');
       }
       assert.equal(fs.readFileSync(path, 'utf8'), before);
       for (const credential of [uri, parsed.value.pairingToken, parsed.value.pairSecret]) assert.ok(!result.stderr.includes(credential), 'credential leaked into logs');

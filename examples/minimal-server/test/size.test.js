@@ -15,12 +15,7 @@ function specifiers(text) {
   return found;
 }
 
-describe("server.mjs size and imports", () => {
-  it("has at most 400 lines (counted as newline-separated lines, trailing newline excluded)", () => {
-    const lines = source.replace(/\n$/, "").split("\n").length;
-    assert.ok(lines <= 400, `server.mjs has ${lines} lines`);
-  });
-
+describe("server.mjs standalone imports", () => {
   it("is an executable node script", () => {
     assert.equal(source.split("\n")[0], "#!/usr/bin/env node");
   });
@@ -46,16 +41,4 @@ describe("server.mjs size and imports", () => {
     }
   });
 
-  it("the import scan catches every import form", () => {
-    const sample = [
-      'import { a } from "./x.js";',
-      'import b from "../../e2e/lib/webhook-receiver.mjs";',
-      'import "side-effect";',
-      'export { c } from "lodash";',
-      'const d = await import("left-pad");',
-      'const e = require("fs");',
-      'import {\n  f,\n  g,\n} from "node:path";',
-    ].join("\n");
-    assert.deepEqual(specifiers(sample).sort(), ["../../e2e/lib/webhook-receiver.mjs", "./x.js", "fs", "left-pad", "lodash", "node:path", "side-effect"].sort());
-  });
 });

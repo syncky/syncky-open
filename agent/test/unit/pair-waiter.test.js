@@ -14,13 +14,221 @@ import { createHomeState, readHomeState, updateHomeState } from '../../src/home-
 import { acquireHomeLock } from '../../src/protected-files.js';
 import { maintainResponseWaits } from '../../src/response-waits.js';
 import { fixture as localHome, identity, keys } from '../support/thin-home.js';
-import { createFakePhone } from '../support/fake-phone.js';
+import { createFakePhone, sevenDaysOfStepsAndHeartRate } from '../support/fake-phone.js';
 import { startRelayDouble } from '../support/relay-double.js';
 import { runCli, tempHome, waitFor } from '../support/helpers.js';
 import { b64uDecode } from '../../src/encoding.js';
 import { PAIRING_ACCESS_NOTICE } from '../../src/pairing-access.js';
+import { pairingWaitHome } from '../support/relay-socket.js';
 import { saveSecrets } from '../../src/secrets.js';
 import { pairProof } from '../../src/pair-code.js';
+
+const sourceCli = fileURLToPath(new URL('../../bin/syncky-agent.js', import.meta.url));
+const expectedWaiterEntry = process.env.SYNCKY_AGENT_BUNDLE_FIXTURE ? fs.realpathSync(process.env.SYNCKY_AGENT_BIN) : sourceCli;
+
+async function startFakeWaiter(t) {
+  const f = pairingWaitHome(t);
+  const pairing = createPairingService({ home: f.home, now: f.now, publicKey: keys.agent.pk, agentName: 'Test',
+    relay: { baseUrl: f.baseUrl, createPairing: async () => f.pending } });
+  await pairing.startPairing();
+  return f;
+}
+
+test('a detached waiter falls back immediately on replacement and releases the connection at receiver handoff', async t => {
+  const { home, now, clock, pending, sockets, WebSocket } = await startFakeWaiter(t);
+  const checks = [], sleeps = [], start = clock.now();
+  let receiver;
+  const result = await runCli(['--home', home, 'pair-waiter', pending.pairing_id], {
+    now, WebSocket, timers: clock.timers,
+    fetch: async url => {
+      assert.equal(new URL(url).pathname, `/v1/pairings/${pending.pairing_id}`);
+      checks.push(clock.now() - start);
+      if (checks.length === 1) sockets[0].open();
+      return Response.json({ status: 'pending' });
+    },
+    sleep: async ms => {
+      assert.ok(sleeps.length < 2);
+      sleeps.push(ms);
+      if (sleeps.length === 1) {
+        clock.advance(400); sockets[0].peerClose(4409);
+      } else {
+        receiver = acquireHomeLock(home, 'receiver');
+        clock.advance(ms);
+      }
+    },
+  }).finally(() => receiver?.release());
+  assert.match(result.stderr, /pair_waiter_finished/);
+  assert.deepEqual(sleeps, [30_000, 2000]);
+  assert.deepEqual(checks, [0, 0, 400]);
+  assert.equal(sockets.length, 1);
+  assert.equal(sockets[0].closes, 1);
+  assert.equal(clock.pending.size, 0);
+});
+
+test('a rejected handshake leaves HTTP authoritative and a stale waiter cannot reconnect after Retry-After', async t => {
+  const { home, now, clock, pending, sockets, WebSocket } = await startFakeWaiter(t);
+  const sleeps = [];
+  let checks = 0;
+  const result = await runCli(['--home', home, 'pair-waiter', pending.pairing_id], {
+    now, WebSocket, timers: clock.timers,
+    fetch: async url => {
+      assert.equal(new URL(url).pathname, `/v1/pairings/${pending.pairing_id}`);
+      checks++;
+      sockets[0].error();
+      return Response.json({ error: 'rate_limited' }, { status: 429, headers: { 'Retry-After': '120' } });
+    },
+    sleep: async ms => {
+      assert.equal(sleeps.length, 0);
+      sleeps.push(ms);
+      clock.advance(ms - 1);
+      assert.equal(sockets.length, 1);
+      updateHomeState(home, s => { s.pairings[pending.pairing_id].status = 'expired'; });
+      clock.advance(1);
+      assert.equal(sockets.length, 1);
+    },
+  });
+  assert.match(result.stderr, /pair_waiter_finished/);
+  assert.deepEqual(sleeps, [120_000]);
+  assert.equal(checks, 1);
+  assert.ok(!readHomeState(home).transport.hub_revoked);
+  assert.equal(sockets[0].closes, 1);
+  assert.equal(clock.pending.size, 0);
+});
+
+test('a joined phone lets one subscription hint skip the local poll floor in the waiter', async t => {
+  const { home, now, clock, pending, sockets, WebSocket } = await startFakeWaiter(t);
+  updateHomeState(home, s => { s.transport.last_poll_at = s.transport.poll_attempt_at = clock.now(); });
+  const polls = [], sleeps = [];
+  let receiver;
+  const result = await runCli(['--home', home, 'pair-waiter', pending.pairing_id], {
+    now, WebSocket, timers: clock.timers, random: () => 0.5, env: { SYNCKY_HEARTBEAT: 'off' },
+    fetch: async (url, { method }) => {
+      const path = new URL(url).pathname;
+      if (path === `/v1/pairings/${pending.pairing_id}`) return Response.json({ status: 'completed', member_id: keys.dev1.member_id, public_key: keys.dev1.pk, completed_at: now().toISOString() });
+      if (path === '/v1/members') return Response.json({ members: [{ member_id: keys.dev1.member_id, role: 'device', public_key: keys.dev1.pk }] });
+      if (path === '/v1/hub/state') return Response.json({ state: 'active' });
+      assert.equal(`${method} ${path}`, 'GET /v1/messages');
+      polls.push(clock.now());
+      return Response.json({ messages: [] });
+    },
+    sleep: async ms => {
+      sleeps.push(ms);
+      if (sleeps.length === 1) { clock.advance(100); sockets[0].open(); }
+      else if (sleeps.length === 3) receiver = acquireHomeLock(home, 'receiver');
+    },
+  }).finally(() => receiver?.release());
+  assert.match(result.stderr, /pair_waiter_finished/);
+  assert.equal(readHomeState(home).members[keys.dev1.member_id].state, 'joined');
+  assert.deepEqual(polls, [clock.now()]);
+  assert.deepEqual(sleeps, [2000, 30000, 30000]);
+  assert.equal(sockets.length, 1);
+  assert.equal(clock.pending.size, 0);
+});
+
+for (const action of ['collect data', 'finish on first_sync_done', 'yield to receive', 'stop at the window cap']) {
+  test(`after confirmation the socket waiter can ${action}`, async t => {
+    const { home, now, clock, pending, sockets, WebSocket } = await startFakeWaiter(t);
+    const runtime = createRuntime({ home, now, env: {} });
+    const joinedAt = new Date(clock.now() - 16 * 60_000).toISOString();
+    const device = { member_id: keys.dev1.member_id, role: 'device', public_key: keys.dev1.pk,
+      pairing_id: pending.pairing_id, joined_at: joinedAt };
+    const seal = async (seq, inner) => ({ seq, ...await runtime.transport.sealMessage({
+      hubId: identity.hub_id, from: device.member_id, senderPrivateKey: b64uDecode(keys.dev1.sk),
+      recipients: [{ memberId: keys.agent.member_id, publicKey: b64uDecode(keys.agent.pk) }],
+      innerText: JSON.stringify(inner),
+    }) });
+    const proof = await seal(1, { v: 1, type: 'pair_proof', proof: pairProof(readPairingFile(home).pair_secret, keys.agent.pk, keys.dev1.pk) });
+    const [sample] = sevenDaysOfStepsAndHeartRate({ now: now(), days: 1 });
+    const data = await seal(4, { v: 1, type: 'sync', device: { name: 'Test Phone' }, samples: [sample], deleted: [], acks: [], more: false });
+    const messages = [proof], acks = [];
+    let posted = 1, receiver, sleeps = 0;
+    const result = await runCli(['--home', home, 'pair-waiter', pending.pairing_id], {
+      now, WebSocket, timers: clock.timers, env: { SYNCKY_HEARTBEAT: 'off' },
+      fetch: async (url, { method, body }) => {
+        const { pathname, searchParams } = new URL(url);
+        if (pathname === `/v1/pairings/${pending.pairing_id}`) {
+          sockets[0].open();
+          sockets[0].message('first_sync');
+          return Response.json({ status: 'completed', member_id: device.member_id, public_key: device.public_key, completed_at: joinedAt });
+        }
+        if (pathname === '/v1/members') return Response.json({ members: [device] });
+        if (pathname === '/v1/hub/state') return Response.json({ state: 'active' });
+        if (pathname === '/v1/messages' && method === 'GET') {
+          const page = messages.filter(message => message.seq > Number(searchParams.get('after')));
+          return Response.json({ messages: page, ...(page.length && { next_after: page.at(-1).seq }) });
+        }
+        if (pathname === '/v1/messages') return Response.json({ seq: ++posted }, { status: 201 });
+        assert.equal(pathname, '/v1/acks');
+        const { up_to_seq } = JSON.parse(body);
+        acks.push(up_to_seq);
+        return Response.json({ acked_up_to: up_to_seq });
+      },
+      sleep: async () => {
+        assert.equal(runtime.outbox.receipts().find(entry => entry.type === 'confirmed')?.state, 'sent');
+        assert.equal(sockets[0].closes, 0);
+        if (++sleeps === 1 && action === 'collect data') {
+          messages.push(data);
+          sockets[0].message('changed');
+        } else if (action === 'yield to receive') {
+          receiver = acquireHomeLock(home, 'receiver');
+        } else if (action === 'stop at the window cap') {
+          for (let elapsed = 0; elapsed < 30 * 60_000; elapsed += 30_000) {
+            clock.advance(30_000);
+            sockets[0].message('pong');
+          }
+        } else {
+          sockets[0].peerClose(4403, 'first_sync_done');
+        }
+      },
+    }).finally(() => receiver?.release());
+    assert.equal(result.code, 0);
+    assert.match(result.stderr, /pair_waiter_collecting/);
+    const finished = result.stderr.trim().split('\n').map(JSON.parse).find(entry => entry.event === 'pair_waiter_finished');
+    const reason = { 'yield to receive': 'receiver', 'stop at the window cap': 'window_cap' }[action] ?? 'first_sync_done';
+    assert.equal(finished?.reason, reason);
+    if (reason === 'window_cap') {
+      const confirmed = Date.parse(readHomeState(home).members[device.member_id].confirmed_at);
+      assert.equal(clock.now() - confirmed, 30 * 60_000);
+    }
+    assert.equal(sockets.length, 1);
+    assert.equal(sockets[0].closes, 1);
+    assert.equal(clock.pending.size, 0);
+    if (action === 'collect data') {
+      assert.ok(runtime.inbox({}).records.some(record => record.type === 'sync' && record.inner.samples?.[0]?.uuid === sample.uuid));
+      assert.deepEqual(acks, [1, 4]);
+    } else {
+      assert.deepEqual(acks, [1]);
+    }
+  });
+}
+
+test('a short pairing Retry-After inside the client retry holds the reconnect until it passes', async t => {
+  const { home, now, clock, pending, sockets, WebSocket } = await startFakeWaiter(t);
+  const sleeps = [], checks = [];
+  const result = await runCli(['--home', home, 'pair-waiter', pending.pairing_id], {
+    now, WebSocket, timers: clock.timers, random: () => 0.5,
+    fetch: async url => {
+      assert.equal(new URL(url).pathname, `/v1/pairings/${pending.pairing_id}`);
+      checks.push(clock.now());
+      if (checks.length > 1) return Response.json({ status: 'expired' });
+      sockets[0].error();
+      return Response.json({ error: 'rate_limited' }, { status: 429, headers: { 'Retry-After': '5' } });
+    },
+    sleep: async ms => {
+      sleeps.push(ms);
+      clock.advance(ms - 1);
+      assert.equal(sockets.length, 1);
+      clock.advance(1);
+      assert.equal(sockets.length, 2);
+    },
+  });
+  assert.match(result.stderr, /pair_waiter_stopped/);
+  assert.deepEqual(sleeps, [5000]);
+  assert.deepEqual(checks, [checks[0], checks[0] + 5000]);
+  assert.ok(!readHomeState(home).transport.hub_revoked);
+  assert.ok(sockets.every(link => link.closes === 1));
+  assert.equal(clock.pending.size, 0);
+});
 
 test('waiter startup retries state renames before its first current pairing snapshot', async t => {
   const f = await fixture(t), started = await f.pairing.startPairing();
@@ -248,10 +456,19 @@ async function fixture(t) {
 }
 
 for (const json of [false, true]) test(`v2 pair spawns one detached waiter after ${json ? 'JSON' : 'terminal'} output`, async t => {
-  const f = await fixture(t), calls = [], env = { ...process.env, SYNCKY_LOG_LEVEL: 'debug' };
-  const result = await runCli(['--home', relative(process.cwd(), f.home), 'pair', ...(json ? ['--json'] : [])], {
-    env, spawn: (command, args, options) => {
-      assert.ok(readPairingFile(f.home));
+  const home = localHome(t), calls = [], env = { SYNCKY_LOG_LEVEL: 'debug' };
+  createHomeState(home, identity);
+  saveConfig(home, { relay_url: 'https://relay.example', name: 'Lab' });
+  saveSecrets(home, { private_key: keys.agent.sk, public_key: keys.agent.pk,
+    token: `sk_${identity.hub_id}_${'T'.repeat(40)}`, webhook_secret: `whsec_${'W'.repeat(43)}` });
+  const result = await runCli(['--home', relative(process.cwd(), home), 'pair', ...(json ? ['--json'] : [])], {
+    env, fetch: async (url, { method }) => {
+      assert.equal(url, 'https://relay.example/v1/pairings');
+      assert.equal(method, 'POST');
+      return Response.json({ pairing_id: `p_${'A'.repeat(22)}`, pairing_token: `pt_${'T'.repeat(43)}`,
+        expires_at: new Date(Date.now() + 600000).toISOString() }, { status: 201 });
+    }, spawn: (command, args, options) => {
+      assert.ok(readPairingFile(home));
       assert.equal(options.stdio[0], 'ignore'); assert.equal(options.stdio[1], 'ignore');
       fs.writeSync(options.stdio[2], 'fixture metadata\n');
       const child = new EventEmitter(); child.unref = () => { calls.push('unref'); };
@@ -259,12 +476,13 @@ for (const json of [false, true]) test(`v2 pair spawns one detached waiter after
     },
   });
   assert.equal(result.code, 0); assert.equal(calls.length, 2); assert.equal(calls[1], 'unref');
-  const { command, args, options } = calls[0], doc = readPairingFile(f.home);
+  const { command, args, options } = calls[0], doc = readPairingFile(home);
   assert.equal(command, process.execPath);
-  assert.deepEqual(args, [process.argv[1], '--home', f.home, 'pair-waiter', doc.pairing_id]);
+  assert.notEqual(args[0], process.argv[1]);
+  assert.deepEqual(args, [expectedWaiterEntry, '--home', home, 'pair-waiter', doc.pairing_id]);
   assert.equal(options.detached, true); assert.equal(options.windowsHide, true); assert.equal(options.env, env);
   assert.throws(() => fs.fstatSync(options.stdio[2]), { code: 'EBADF' });
-  assert.equal(fs.statSync(join(f.home, 'pair-waiter.log')).mode & 0o777, 0o600);
+  assert.equal(fs.statSync(join(home, 'pair-waiter.log')).mode & 0o777, 0o600);
   assert.ok(result.stdout.includes(doc.uri));
   if (json) {
     const output = JSON.parse(result.stdout);
@@ -274,7 +492,7 @@ for (const json of [false, true]) test(`v2 pair spawns one detached waiter after
       max_pairing_scope_blob_base64url_chars: 16000, max_pairing_request_body_bytes: 16384,
       max_control_envelope_bytes: 4096, max_access_envelope_bytes: 131072 });
   }
-  else assert.ok(result.stdout.split('\n')[1] === doc.uri && result.stdout.includes('Pairing code: '));
+  else assert.ok(result.stdout.includes('\n' + doc.uri + '\n') && result.stdout.includes('Pairing code: '));
 });
 
 for (const mode of ['v1', 'wait', 'receiver']) test(`pair does not spawn a waiter for ${mode}`, async t => {
@@ -307,7 +525,7 @@ test('pair forwards relay and URL scheme overrides to the detached waiter', asyn
     },
   });
   assert.equal(result.code, 0); assert.equal(calls.length, 1);
-  assert.deepEqual(calls[0], [process.argv[1], '--home', f.home, '--relay', origin, '--url-scheme', "syncky-alpha", 'pair-waiter', JSON.parse(result.stdout).pairing_id]);
+  assert.deepEqual(calls[0], [expectedWaiterEntry, '--home', f.home, '--relay', origin, '--url-scheme', "syncky-alpha", 'pair-waiter', JSON.parse(result.stdout).pairing_id]);
   const phone = createFakePhone({ relayUrl: f.relay.url });
   await phone.pair(JSON.parse(result.stdout).uri); await phone.sendPairProof();
   const waiter = await runCli(calls[0].slice(1), { fetch: forward, env: { SYNCKY_RELAY_URL: 'http://127.0.0.1:1' }, now: f.now, sleep: async ms => f.advance(ms) });
@@ -606,7 +824,7 @@ for (const invalid of [false, true]) test(`waiter exits successfully for ${inval
 });
 
 test('real CLI leaves a detached waiter that confirms the phone and exits with a private metadata log', { timeout: 15000 }, async t => {
-  const f = await fixture(t), cli = process.env.SYNCKY_AGENT_BIN ?? fileURLToPath(new URL('../../bin/syncky-agent.js', import.meta.url));
+  const f = await fixture(t), cli = process.env.SYNCKY_AGENT_BIN ?? sourceCli;
   const parent = spawn(process.execPath, [cli, '--home', f.home, 'pair', '--json'], { env: { ...process.env, SYNCKY_LOG_LEVEL: 'debug' }, stdio: ['ignore', 'pipe', 'pipe'] });
   let stdout = '', stderr = '', waiterPid;
   parent.stdout.on('data', chunk => { stdout += chunk; }); parent.stderr.on('data', chunk => { stderr += chunk; });

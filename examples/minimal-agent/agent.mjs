@@ -199,10 +199,10 @@ export function parsePairUri(uri, allowInsecure = false) {
 export function buildPairUri({ relay_base, hub_id, pairing_token, agent_public_key, agent_name, pair_secret, url_scheme = null }) {
   if (url_scheme !== null && !(typeof url_scheme === "string" && PAIR_SCHEME.test(url_scheme))) throw fail("invalid_url_scheme", "unsupported URL scheme");
   const query = { r: relay_base.replace(/^https?:\/\//, ""), h: hub_id, t: pairing_token, k: agent_public_key, n: agent_name, ...(pair_secret && { c: pair_secret }) };
-  const relayHost = query.r.split(":")[0].toLowerCase(), site = ((/^relay-([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\.syncky\.app$/.exec(relayHost)?.[1]) ? relayHost.replace(/^relay-/, "") : "syncky.app");
+  const relayHost = query.r.split(":")[0].toLowerCase(), site = url_scheme !== null ? (url_scheme === "syncky" ? "syncky.app" : `${url_scheme.slice(7)}.syncky.app`) : ((/^relay-([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\.syncky\.app$/.exec(relayHost)?.[1]) ? relayHost.replace(/^relay-/, "") : "syncky.app");
   if (url_scheme !== null && !isPairSchemeAllowed(url_scheme, relayHost)) throw fail("invalid_url_scheme", "unsupported URL scheme");
   const params = Object.entries(query).map(([key, value]) => `&${key}=${pctEncode(value)}`).join("");
-  return `${url_scheme === null ? `https://${site}/pair#` : `${url_scheme}://pair?`}v=${pair_secret ? 2 : 1}${params}${relay_base.startsWith("http://") ? "&s=http" : ""}`;
+  return `https://${site}/pair#v=${pair_secret ? 2 : 1}${params}${relay_base.startsWith("http://") ? "&s=http" : ""}`;
 }
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 export async function relayCall(state, method, path, { body, headers = {} } = {}) {

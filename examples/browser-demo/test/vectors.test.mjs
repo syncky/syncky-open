@@ -121,10 +121,17 @@ describe("pair-uris.json", () => {
     assert.ok(buildCases.some((c) => c.input.pair_secret) && buildCases.some((c) => !c.input.pair_secret));
   });
   for (const c of buildCases) {
-    it(`build ${c.name}, in each scheme`, () => {
+    it(`build ${c.name}, with an explicit scheme as its HTTPS site`, () => {
       assert.equal(buildPairUri(c.input), c.uri);
-      for (const url_scheme of ["syncky", "syncky-alpha", "syncky-beta"]) {
-        assert.equal(buildPairUri({ ...c.input, url_scheme }), `${url_scheme}://pair?${c.uri.split(/[?#]/)[1]}`);
+      const payload = c.uri.split("#")[1];
+      assert.equal(buildPairUri({ ...c.input, url_scheme: "syncky" }), `https://syncky.app/pair#${payload}`);
+      for (const label of ["alpha", "beta"]) {
+        for (const host of [`relay-${label}.syncky.app`, "relay.example.test", "127.0.0.1:8787"]) {
+          const relay_base = c.input.relay_base.replace(/^(https?:\/\/)[^/]+$/, `$1${host}`);
+          const own = { ...c.input, relay_base };
+          assert.equal(buildPairUri({ ...own, url_scheme: `syncky-${label}` }), buildPairUri({ ...own, url_scheme: "syncky" }).replace("https://syncky.app/", `https://${label}.syncky.app/`));
+        }
+        assert.throws(() => buildPairUri({ ...c.input, relay_base: "https://relay.syncky.app", url_scheme: `syncky-${label}` }), { code: "invalid_url_scheme" });
       }
     });
   }
@@ -136,7 +143,9 @@ describe("pair-uris.json", () => {
       const uri = buildPairUri({ ...base, requested_scope });
       assert.equal(uri, buildPairUri(base) + "&request_ref=" + requested_scope.request_ref + "&read=%5B%22body_mass%22%2C%22heart_rate%22%5D&write=%5B%5D");
       assert.equal(new URL(uri).search, "");
-      for (const url_scheme of ["syncky", "syncky-alpha", "syncky-beta"]) assert.equal(buildPairUri({ ...base, requested_scope, url_scheme }), `${url_scheme}://pair?${new URL(uri).hash.slice(1)}`);
+      assert.equal(buildPairUri({ ...base, requested_scope, url_scheme: "syncky" }), `https://syncky.app/pair#${new URL(uri).hash.slice(1)}`);
+      for (const label of ["alpha", "beta"]) assert.equal(buildPairUri({ ...base, requested_scope, url_scheme: `syncky-${label}` }), `https://${label}.syncky.app/pair#${new URL(uri).hash.slice(1)}`);
+      assert.throws(() => buildPairUri({ ...base, relay_base: "https://relay.syncky.app", requested_scope, url_scheme: "syncky-alpha" }), { code: "invalid_url_scheme" });
     }
     assert.deepEqual(requested_scope.read, ["heart_rate", "body_mass", "heart_rate"]);
   });
@@ -211,8 +220,8 @@ describe("HTTPS producer inference", () => {
       assert.equal(params.get("r"), relay_base.replace(/^https?:\/\//, ""));
       assert.equal(params.get("t"), input.pairing_token); assert.equal(params.get("c"), pair_secret ?? null);
       assert.equal(params.get("v"), pair_secret ? "2" : "1");
-      const legacy = buildPairUri({ ...value, url_scheme: "syncky" });
-      assert.ok(legacy === `syncky://pair?${url.hash.slice(1)}`, "explicit scheme changed the payload");
+      const explicit = buildPairUri({ ...value, url_scheme: "syncky" });
+      assert.ok(explicit === `https://syncky.app/pair#${url.hash.slice(1)}`, "explicit scheme changed the payload");
     }
   });
 });

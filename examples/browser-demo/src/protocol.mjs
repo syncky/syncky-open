@@ -141,14 +141,16 @@ const PAIR_SCHEME = /^syncky(?:-[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?$/;
 const pctEncode = (v) => encodeURIComponent(v).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
 
 export function buildPairUri({ relay_base, hub_id, pairing_token, agent_public_key, agent_name, pair_secret, requested_scope, scope_on_relay = false, url_scheme = null }) {
-  if (url_scheme !== null && !(typeof url_scheme === "string" && PAIR_SCHEME.test(url_scheme))) throw new TypeError("unsupported URL scheme");
+  const unsupported = () => Object.assign(new TypeError("unsupported URL scheme"), { code: "invalid_url_scheme" });
+  if (url_scheme !== null && !(typeof url_scheme === "string" && PAIR_SCHEME.test(url_scheme))) throw unsupported();
   const query = { r: relay_base.replace(/^https?:\/\//, ""), h: hub_id, t: pairing_token, k: agent_public_key, n: agent_name, ...(pair_secret && { c: pair_secret }), ...(pair_secret && scope_on_relay && { a: "1" }) };
   if (relay_base.startsWith("http://")) query.s = "http";
   if (requested_scope !== undefined) Object.assign(query, { request_ref: requested_scope.request_ref, read: JSON.stringify([...new Set(requested_scope.read)].sort()), write: JSON.stringify([...new Set(requested_scope.write)].sort()) });
   const relayHost = query.r.split(":")[0].toLowerCase();
-  const site = ((/^relay-([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\.syncky\.app$/.exec(relayHost)?.[1]) ? relayHost.replace(/^relay-/, "") : "syncky.app");
+  if (url_scheme !== null && url_scheme !== "syncky" && /(?:^|\.)syncky\.app\.?$/.test(relayHost) && relayHost !== `relay-${url_scheme.slice(7)}.syncky.app`) throw unsupported();
+  const site = url_scheme !== null ? (url_scheme === "syncky" ? "syncky.app" : `${url_scheme.slice(7)}.syncky.app`) : ((/^relay-([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\.syncky\.app$/.exec(relayHost)?.[1]) ? relayHost.replace(/^relay-/, "") : "syncky.app");
   const params = Object.entries(query).map(([key, value]) => `&${key}=${pctEncode(value)}`).join("");
-  return `${url_scheme === null ? `https://${site}/pair#` : `${url_scheme}://pair?`}v=${pair_secret ? 2 : 1}${params}`;
+  return `https://${site}/pair#v=${pair_secret ? 2 : 1}${params}`;
 }
 
 export const MEMBER_ID_RE = /^m_(agent|dev)_[1-9][0-9]{0,5}$/;

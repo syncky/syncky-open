@@ -49,10 +49,12 @@ export async function runCli(argv, { env = {}, ...opts } = {}) {
     env,
     stdout,
     stderr,
+    WebSocket: null,
     sleep: async (ms) => {
       sleeps.push(ms);
     },
     random: () => 0.5,
+    spawn: () => ({ once() {}, unref() {} }),
     ...opts,
   });
   return { code, stdout: stdout.text, stderr: stderr.text, sleeps };

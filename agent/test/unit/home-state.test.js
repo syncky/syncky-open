@@ -46,6 +46,17 @@ test("atomic state reloads, refuses async mutations and keeps the last durable s
   assert.throws(() => createHomeState(home, identity), { code: "already_initialized" });
 });
 
+test("a home from the first-sync prototype drops its obsolete dial state", t => {
+  const { home } = setup(t);
+  const path = join(home, "state.json");
+  const state = readHomeState(home);
+  state.transport.first_sync = { confirmed: true };
+  fs.writeFileSync(path, JSON.stringify(state));
+  assert.equal(readHomeState(home).transport.first_sync, undefined);
+  updateHomeState(home, s => { s.transport.cursor = 1; });
+  assert.equal(Object.hasOwn(JSON.parse(fs.readFileSync(path, "utf8")).transport, "first_sync"), false);
+});
+
 test("missing legacy export, corrupt state and mismatched identity fail closed", (t) => {
   const home = fixture(t);
   fs.writeFileSync(join(home, "agent.db-wal"), "fixture", { mode: 0o400 });

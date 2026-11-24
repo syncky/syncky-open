@@ -1,6 +1,6 @@
 # Syncky minimal server
 
-The smallest complete server for the Syncky iPhone app's direct connections ("Server or automation"), written to be read and copied: one file, [`server.mjs`](server.mjs) (at most 400 lines, Node ≥ 22.15, no dependencies, only `node:*` modules). It accepts all four formats (Syncky JSON, Health Auto Export JSON, CSV, InfluxDB line protocol), checks bearer, Basic or custom-header auth and the `X-Syncky-Signature` HMAC, deduplicates samples, answers the app's Check connection, replies with signed Health write commands and records the results the app sends back. Its tests replay the shared vectors in [`protocol/test-vectors/`](../../protocol/test-vectors/). It stores the received health data in clear in its data directory and is a teaching example, not a hardened service; whoever runs it is responsible for that data (see https://syncky.app/privacy for what the app and the relay do).
+The smallest complete server for the Syncky iPhone app's direct connections ("Server or automation"), written to be read and copied: one file, [`server.mjs`](server.mjs) (Node ≥ 22.15, no dependencies, only `node:*` modules). It accepts all four formats (Syncky JSON, Health Auto Export JSON, CSV, InfluxDB line protocol), checks bearer, Basic or custom-header auth and the `X-Syncky-Signature` HMAC, deduplicates samples, answers the app's Check connection, replies with signed Health write commands and records the results the app sends back. Its tests replay the shared vectors in [`protocol/test-vectors/`](../../protocol/test-vectors/). It stores the received health data in clear in its data directory and is a teaching example, not a hardened service; whoever runs it is responsible for that data (see https://syncky.app/privacy for what the app and the relay do).
 
 ## Run
 
@@ -56,7 +56,7 @@ The log is one stdout line per request: time, kind (`data`, `test`, `results`, `
 - `cli.test.js`: `init`, `link`, `write`, `delete`, `status` and argument errors (secret flags are rejected).
 - `url-scheme.test.js`: builder/CLI schemes, precedence, optional config, fixed errors without input disclosure, and receiver-host independence. Labelled-scheme cases in `vectors.test.js` refuse link generation and replay unchanged requests.
 - `secrecy.test.js`: after a `serve` run its output, `results.jsonl` and `outbox.jsonl` hold no token, secret, signature, body or URL; the secret files are mode 600.
-- `size.test.js`: the 400-line cap, the shebang, `node:*` imports only, and tests that read nothing outside the package but the vectors.
+- `size.test.js`: the shebang, `node:*` imports only, and tests that read nothing outside the package but the vectors.
 
 Native history may include a separate `summaries` array. This example accepts and ignores it while preserving raw sample handling; it does not store daily quantity summaries. Choose raw history when using this server for complete quantity coverage. A receiver that supports summaries must replace by `(device, type, unit, start, end, stat)`, never add a resent value. See the [summary contract and compatibility rules](../../protocol/server.md#daily-quantity-summaries-in-native-history).
 

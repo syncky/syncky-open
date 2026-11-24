@@ -3,7 +3,6 @@
 Every data kind the iOS 27 HealthKit SDK declares, with how an app may read and write it, its typical size in Syncky's wire form and what Syncky does with it.
 
 - SDKs compared on 2026-10-15: `iPhoneOS27.0` (then the default Xcode) and `iPhoneOS27.2` (Xcode 27.2); re-checked on 2026-10-18 against `iPhoneOS27.1` (the default Xcode since, the SDK of the core's committed snapshot). The identifier and enum sets are identical: 121 quantity, 72 category (1 deprecated), 6 characteristic identifiers, 86 workout activity cases, 24 other kinds and the 13 enums of the snapshot's `enums` section.
-- `HealthKitInventoryTest` (jvm) parses the table below. In the `Kind` column the backticked word is the catalog kind (`quantity`, `category`, `characteristic`, `workout`) or the type name a plan adds. The second column lists the snapshot's `other_kinds` identifiers (or accessors for kinds without a constant); a `*` marks a whole identifier family. `Syncky` starts with `read since plan N`, `plan 11`, `part 2` (issue #8 part 2 or later) or `excluded:`; `part 2` and `excluded` rows name only identifiers that `CatalogExclusions` lists.
 - Sizes are the compact JSON of one wire sample (inner protocol v1). Series (routes, heartbeat series) travel in parts of at most 60 000 bytes.
 
 | Kind | SDK identifier or accessor | Read | Write | Typical size | Syncky |

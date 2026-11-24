@@ -138,10 +138,12 @@ test('pair and show-qr preserve URI, scope, code and deadline while creating and
   fs.unlinkSync(png);
   const human = await f.cli(['pair', '--show-qr', '--qr-png']);
   assert.equal(human.code, 0); assert.deepEqual(fs.readFileSync(png), qrPng(pairingQr(before.uri)));
-  assert.ok(human.stdout.startsWith('Pairing link (open on the iPhone with Syncky Health, single use, expires '));
+  assert.ok(human.stdout.includes('\n\nPairing link (open on the iPhone with Syncky Health, single use):\n'));
   assert.ok(human.stdout.indexOf(before.uri) < human.stdout.indexOf(started.qr_text));
   assert.ok(human.stdout.indexOf(started.qr_text) < human.stdout.indexOf('Pairing code: ' + started.code));
-  assert.ok(human.stdout.includes('Private QR PNG: ' + png + '\n'));
+  const pngLine = 'Private QR PNG: ' + png + '\n';
+  assert.ok(human.stdout.includes(pngLine));
+  assert.ok(human.stdout.indexOf(pngLine) < human.stdout.indexOf('Pairing link'), 'the image path is outside the pairing details copied to chat');
   fs.unlinkSync(svg);
   const humanSvg = await f.cli(['pair', '--show-qr', '--qr-svg', '--no-qr']);
   assert.equal(humanSvg.code, 0); assert.ok(humanSvg.stdout.includes('Private QR SVG: ' + svg + '\n'));
@@ -154,6 +156,56 @@ test('pair and show-qr preserve URI, scope, code and deadline while creating and
   const clobber = await f.cli(['pair', '--show-qr', '--qr-png']);
   assert.equal(clobber.code, 4); assert.equal(JSON.parse(clobber.stderr).error, 'invalid_input');
   assert.deepEqual(readPairingFile(f.home), before);
+});
+
+test('show-qr offers an existing PNG for attachment without replacing the pending pairing or image', async t => {
+  const f = fixture(t);
+  const created = await f.cli(['pair', '--qr-png', '--json']);
+  assert.equal(created.code, 0);
+  const started = JSON.parse(created.stdout), png = fs.readFileSync(started.qr_png), stat = fs.statSync(started.qr_png);
+  const shown = await f.cli(['pair', '--show-qr'], { fetch: () => assert.fail('a PNG attachment must reuse the current pairing offline') });
+  assert.equal(shown.code, 0);
+  assert.ok(shown.stdout.includes(started.qr_png), 'existing PNG is unavailable for attachment');
+  assert.ok(shown.stdout.includes(started.uri), 'the pending pairing link changed');
+  assert.equal(fs.statSync(started.qr_png).ino, stat.ino);
+  assert.ok(fs.readFileSync(started.qr_png).equals(png), 'the existing PNG changed');
+});
+
+test('show-qr converts a pending custom-scheme link from an older agent to its HTTPS link once', async t => {
+  const f = fixture(t);
+  const started = JSON.parse((await f.cli(['pair', '--json'])).stdout);
+  const file = join(f.home, 'pairing.json'), doc = readPairingFile(f.home);
+  const payload = started.uri.slice(started.uri.indexOf('#') + 1);
+  fs.writeFileSync(file, JSON.stringify({ ...doc, uri: `syncky://pair?${payload}` }) + '\n', { mode: 0o600 });
+  const png = imagePath(f.home, doc);
+  fs.mkdirSync(join(f.home, 'pairing-qr'), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(png, qrPng(pairingQr(`syncky://pair?${payload}`)), { mode: 0o600 });
+  const shown = await f.cli(['pair', '--show-qr', '--json'], { fetch: () => assert.fail('show-qr must be offline') });
+  assert.equal(shown.code, 0, shown.stderr);
+  const out = JSON.parse(shown.stdout);
+  assert.equal(out.uri, started.uri);
+  assert.equal(out.qr_text, renderTerminalQr(started.uri));
+  assert.equal(out.qr_png, undefined, 'an image of the custom-scheme link is not offered');
+  assert.equal(fs.existsSync(png), false);
+  assert.deepEqual(readPairingFile(f.home), doc);
+  const fresh = await f.cli(['pair', '--show-qr', '--qr-png', '--json']);
+  assert.equal(fresh.code, 0, fresh.stderr);
+  assert.deepEqual(fs.readFileSync(JSON.parse(fresh.stdout).qr_png), qrPng(pairingQr(started.uri)));
+  for (const args of [['pair', '--show-qr'], ['pair', '--show-qr', '--qr-svg']]) {
+    const again = await f.cli(args);
+    assert.equal(again.code, 0, again.stderr);
+    assert.ok(again.stdout.includes('\n\nPairing link (open on the iPhone with Syncky Health, single use):\n'));
+    assert.ok(again.stdout.includes(`\n${started.uri}\n`) && !again.stdout.includes('syncky://pair?'));
+    assert.deepEqual(fs.readFileSync(png), qrPng(pairingQr(started.uri)), 'a later show keeps the HTTPS image');
+  }
+  for (const uri of ['syncky://pair#broken', `syncky://pair?${payload.replace('&n=', '&n=a#')}`]) {
+    fs.writeFileSync(file, JSON.stringify({ ...doc, uri }) + '\n', { mode: 0o600 });
+    const stored = fs.readFileSync(file);
+    const broken = await f.cli(['pair', '--show-qr', '--json']);
+    assert.equal(broken.code, 4, uri); assert.equal(broken.stdout, '');
+    assert.equal(JSON.parse(broken.stderr).error, 'pairing_expired');
+    assert.deepEqual(fs.readFileSync(file), stored);
+  }
 });
 
 for (const action of ['show', 'wait', 'waiter', 'receiver', 'refresh', 'replace', 'current']) test(`expired pairing image is removed by ${action}`, async t => {

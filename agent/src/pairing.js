@@ -6,7 +6,7 @@ import { randomBytes } from './crypto.js';
 import { b64uEncode, deviceName, isB64u, isTimestamp } from './encoding.js';
 import { isHubId, isPairingId, isPairingToken } from './ids.js';
 import { pairCode } from './pair-code.js';
-import { buildPairUri, isPairUriName, parsePairUri, PAIR_SECRET_BYTES } from './pair-uri.js';
+import { buildPairUri, isPairUriName, issuedHttpsPairUri, parseIssuedPairUri, PAIR_SECRET_BYTES } from './pair-uri.js';
 import { registerSecret } from './log.js';
 import { RelayError } from './relay-client.js';
 import { readHomeState, updateHomeState, forgetThinMember, STATE_FILE, validateHomeState } from './home-state.js';
@@ -138,11 +138,22 @@ export function createPairingService({ home, relay, publicKey, agentName, urlSch
       return withHomeLock(home, () => {
         const { doc, state } = snapshot();
         if (!doc || doc.pairing_id !== pending.pairing_id || state.pairings[doc.pairing_id]?.status !== 'pending' || Date.parse(doc.expires_at) <= now().getTime()) throw new LocalStateError('pairing_expired', 'no live pending pairing');
-        const info = parsePairUri(doc.uri, { allowInsecureRelay: true }).value;
-        if (info?.requestedScope || (doc.requested_scope && !info?.scopeOnRelay)) {
+        const parsed = parseIssuedPairUri(doc.uri);
+        if (!parsed.ok) throw new LocalStateError('pairing_expired', 'the pending pairing link cannot be shown; start a new pairing');
+        if (parsed.value.requestedScope || (doc.requested_scope && !parsed.value.scopeOnRelay)) {
           throw new LocalStateError('pairing_previous_access_format', errorHint('pairing_previous_access_format'));
         }
-        return view(doc, createPairingQrFiles(home, doc, { qrPng, qrSvg }, options));
+        let shown = doc;
+        const https = issuedHttpsPairUri(doc.uri);
+        if (https !== doc.uri) {
+          if (JSON.stringify(parseIssuedPairUri(https)) !== JSON.stringify(parsed)) throw new LocalStateError('pairing_expired', 'the pending pairing link cannot be shown; start a new pairing');
+          // Images saved for the custom-scheme form encode the old link; the HTTPS form is kept only once they are gone.
+          cleanupPairingQr(home, null, options);
+          if (Object.keys(view(doc)).some(key => key.startsWith('qr_'))) throw new LocalStateError('pairing_expired', 'old pairing QR images could not be removed; start a new pairing');
+          shown = { ...doc, uri: https };
+          atomicPrivateWrite(join(home, PAIRING_FILE), JSON.stringify(shown) + '\n', options);
+        }
+        return view(shown, createPairingQrFiles(home, shown, { qrPng, qrSvg }, options));
       }, options);
     },
     currentPairing({ includeCompleted = false, includeExpired = false, graceMs = 0 } = {}) {
@@ -172,17 +183,17 @@ export function createPairingService({ home, relay, publicKey, agentName, urlSch
       }
       return null;
     },
-    async refreshPairing(id, { signal, deadline } = {}) {
+    async refreshPairing(id, { signal, deadline, onRetryAfter } = {}) {
       signal?.throwIfAborted();
       if (!isPairingId(id)) throw new LocalStateError("invalid_input", "invalid pairing id");
       const saved = await retryHomeLock(() => readHomeState(home, options));
       if (completedMember(saved, id)) return await retryHomeLock(() => completedResult(id)) ?? { status: 'expired' };
       let result;
-      try { result = await relay.getPairing(id, { signal, deadline }); }
+      try { result = await relay.getPairing(id, { signal, deadline, onRetryAfter }); }
       catch (e) { if (e.status !== 404) throw e; await retryHomeLock(() => expire(id)); return await retryHomeLock(() => completedResult(id)) ?? { status: 'expired' }; }
       if (result.status === 'expired') { await retryHomeLock(() => expire(id)); return await retryHomeLock(() => completedResult(id)) ?? result; }
       if (result.status !== 'completed') return { status: 'pending' };
-      const listed = await relay.listMembers({ signal, deadline });
+      const listed = await relay.listMembers({ signal, deadline, onRetryAfter });
       const member = listed?.members?.find(m => m.member_id === result.member_id && m.role === 'device' && m.public_key === result.public_key);
       if (!member) throw new LocalStateError('invalid_response', 'pairing requires current relay membership');
       validateMemberPairing(member);

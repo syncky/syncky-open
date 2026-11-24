@@ -6470,7 +6470,7 @@
         "agent_name": "Kitchen Mac",
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=1&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac"
+      "uri": "https://syncky.app/pair#v=1&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac"
     },
     {
       "name": "build_reserved_characters",
@@ -6482,7 +6482,7 @@
         "agent_name": "Sam's (home) Mac!*",
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=1&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Sam%27s%20%28home%29%20Mac%21%2A"
+      "uri": "https://syncky.app/pair#v=1&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Sam%27s%20%28home%29%20Mac%21%2A"
     },
     {
       "name": "build_unicode_name",
@@ -6494,7 +6494,7 @@
         "agent_name": "健康 Küche 📱",
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=1&r=relay.example.test%3A9443&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=%E5%81%A5%E5%BA%B7%20K%C3%BCche%20%F0%9F%93%B1"
+      "uri": "https://syncky.app/pair#v=1&r=relay.example.test%3A9443&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=%E5%81%A5%E5%BA%B7%20K%C3%BCche%20%F0%9F%93%B1"
     },
     {
       "name": "build_insecure_with_port",
@@ -6506,7 +6506,7 @@
         "agent_name": "e2e agent",
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=1&r=127.0.0.1%3A8787&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=e2e%20agent&s=http"
+      "uri": "https://syncky.app/pair#v=1&r=127.0.0.1%3A8787&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=e2e%20agent&s=http"
     },
     {
       "name": "build_ipv6_host",
@@ -6518,7 +6518,7 @@
         "agent_name": "v6",
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=1&r=%5B%3A%3A1%5D%3A9443&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=v6"
+      "uri": "https://syncky.app/pair#v=1&r=%5B%3A%3A1%5D%3A9443&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=v6"
     },
     {
       "name": "build_ascii_specials",
@@ -6530,7 +6530,7 @@
         "agent_name": "a+b&c=d?e#f/g~h_i.j-k %",
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=1&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=a%2Bb%26c%3Dd%3Fe%23f%2Fg~h_i.j-k%20%25"
+      "uri": "https://syncky.app/pair#v=1&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=a%2Bb%26c%3Dd%3Fe%23f%2Fg~h_i.j-k%20%25"
     },
     {
       "name": "build_v2_basic",
@@ -6543,7 +6543,7 @@
         "pair_secret": "xDNCXlrg0ZFTMxtF17uicg",
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=2&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg"
+      "uri": "https://syncky.app/pair#v=2&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg"
     },
     {
       "name": "build_v2_insecure_with_port",
@@ -6556,7 +6556,7 @@
         "pair_secret": "xDNCXlrg0ZFTMxtF17uicg",
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=2&r=127.0.0.1%3A8787&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=e2e%20agent&c=xDNCXlrg0ZFTMxtF17uicg&s=http"
+      "uri": "https://syncky.app/pair#v=2&r=127.0.0.1%3A8787&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=e2e%20agent&c=xDNCXlrg0ZFTMxtF17uicg&s=http"
     },
     {
       "name": "build_https_0_v1",
@@ -7013,7 +7013,7 @@
         },
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=1&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&request_ref=0123456789abcdef0123456789abcdef&read=%5B%22dietary_water%22%2C%22workout%22%5D&write=%5B%22dietary_water%22%5D"
+      "uri": "https://syncky.app/pair#v=1&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&request_ref=0123456789abcdef0123456789abcdef&read=%5B%22dietary_water%22%2C%22workout%22%5D&write=%5B%22dietary_water%22%5D"
     },
     {
       "name": "build_scope_v1_1_read_only",
@@ -7033,7 +7033,7 @@
         },
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=1&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&request_ref=0123456789abcdef0123456789abcdef&read=%5B%22biological_sex%22%2C%22workout%22%5D&write=%5B%5D"
+      "uri": "https://syncky.app/pair#v=1&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&request_ref=0123456789abcdef0123456789abcdef&read=%5B%22biological_sex%22%2C%22workout%22%5D&write=%5B%5D"
     },
     {
       "name": "build_scope_v1_1_write_only",
@@ -7052,7 +7052,7 @@
         },
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=1&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&request_ref=0123456789abcdef0123456789abcdef&read=%5B%5D&write=%5B%22dietary_water%22%5D"
+      "uri": "https://syncky.app/pair#v=1&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&request_ref=0123456789abcdef0123456789abcdef&read=%5B%5D&write=%5B%22dietary_water%22%5D"
     },
     {
       "name": "build_scope_v1_1_reply_4096",
@@ -7111,7 +7111,7 @@
         },
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=1&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&request_ref=0123456789abcdef0123456789abcdef&read=%5B%22abdominal_cramps%22%2C%22acne%22%2C%22active_energy_burned%22%2C%22activity_summary%22%2C%22appetite_changes%22%2C%22apple_exercise_time%22%2C%22apple_move_time%22%2C%22apple_sleeping_breathing_disturbances%22%2C%22apple_sleeping_wrist_temperature%22%2C%22apple_stand_hour%22%2C%22apple_stand_time%22%2C%22apple_walking_steadiness%22%2C%22apple_walking_steadiness_event%22%2C%22atrial_fibrillation_burden%22%2C%22audiogram%22%2C%22basal_body_temperature%22%2C%22basal_energy_burned%22%2C%22bladder_incontinence%22%2C%22bleeding_after_menopause%22%2C%22bleeding_after_pregnancy%22%2C%22bloating%22%2C%22blood_alcohol_content%22%2C%22blood_glucose%22%2C%22blood_pressure_diastolic%22%2C%22blood_pressure_systolic%22%2C%22body_fat_percentage%22%2C%22body_mass%22%2C%22body_mass_index%22%2C%22body_temperature%22%2C%22breast_pain%22%2C%22cervical_mucus_quality%22%2C%22chest_tightness_or_pain%22%2C%22chills%22%2C%22constipation%22%2C%22contraceptive%22%2C%22coughing%22%2C%22cycling_cadence%22%2C%22cycling_functional_threshold_power%22%2C%22cycling_power%22%2C%22cycling_speed%22%2C%22diarrhea%22%5D&write=%5B%5D"
+      "uri": "https://syncky.app/pair#v=1&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&request_ref=0123456789abcdef0123456789abcdef&read=%5B%22abdominal_cramps%22%2C%22acne%22%2C%22active_energy_burned%22%2C%22activity_summary%22%2C%22appetite_changes%22%2C%22apple_exercise_time%22%2C%22apple_move_time%22%2C%22apple_sleeping_breathing_disturbances%22%2C%22apple_sleeping_wrist_temperature%22%2C%22apple_stand_hour%22%2C%22apple_stand_time%22%2C%22apple_walking_steadiness%22%2C%22apple_walking_steadiness_event%22%2C%22atrial_fibrillation_burden%22%2C%22audiogram%22%2C%22basal_body_temperature%22%2C%22basal_energy_burned%22%2C%22bladder_incontinence%22%2C%22bleeding_after_menopause%22%2C%22bleeding_after_pregnancy%22%2C%22bloating%22%2C%22blood_alcohol_content%22%2C%22blood_glucose%22%2C%22blood_pressure_diastolic%22%2C%22blood_pressure_systolic%22%2C%22body_fat_percentage%22%2C%22body_mass%22%2C%22body_mass_index%22%2C%22body_temperature%22%2C%22breast_pain%22%2C%22cervical_mucus_quality%22%2C%22chest_tightness_or_pain%22%2C%22chills%22%2C%22constipation%22%2C%22contraceptive%22%2C%22coughing%22%2C%22cycling_cadence%22%2C%22cycling_functional_threshold_power%22%2C%22cycling_power%22%2C%22cycling_speed%22%2C%22diarrhea%22%5D&write=%5B%5D"
     },
     {
       "name": "build_scope_v1_insecure",
@@ -7276,7 +7276,7 @@
         },
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=2&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg&request_ref=0123456789abcdef0123456789abcdef&read=%5B%22dietary_water%22%2C%22workout%22%5D&write=%5B%22dietary_water%22%5D"
+      "uri": "https://syncky.app/pair#v=2&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg&request_ref=0123456789abcdef0123456789abcdef&read=%5B%22dietary_water%22%2C%22workout%22%5D&write=%5B%22dietary_water%22%5D"
     },
     {
       "name": "build_scope_v2_1_read_only",
@@ -7297,7 +7297,7 @@
         },
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=2&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg&request_ref=0123456789abcdef0123456789abcdef&read=%5B%22biological_sex%22%2C%22workout%22%5D&write=%5B%5D"
+      "uri": "https://syncky.app/pair#v=2&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg&request_ref=0123456789abcdef0123456789abcdef&read=%5B%22biological_sex%22%2C%22workout%22%5D&write=%5B%5D"
     },
     {
       "name": "build_scope_v2_1_write_only",
@@ -7317,7 +7317,7 @@
         },
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=2&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg&request_ref=0123456789abcdef0123456789abcdef&read=%5B%5D&write=%5B%22dietary_water%22%5D"
+      "uri": "https://syncky.app/pair#v=2&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg&request_ref=0123456789abcdef0123456789abcdef&read=%5B%5D&write=%5B%22dietary_water%22%5D"
     },
     {
       "name": "build_scope_v2_1_reply_4096",
@@ -7377,7 +7377,7 @@
         },
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=2&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg&request_ref=0123456789abcdef0123456789abcdef&read=%5B%22abdominal_cramps%22%2C%22acne%22%2C%22active_energy_burned%22%2C%22activity_summary%22%2C%22appetite_changes%22%2C%22apple_exercise_time%22%2C%22apple_move_time%22%2C%22apple_sleeping_breathing_disturbances%22%2C%22apple_sleeping_wrist_temperature%22%2C%22apple_stand_hour%22%2C%22apple_stand_time%22%2C%22apple_walking_steadiness%22%2C%22apple_walking_steadiness_event%22%2C%22atrial_fibrillation_burden%22%2C%22audiogram%22%2C%22basal_body_temperature%22%2C%22basal_energy_burned%22%2C%22bladder_incontinence%22%2C%22bleeding_after_menopause%22%2C%22bleeding_after_pregnancy%22%2C%22bloating%22%2C%22blood_alcohol_content%22%2C%22blood_glucose%22%2C%22blood_pressure_diastolic%22%2C%22blood_pressure_systolic%22%2C%22body_fat_percentage%22%2C%22body_mass%22%2C%22body_mass_index%22%2C%22body_temperature%22%2C%22breast_pain%22%2C%22cervical_mucus_quality%22%2C%22chest_tightness_or_pain%22%2C%22chills%22%2C%22constipation%22%2C%22contraceptive%22%2C%22coughing%22%2C%22cycling_cadence%22%2C%22cycling_functional_threshold_power%22%2C%22cycling_power%22%2C%22cycling_speed%22%2C%22diarrhea%22%5D&write=%5B%5D"
+      "uri": "https://syncky.app/pair#v=2&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg&request_ref=0123456789abcdef0123456789abcdef&read=%5B%22abdominal_cramps%22%2C%22acne%22%2C%22active_energy_burned%22%2C%22activity_summary%22%2C%22appetite_changes%22%2C%22apple_exercise_time%22%2C%22apple_move_time%22%2C%22apple_sleeping_breathing_disturbances%22%2C%22apple_sleeping_wrist_temperature%22%2C%22apple_stand_hour%22%2C%22apple_stand_time%22%2C%22apple_walking_steadiness%22%2C%22apple_walking_steadiness_event%22%2C%22atrial_fibrillation_burden%22%2C%22audiogram%22%2C%22basal_body_temperature%22%2C%22basal_energy_burned%22%2C%22bladder_incontinence%22%2C%22bleeding_after_menopause%22%2C%22bleeding_after_pregnancy%22%2C%22bloating%22%2C%22blood_alcohol_content%22%2C%22blood_glucose%22%2C%22blood_pressure_diastolic%22%2C%22blood_pressure_systolic%22%2C%22body_fat_percentage%22%2C%22body_mass%22%2C%22body_mass_index%22%2C%22body_temperature%22%2C%22breast_pain%22%2C%22cervical_mucus_quality%22%2C%22chest_tightness_or_pain%22%2C%22chills%22%2C%22constipation%22%2C%22contraceptive%22%2C%22coughing%22%2C%22cycling_cadence%22%2C%22cycling_functional_threshold_power%22%2C%22cycling_power%22%2C%22cycling_speed%22%2C%22diarrhea%22%5D&write=%5B%5D"
     },
     {
       "name": "build_scope_v2_insecure",
@@ -7423,7 +7423,7 @@
         "scope_on_relay": true,
         "url_scheme": "syncky"
       },
-      "uri": "syncky://pair?v=2&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg&a=1"
+      "uri": "https://syncky.app/pair#v=2&r=relay.example.test&h=hub_AAAAAAAAAAAAAAAAAAAAAA&t=pt_3gPoOIYU79WNUntyiFCMAh9dM8jn9EGrq6qbPfZCB54&k=--gxExbiebFCpy5o1_uW7TgEiI4k3wn_O9EKOctYNBU&n=Kitchen%20Mac&c=xDNCXlrg0ZFTMxtF17uicg&a=1"
     },
     {
       "name": "build_scope_relay_v2_insecure",

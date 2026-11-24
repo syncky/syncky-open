@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { activateResponseWaits, completeResponseWaits, hasResponseWait, maintainResponseWaits, responseWaitKey, responseWaitView, validResponseCorrelation } from '../../src/response-waits.js';
+import { activateResponseWaits, completeResponseWaits, hasResponseWait, maintainResponseWaits, RESPONSE_WAIT_MS, responseWaitKey, responseWaitUntil, responseWaitView, validResponseCorrelation } from '../../src/response-waits.js';
 import { createCipherFiles, newHomeState, readHomeState, validateHomeState } from '../../src/home-state.js';
 import { createInbox } from '../../src/inbox.js';
 import { setup, identity, keys, now, messageId } from '../support/thin-transport.js';
@@ -41,6 +41,19 @@ test('history recovery checks the recorded key binding before completing a curre
   const s = state(), w = s.transport.response_waits[responseWaitKey(correlation())];
   completeResponseWaits(s, 'm_dev_1', keys.dev1.pk, acknowledgement(), now().getTime(), { cursor: 11, public_key: keys.dev2.pk });
   assert.equal(w.completed_at, undefined);
+});
+
+test('only sent and unanswered replies extend the receiver window', () => {
+  const s = state(), at = now().getTime();
+  const later = { ...correlation(), command_id: 'two' };
+  activateResponseWaits(s, [{ state: 'pending', response_waits: [later] }], at + 1000);
+  assert.equal(responseWaitUntil(s), at + RESPONSE_WAIT_MS);
+  activateResponseWaits(s, [{ state: 'sent', sent_at: new Date(at + 1000).toISOString(), response_waits: [later] }], at + 1000);
+  assert.equal(responseWaitUntil(s), at + RESPONSE_WAIT_MS + 1000);
+  completeResponseWaits(s, 'm_dev_1', keys.dev1.pk, { ...acknowledgement(), acks: [{ command_id: 'two', version: 1, status: 'applied' }] }, at + 2000);
+  assert.equal(responseWaitUntil(s), at + RESPONSE_WAIT_MS);
+  maintainResponseWaits(s, at + RESPONSE_WAIT_MS);
+  assert.equal(responseWaitUntil(s), 0);
 });
 
 test('outbox admission captures the inbox boundary under its existing lock and retries preserve it', t => {

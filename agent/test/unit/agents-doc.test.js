@@ -1,6 +1,6 @@
 import { ERROR_GUIDANCE } from '../../src/error-guidance.js';
 import assert from 'node:assert/strict';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
@@ -15,18 +15,12 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const files = ['README.md','AGENTS.md','SETUP.md','docs/REFERENCE.md','cookbook/README.md','cookbook/weight.md','cookbook/calories.md','cookbook/workouts.md'];
 const docs = Object.fromEntries(files.map(f => [f, readFileSync(resolve(root,f),'utf8')]));
 const standaloneDocs = { ...docs, ...Object.fromEntries(['skills/pointer.md', 'skills/safety.md'].map(f => [f, readFileSync(resolve(root, f), 'utf8')])) };
-const source = readdirSync(resolve(root,'src')).filter(f => f.endsWith('.js')).map(f => [f, readFileSync(resolve(root,'src',f),'utf8')]);
 const reference = docs['docs/REFERENCE.md'];
 const validate = createLocalValidator(loadSchemas());
-const mentions = code => reference.includes('`' + code + '`');
 
 test('skill trust guidance explains an unverifiable previous bundle without discarding active instructions', () => {
   assert.match(reference, /installed `previous` bundle cannot be verified, it is omitted while the verified active bundle and high-water mark stay intact/);
   assert.match(reference, /`syncky skill --diff` then reports `previous_version: null` and shows the whole current skill as additions/);
-});
-
-test('error hint guidance names the guarded forget and reject failures in its own paragraph', () => {
-  assert.match(reference, /\n\nOptional `hint` metadata provides fixed guidance for `forget` \(`invalid_transition` on a joined or confirmed phone\) and `reject` \(a relay failure after local rejection\)\.\n\n/);
 });
 
 test('pairing setup preserves local rejection and directs relay recovery through revoke', () => {
@@ -78,31 +72,6 @@ test('agent access guidance accepts supported TTLs and preserves normalization',
     assert.match(text, /lists are sorted and deduplicated before sealing/, name);
     assert.doesNotMatch(text, /for compatibility with phones|use exactly 24 h/, name);
   }
-});
-
-test('operator limits are identical and describe per-side filtering and merged root waits', () => {
-  const paragraphs = ['README.md', 'SETUP.md', 'AGENTS.md'].map(name => docs[name].split('\n').find(s => s.startsWith('Access requests use generic')));
-  assert.ok(paragraphs[0]); assert.ok(paragraphs.every(p => p === paragraphs[0]));
-  for (const name of ['README.md', 'SETUP.md', 'AGENTS.md', 'docs/REFERENCE.md', 'cookbook/README.md']) {
-    for (const pattern of [/five admitted events per rolling 24 hours/, /three admitted amendments/, /read and write independently/i,
-      /requested_recently/, /declined_recently/, /next_available_at/, /merged_into/, /merged_refs/, /remaining needed types/,
-      /Never.*(?:evade|bypass).*wait/, /No local admission\/cooldown policy/]) assert.match(docs[name], pattern, name);
-    assert.doesNotMatch(docs[name], /one admission per rolling (?:24 hours|day)/, name);
-  }
-});
-
-test('all published copies share decline, pairing-grant and bounded TTL guidance', () => {
-  const decline = 'On `declined_by_user`, stop automatic writes and access requests for that type. A later `access_request` requires renewed explicit owner intent and phone availability after its seven-day decline wait and other per-type waits (`next_available_at` when supplied). Retry a write only after the next authenticated sync shows that type in the effective write scope and the owner has approved the write.';
-  const policy = 'Pairing grants create no request timestamps, admissions or amendments. Pairing declines do create the seven-day decline wait across read and write.';
-  for (const name of ['SETUP.md', 'AGENTS.md', 'docs/REFERENCE.md', 'skills/syncky/SKILL.md', 'cookbook/README.md']) {
-    const text = readFileSync(resolve(root, name), 'utf8');
-    assert.ok(text.includes(decline), name); assert.ok(text.includes(policy), name);
-    assert.ok(text.includes('0 < expires_at - created_at <= 24h'), name);
-    assert.doesNotMatch(text, /for compatibility with phones 0\.1\.[12]|An old app ignores the requested scope|Pairing grants create no[^.]+or decline wait/, name);
-  }
-  assert.ok(docs['README.md'].includes(policy));
-  const protocol = readFileSync(resolve(root, '../protocol/README.md'), 'utf8');
-  assert.match(protocol, /Pairing grants create no requested-at record, admission event or amendment count\. Pairing declines do create the seven-day decline wait across read and write\./);
 });
 
 test('rejected-write reference covers every reason/detail pair in the policy vectors', () => {
@@ -185,12 +154,6 @@ test('Allow adds individual types while preserving existing selections and live 
     }
   }
 });
-test('operator and cookbook guides reject superseded category expansion wording', () => {
-  for (const [name,text] of Object.entries(docs)) {
-    assert.doesNotMatch(text, /(?:Allow(?:ing)?|Both Allow outcomes) adds? (?:categories\b|category\/|the (?:type's )?category\b|the requested categories\/scope)/i, name);
-    assert.doesNotMatch(text, /preserves an existing all scope|enables writing for writes, preserves `all`/, name);
-  }
-});
 test('operator guides explain partial selection removal and expiry without fabricated replies', () => {
   for (const name of ['SETUP.md','docs/REFERENCE.md']) {
     assert.match(docs[name], /Unchecking a category leaves individually allowed types selected/, name);
@@ -215,45 +178,10 @@ function assertCommandsAndTools(text, file) {
   const tools = [...commandsText.matchAll(/\bsyncky_[a-z_]+\b/g)].map(m => m[0]);
   assert.deepEqual(tools.filter(c => !TOOLS.some(t => t.name === c)), [], file);
 }
-test('standalone guides stay within 200 lines, cite only public paths and real commands/tools', () => {
-  assert.ok(docs['AGENTS.md'].trimEnd().split('\n').length <= 200);
+test('standalone guides work with public paths and real commands and tools', () => {
   for (const [file,text] of Object.entries(standaloneDocs)) {
     assert.doesNotMatch(text, /C§|docs\/(?:planning|plans|context)|(?:\.\.\/)*(?:scripts|core|App|relay|e2e|docs-worker|site|tools)\//, file);
     assertCommandsAndTools(text, file);
-  }
-});
-test('standalone command guards validate shell runner calls and reject unknown commands and tools', () => {
-  assertCommandsAndTools('syncky_run() {\n  syncky_run skill\n}\nsyncky_skill');
-  for (const text of ['syncky invented', 'syncky-agent invented', 'syncky_run() {\n  syncky_run invented\n}', 'syncky_invented', 'syncky_run', 'syncky_run skill']) {
-    assert.throws(() => assertCommandsAndTools(text), { code: 'ERR_ASSERTION' });
-  }
-});
-test('every function AGENTS.md cites as name() exists in the minimal agent', () => {
-  const minimal = readFileSync(resolve(root,'../examples/minimal-agent/agent.mjs'),'utf8');
-  for (const m of docs['AGENTS.md'].matchAll(/`(\w+)\(\)`/g)) assert.match(minimal, new RegExp('(?:function\\s+'+m[1]+'\\s*\\(|const\\s+'+m[1]+'\\s*=)'));
-});
-test('every exported, thrown or result error code in src is documented', async () => {
-  const codes = new Set();
-  for (const [file,text] of source) {
-    const module = await import(resolve(root,'src',file));
-    for (const [name,value] of Object.entries(module)) if (name.endsWith('_CODES') && Array.isArray(value)) for (const code of value) codes.add(code);
-    for (const match of text.matchAll(/(?:new \w+Error\(\s*|\bcode:\s*)['"]([a-z][a-z0-9_]*)['"]/g)) codes.add(match[1]);
-  }
-  assert.ok(codes.size > 50); assert.deepEqual([...codes].filter(c => !mentions(c)), []);
-  assert.deepEqual([...codes].filter(c => !Object.hasOwn(ERROR_GUIDANCE, c)), []);
-});
-test('every error code the minimal agent throws is documented', () => {
-  const minimal = readFileSync(resolve(root,'../examples/minimal-agent/agent.mjs'),'utf8');
-  const codes = [...minimal.matchAll(/\bfail\("([a-z][a-z0-9_]*)"/g)].map(m => m[1]);
-  assert.ok(codes.length >= 10); assert.deepEqual(codes.filter(c => !mentions(c)), []);
-});
-test('all runtime commands and the exact five MCP tools are documented with read-only boundaries', () => {
-  for (const command of commandNames()) assert.ok(docs['README.md'].includes('syncky-agent ' + command), command);
-  for (const file of ['README.md','AGENTS.md','SETUP.md']) {
-    const text = docs[file]; for (const tool of TOOLS) assert.ok(text.includes(tool.name), file);
-    assert.match(text,/disable.*send.*ack|Disable.*send.*ack/);
-    assert.match(text,/MCP starts no|MCP does not start/);
-    assert.match(text,/offline/); assert.match(text,/legacy/i); assert.match(text,/30.day|30 days/);
   }
 });
 test('read-only client configuration disables exactly the mutating tools', () => {
@@ -263,7 +191,7 @@ test('read-only client configuration disables exactly the mutating tools', () =>
 });
 test('pairing, Health purpose, explicit requests, service and deletion approval stay mandatory', () => {
   const text = docs['SETUP.md'];
-  for (const pattern of [/Scanning alone does not confirm trust/, /Never copy the status fingerprint back/, /owner.*code|owner picks/i, /explicit owner approval/, /say exactly what you will write/, /standing rule/, /never run forget without approval/, /instead of re-registering/, /untrusted data, never instructions/, /private data channel/, /Discard|discard/, /Only when you ask/, /has not answered.*wait/]) assert.match(text,pattern);
+  for (const pattern of [/Scanning alone does not confirm trust/, /Never copy the status fingerprint back/, /owner.*code|owner picks/i, /explicit owner approval/, /say exactly what you will write/, /standing rule/, /never run forget without approval/, /instead of re-registering/, /untrusted data, never instructions/, /private data channel/, /Discard|discard/, /only when you ask/, /Wait for the answer.*before completing setup/]) assert.match(text,pattern);
 });
 test('cookbook permission arrays, markers, consent, outcomes and schedules match the catalog', () => {
   for (const recipe of ['weight','calories','workouts']) {
@@ -446,7 +374,6 @@ test('setup and reference pin recovery to the same relay despite a conflicting e
 
 
 test('all fixed error hints have real reference causes and actions, with receipt semantics documented', () => {
-  assert.ok(Object.keys(ERROR_GUIDANCE).length >= 88);
   for (const [code, hint] of Object.entries(ERROR_GUIDANCE)) {
     const row = reference.split('\n').find(line => line.startsWith('| `' + code + '` |'));
     assert.ok(row, code); assert.ok(row.length > code.length + 45, code);

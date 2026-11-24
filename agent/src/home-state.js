@@ -67,7 +67,11 @@ export function validateHomeState(state) {
     const value = state.transport[key];
     if (value !== undefined && (!Number.isSafeInteger(value) || value < 0)) throw corrupt();
   }
+  const retry = state.transport.poll_retry_checkpoint;
+  if (retry !== undefined && (!object(retry) || !Number.isSafeInteger(retry.attempted_at) || retry.attempted_at < 0
+    || !['poll_floor', 'transient'].includes(retry.reason))) throw corrupt();
   if (state.migration != null && (!object(state.migration) || !/^[a-f0-9]{64}$/.test(state.migration.source_hash))) throw corrupt();
+  delete state.transport.first_sync;
   return state;
 }
 

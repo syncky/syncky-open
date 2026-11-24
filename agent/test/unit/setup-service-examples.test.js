@@ -61,7 +61,7 @@ describe("setup background service examples", () => {
     assert.equal(plist.Label, "app.syncky.agent");
     assert.equal(plist.ProgramArguments.length, 3);
     assert.match(plist.ProgramArguments[0], /^\/[^\s]*\/node$/);
-    assert.match(plist.ProgramArguments[1], /^\/.*\/bin\/syncky-agent\.js$/);
+    assert.match(plist.ProgramArguments[1], /^\/.*\/node_modules\/@syncky\/agent\/dist\/syncky-agent\.mjs$/);
     assert.deepEqual(plist.ProgramArguments.slice(2), ["receive"]);
     const home = plist.EnvironmentVariables.SYNCKY_AGENT_HOME;
     assert.match(home, /^\/Users\/[^/]+\/\.syncky-agent$/);
@@ -85,18 +85,6 @@ describe("setup background service examples", () => {
         rmSync(dir, { recursive: true, force: true });
       }
     }
-  });
-
-  it("documents launchd lifecycle, absolute paths and carried launchers", () => {
-    assert.match(CONTINUOUS, /~\/Library\/LaunchAgents\/app\.syncky\.agent\.plist/);
-    for (const command of [
-      'launchctl bootstrap gui/$(id -u) "$HOME/Library/LaunchAgents/app.syncky.agent.plist"',
-      "launchctl print gui/$(id -u)/app.syncky.agent",
-      "launchctl bootout gui/$(id -u)/app.syncky.agent",
-    ]) assert.ok(CONTINUOUS.includes(command), command);
-    assert.match(CONTINUOUS, /launchd does not expand `~` or `\$HOME`/);
-    assert.match(CONTINUOUS, /carried package[^\n]*ProgramArguments[^\n]*absolute launcher path/);
-    assert.match(CONTINUOUS, /EnvironmentVariables\.PATH/);
   });
 
   it("runs Windows Task Scheduler at logon with restart on failure and task-local environment", () => {
@@ -139,7 +127,9 @@ describe("setup background service examples", () => {
     assert.match(unit, /^Restart=on-failure$/m);
     assert.deepEqual(unit.match(/^RestartPreventExitStatus=(.*)$/m)?.[1].trim().split(/\s+/).sort(), ["1", "3"]);
     assert.match(CONTINUOUS, /systemctl --user status syncky-agent/);
-    assert.match(CONTINUOUS, /carried package[^\n]*ExecStart[^\n]*absolute launcher path/);
+    assert.match(unit, /^KillMode=control-group$/m);
+    assert.doesNotMatch(unit, /npx/);
+    assert.match(CONTINUOUS, /carried package[^\n]*absolute launcher path[^\n]*`ExecStart`/);
     assert.match(CONTINUOUS, /one `receive` per home/);
     assert.match(CONTINUOUS, /receiver lease refuses a second loop/);
     assert.match(CONTINUOUS, /`syncky status`[^\n]*transport metadata[^\n]*last poll[^\n]*30-minute interval/);
@@ -148,10 +138,12 @@ describe("setup background service examples", () => {
   it("asks the owner after pairing, explains stalls and acts only on the answer", () => {
     const pairing = SETUP.match(/^## 5\.[\s\S]*?(?=^## 6\.)/m)?.[0];
     assert.ok(pairing);
-    assert.match(pairing, /After pairing, ask the owner:[^\n]*\*\*Should[^\n]*continuously in the background[^\n]*recommended[^\n]*`receive`[^\n]*only when you ask[^\n]*on-demand `receive --once`[^\n]*\?/);
-    for (const phrase of ["missed its expected check-in", "Needs attention", "uploads wait"]) assert.ok(pairing.includes(phrase), phrase);
-    assert.match(pairing, /\*\*continuous\*\* is the explicit request to install and start/);
-    assert.match(pairing, /\*\*Only when you ask\*\* means run `syncky receive --once`[^\n]*do not install a service or schedule/);
-    assert.match(pairing, /has not answered[^\n]*wait before installing anything/);
+    const last = pairing.match(/^### Required last setup step\n([\s\S]*)/m)?.[1];
+    assert.ok(last, "missing required last setup step");
+    assert.match(last, /After the first data arrives, ask the owner \*\*[^\n]*continuously in the background \(recommended\), or only when you ask\?[^\n]*\*\*/);
+    for (const phrase of ["Needs attention", "uploads wait"]) assert.ok(last.includes(phrase), phrase);
+    assert.match(last, /Wait for the answer and act on it before completing setup/);
+    assert.match(last, /Install and start a service for the same home only if the owner chooses continuous receive/);
+    assert.match(last, /For on-demand receive[^\n]*`syncky receive --once` only when asked/);
   });
 });

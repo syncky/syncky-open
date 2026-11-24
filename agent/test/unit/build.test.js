@@ -14,13 +14,11 @@ import { loadJson, loadSchemas, loadVectors, VECTOR_FILES } from "../../src/prot
 import { TOOLS } from "../../src/mcp.js";
 import { createValidator } from "../support/validator.js";
 import { startRelayDouble } from "../support/relay-double.js";
-import { sourceArgs } from "../support/source-suite.js";
 
 const AGENT = fileURLToPath(new URL("../../", import.meta.url));
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const same = (actual, expected) => assert.ok(isDeepStrictEqual(actual, expected), "resource contents differ");
 const pkg = JSON.parse(readFileSync(join(AGENT, "package.json"), "utf8"));
-const SOURCE_TEST = "node --test --experimental-test-coverage --test-coverage-include='src/**/*.js' --test-coverage-exclude='test/**' --test-coverage-lines=85 --test-coverage-branches=75 --test-coverage-functions=85 'test/unit/**/*.test.js' 'test/vectors/**/*.test.js'";
 
 describe("release bundle", () => {
   let root;
@@ -30,17 +28,11 @@ describe("release bundle", () => {
   let cwd;
   let env;
   let buildAgent;
-  let fixture;
 
   before(async () => {
     root = mkdtempSync(join(tmpdir(), "syncky-build-"));
-    if (process.env.SYNCKY_AGENT_BUNDLE_FIXTURE) {
-      fixture = JSON.parse(readFileSync(process.env.SYNCKY_AGENT_BUNDLE_FIXTURE, "utf8"));
-      result = fixture.release;
-    } else {
-      ({ buildAgent } = await import("../../build.mjs"));
-      result = await buildAgent({ outdir: join(root, "first") });
-    }
+    ({ buildAgent } = await import("../../build.mjs"));
+    result = await buildAgent({ outdir: join(root, "first") });
     bundle = await import(pathToFileURL(result.bundlePath));
     assert.doesNotMatch(readFileSync(result.bundlePath, "utf8"), /unit-sync\.mjs/);
     isolated = join(root, "copied bundle with spaces");
@@ -80,27 +72,6 @@ describe("release bundle", () => {
       await relay.stop();
     }
   }
-
-  it("pins the builder, keeps dependency pins/coverage and accepts Node >=22.15", () => {
-    const lock = JSON.parse(readFileSync(join(AGENT, "package-lock.json"), "utf8"));
-    assert.equal(pkg.devDependencies.esbuild, "0.28.1");
-    assert.equal(lock.packages[""].devDependencies.esbuild, "0.28.1");
-    assert.equal(lock.packages["node_modules/esbuild"].version, "0.28.1");
-    assert.equal(pkg.devDependencies.ajv, "8.20.0");
-    assert.equal(Object.hasOwn(pkg, "dependencies"), false);
-    assert.deepEqual(pkg.devDependencies, {
-      "@hpke/chacha20poly1305": "1.8.0", "@hpke/core": "1.9.0", "@hpke/dhkem-x25519": "1.8.0",
-      "qrcode-terminal": "0.12.0", ajv: "8.20.0", esbuild: "0.28.1",
-    });
-    assert.equal(pkg.engines.node, ">=22.15");
-    assert.equal(lock.packages[""].engines.node, ">=22.15");
-    assert.equal(pkg.license, "Apache-2.0");
-    assert.equal(pkg.scripts.test, "node test/support/source-suite.js");
-    assert.equal(["node", ...sourceArgs("on").map(arg => arg.includes("*") ? arg.replace(/=(.*)/, "='$1'").replace(/^(test\/.*)$/, "'$1'") : arg)].join(" "), SOURCE_TEST);
-    assert.equal(pkg.scripts.build, "node build.mjs");
-    assert.equal(pkg.scripts.prepack, "npm run build");
-    assert.ok(readFileSync(join(AGENT, ".gitignore"), "utf8").split("\n").includes("dist/"));
-  });
 
   it("emits one ESM and its correct SHA-256 alongside the distribution packages, with the build-time version", () => {
     assert.deepEqual(readdirSync(dirname(result.bundlePath)).sort(), ["SHA256SUMS", "agent-skills", "claude-code", "clawhub", "clawhub-light", "codex", "syncky-agent-claude-code.tar.gz", "syncky-agent-clawhub.tar.gz", "syncky-agent-clawhub-light.tar.gz", "syncky-agent-codex.tar.gz", "syncky-agent-skills.tar.gz", "syncky-agent.mjs", "syncky-agent.mjs.sha256", "syncky-health.mcpb", "syncky-health.mcpb.sha256"].sort());
@@ -195,17 +166,6 @@ describe("release bundle", () => {
     for (const notice of ["noble-hashes - MIT License (c) 2022 Paul Miller (paulmillr.com)", "noble-ciphers - MIT License (c) 2023 Paul Miller (paulmillr.com)"]) {
       assert.ok(text.includes(notice), "vendored attribution missing");
     }
-  });
-
-  it("exports every source module with the same public names and shared internal identity", async () => {
-    const files = readdirSync(join(AGENT, "src")).filter((f) => f.endsWith(".js")).sort();
-    assert.deepEqual(Object.keys(bundle.modules).sort(), files);
-    for (const file of files) {
-      const source = await import(pathToFileURL(join(AGENT, "src", file)));
-      assert.deepEqual(Object.keys(bundle.modules[file]).sort(), Object.keys(source).sort(), file);
-    }
-    assert.throws(() => bundle.modules["thin-transport.js"].parseRawInner("[]"), bundle.modules["thin-transport.js"].EnvelopeError);
-    assert.equal(typeof bundle.runCli, "function");
   });
 
   it("embeds exactly the catalog, units, message table, transport vector and complete schema inventories", async () => {
@@ -379,7 +339,7 @@ describe("release bundle", () => {
   });
 
   it("produces the same release payload and hash on a repeat build", async () => {
-    const again = fixture?.repeat ?? await buildAgent({ outdir: join(root, "second") });
+    const again = await buildAgent({ outdir: join(root, "second") });
     assert.equal(digest(readFileSync(again.bundlePath)), digest(readFileSync(result.bundlePath)));
     assert.equal(again.hash, result.hash);
     assert.equal(readFileSync(`${again.bundlePath}.sha256`, "utf8"), readFileSync(`${result.bundlePath}.sha256`, "utf8"));

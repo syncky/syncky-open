@@ -45,7 +45,7 @@ export const ERROR_GUIDANCE = Object.freeze({
   "invalid_state": "Local state conflicts with this operation or message. Stop and inspect safe status metadata before retrying; retain the home.",
   "invalid_token": "The relay refused this identity. Stop and tell the owner; retain local history and never automatically register again.",
   "invalid_transition": "The member state does not allow this operation. Check status and obtain owner approval for any trust change.",
-  "invalid_url_scheme": "The URL scheme override is unsupported. Remove --url-scheme or SYNCKY_URL_SCHEME; the default HTTPS link works.",
+  "invalid_url_scheme": "The URL scheme setting is unsupported or does not match the relay. On a syncky.app relay, a labelled scheme must match that relay's label. Check --url-scheme, SYNCKY_URL_SCHEME and saved url_scheme. Set --url-scheme syncky to select https://syncky.app/pair, or clear all explicit scheme settings to use the inferred HTTPS site. Relay trust requirements still apply.",
   "key_conflict": "A known member was presented with a different public key. Stop and check the binding with the owner; never inherit the old trust.",
   "key_mismatch": "The stored identity and private key do not match. Stop and have the owner restore the matching private home files.",
   "local_error": "An unclassified local operation failed. Retain the home and report the safe code and operation to the owner; keep private files and error text out of logs.",

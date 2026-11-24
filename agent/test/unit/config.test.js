@@ -252,6 +252,19 @@ describe("config", () => {
     it("rejects non-string values for string keys", () => {
       assert.throws(() => resolveConfig({ env: {}, file: { relay_url: 42 } }), { code: "invalid_config" });
     });
+
+    it("defaults the fast path to on and uses the usual configuration precedence", () => {
+      const file = { fast_path: "off" };
+      const env = { SYNCKY_FAST_PATH: "on" };
+      assert.equal(resolveConfig({ env: {} }).fast_path, "on");
+      assert.equal(resolveConfig({ env: { SYNCKY_FAST_PATH: "" }, file }).fast_path, "off");
+      assert.equal(resolveConfig({ env, file }).fast_path, "on");
+      assert.equal(resolveConfig({ flags: { fast_path: "off" }, env, file }).fast_path, "off");
+      for (const value of [true, false, null, 0, "", "OFF", "auto"]) {
+        assert.throws(() => resolveConfig({ env: {}, file: { fast_path: value } }), { code: "invalid_config" });
+      }
+      assert.throws(() => resolveConfig({ env: { SYNCKY_FAST_PATH: "false" } }), { code: "invalid_config" });
+    });
   });
 
   describe("load/save", () => {
@@ -272,6 +285,13 @@ describe("config", () => {
     it("writes the heartbeat setting normalized", () => {
       assert.deepEqual(saveConfig(t.home, { name: "box", heartbeat: false }), { name: "box", heartbeat: "off" });
       assert.equal(loadConfig(t.home, { env: {} }).heartbeat, "off");
+    });
+
+    it("round-trips the fast path opt-out", () => {
+      saveConfig(t.home, { fast_path: "off" });
+      assert.equal(loadConfigFile(t.home).fast_path, "off");
+      assert.equal(loadConfig(t.home, { env: {} }).fast_path, "off");
+      assert.throws(() => saveConfig(t.home, { fast_path: false }), { code: "invalid_config" });
     });
 
     it("loads defaults when config.json is missing", () => {

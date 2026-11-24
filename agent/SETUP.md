@@ -4,18 +4,22 @@
 
 Use Node.js ≥22.15. The npm runner is `npx -y @syncky/agent`; carried packages use an absolute local checksum-verifying launcher and need no source tree or network. The source kit runs `node <kit>/agent/bin/syncky-agent.js`. The alias `syncky` below names the same CLI.
 
+Save the Markdown printed by `npx -y @syncky/agent skill` to a local skill file once. With a carried package or source kit, use `skill` with the same runner and home you use for setup. Use the saved copy for setup and later operation. Refresh it only after a package update or an accepted signed skill update.
+
 ## 2. Home and trust
 
-Set SYNCKY_AGENT_HOME to the owner's existing protected home (0700). Files are 0600. Before switching an existing service, stop it. Same-home owner-assisted offline migration preserves secrets/config/pairing/trust. A legacy home without exported state returns migration_required; do not initialize over it. Legacy agent.db/diagnostics.db/access.db and WAL/SHM remain untouched and status names them for manual owner handling. Old fields stay readable.
+Set SYNCKY_AGENT_HOME to the owner's existing protected home (0700). Files are 0600. Same-home owner-assisted offline migration preserves secrets/config/pairing/trust. A legacy home without exported state returns migration_required; do not initialize over it. Legacy agent.db/diagnostics.db/access.db and WAL/SHM remain untouched and status names them for manual owner handling. Old fields stay readable.
 
 ## 3. Initialize
+
+Run `syncky init` only for a fresh home. For an initialized home, run `syncky selftest` and continue to pairing when the owner asks.
 
 ```sh
 syncky selftest
 syncky init --name 'My agent'
 ```
 
-This link selects Syncky Health from the App Store, relay.syncky.app and https://syncky.app/pair#… (scan in Syncky or paste only: syncky://pair?…). If the app reports untrusted_relay, stop and tell the owner.
+This link selects Syncky Health from the App Store, relay.syncky.app and https://syncky.app/pair#…. If the app reports untrusted_relay, stop and tell the owner.
 
 Init refuses initialized homes. Use a fresh home only with owner intent; never overwrite an existing identity. SYNCKY_RELAY_URL and SYNCKY_URL_SCHEME can set the relay and URL scheme; --url-scheme overrides environment variables and saved config. Never silently change relays to bypass an error.
 
@@ -39,18 +43,27 @@ The new identity does not inherit old trust or history. Old history remains unde
 
 ## 4. Run continuously
 
-After pairing, ask the owner the polling-mode question in section 5. Use the same agent home as pairing and the MCP client; starting `mcp` alone does not run `receive`.
+Install and start a service only after the owner chooses continuous receive in the [last setup step](#required-last-setup-step). Use the same agent home as pairing and the MCP client. Starting `mcp` alone does not run `receive`.
 
 `receive` has no HTTP server or UI. It polls at the configured cadence (default 30 minutes, minimum 5 minutes), uses the bounded join window for first-sync fast polling, processes messages in order, retries sealed outbox entries and stops cleanly on SIGTERM. Sending a command does not bypass the polling floor. From agent 0.1.4, receive prints no records to stdout by default; earlier releases print records, so keep the redirect. Records stay durable in the inbox for `inbox` and MCP. Use `receive --emit-records` only when explicitly requesting the private JSONL stdout channel. Services keep discarding stdout as defence in depth and retain only metadata stderr.
 
-For an npm install, replace the source Node/script invocation with the absolute `npx` path and arguments `-y @syncky/agent@<version> receive` (replace `<version>` with the installed release); the service PATH must include the supported Node directory.
+While a pairing, the first-sync join window or an unanswered reply is open, `receive` (and `pair --wait`, `wait` or the background pairing waiter) also holds a connection to the relay that only signals that something is waiting; fetch and ACK stay on HTTP, and a refused or lost connection falls back to polling. It needs no inbound port. If a proxy or firewall breaks long-lived connections, set `SYNCKY_FAST_PATH=off` in the service's environment variables and for `syncky pair`; the agent then uses polling alone.
+
+Before switching, stop the old service by its known unit or label. If a receiver for this home is still running, verify its PID, send SIGTERM to that PID and wait for it to exit. Never stop receivers by pattern.
+
+For npm, install the chosen release into a fixed local prefix. Replace `<version>` with the release number.
+
+```sh
+npm install --prefix "$HOME/.local/share/syncky-agent" "@syncky/agent@<version>"
+```
+
+Give the supervisor the absolute Node path from `command -v node` and the installed script path so it runs `receive` directly. Keep `npx` out of the service command.
 
 ### Linux: systemd user service
 
-For a source install, save this unit. For a carried package, replace `ExecStart` with the quoted absolute launcher path followed by `receive`, and use an existing working directory:
+Save this as `~/.config/systemd/user/syncky-agent.service`. Replace the example Node path and set the home to the one used for pairing.
 
 ```ini
-# ~/.config/systemd/user/syncky-agent.service
 [Unit]
 Description=Syncky agent
 After=network-online.target
@@ -58,9 +71,9 @@ After=network-online.target
 [Service]
 Environment=SYNCKY_AGENT_HOME=%h/.syncky-agent
 Environment=NODE_NO_WARNINGS=1
-WorkingDirectory=<kit>/agent
-ExecStart=/usr/bin/env node bin/syncky-agent.js receive
+ExecStart="/absolute/path/to/node" "%h/.local/share/syncky-agent/node_modules/@syncky/agent/dist/syncky-agent.mjs" receive
 StandardOutput=null
+KillMode=control-group
 Restart=on-failure
 RestartPreventExitStatus=1 3
 RestartSec=10
@@ -72,14 +85,14 @@ WantedBy=default.target
 ```bash
 systemctl --user daemon-reload && systemctl --user enable --now syncky-agent
 systemctl --user status syncky-agent
-journalctl --user -u syncky-agent -f        # structured JSON log lines
+journalctl --user -u syncky-agent -f
 ```
 
-Ensure Node ≥22.15 is on the service PATH; a source unit can use the absolute supported Node binary in `ExecStart`. Use pm2 or a supervisor instead of systemd if that is what the receiver has.
+For a source kit, use the absolute path to `agent/bin/syncky-agent.js` as the script. For a carried package, use the quoted absolute launcher path followed by `receive` in `ExecStart` and include the supported Node directory in the service's `PATH`.
 
 ### macOS: LaunchAgent
 
-Save this as `~/Library/LaunchAgents/app.syncky.agent.plist` (create the directory if needed). Replace `/Users/you` and the kit path with actual absolute paths, and `/opt/homebrew/bin/node` with the supported Node path from `command -v node`. launchd does not expand `~` or `$HOME` in plists. The initialized agent home must already exist so launchd can open its logs; these files are not rotated.
+Save this as `~/Library/LaunchAgents/app.syncky.agent.plist` (create the directory if needed). Replace the example paths with the absolute Node, installed script and paired home paths. launchd does not expand `~` or `$HOME` in plists. The initialized agent home must already exist so launchd can open its logs. These files are not rotated.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -90,7 +103,7 @@ Save this as `~/Library/LaunchAgents/app.syncky.agent.plist` (create the directo
   <key>ProgramArguments</key>
   <array>
     <string>/opt/homebrew/bin/node</string>
-    <string>/Users/you/syncky-kit/agent/bin/syncky-agent.js</string>
+    <string>/Users/you/.local/share/syncky-agent/node_modules/@syncky/agent/dist/syncky-agent.mjs</string>
     <string>receive</string>
   </array>
   <key>EnvironmentVariables</key>
@@ -107,7 +120,7 @@ Save this as `~/Library/LaunchAgents/app.syncky.agent.plist` (create the directo
 </plist>
 ```
 
-For a carried package, replace the first two `ProgramArguments` strings (Node and the source script) with one absolute launcher path, keeping `receive`. Set `EnvironmentVariables.PATH` to include the supported Node directory: the launcher uses `node` from PATH, and launchd does not inherit your shell's PATH.
+For a source kit, use the absolute path to `agent/bin/syncky-agent.js` as the script. For a carried package, replace the first two `ProgramArguments` strings with the absolute launcher path, keeping `receive`. Set `PATH` in `EnvironmentVariables` to include the supported Node directory.
 
 ```bash
 launchctl bootstrap gui/$(id -u) "$HOME/Library/LaunchAgents/app.syncky.agent.plist"
@@ -165,13 +178,17 @@ Run only one `receive` per home, including manual sessions and services: a recei
 
 Hosted defaults: a pairing link lasts 10 minutes; the relay response's `expires_at` is authoritative. A never-joined hub lasts 24 hours from registration; creating another link does not restart that clock. Every human `pair` output labels both defaults and prints the relay deadline. JSON adds value-free `limits` metadata: `hosted_defaults` contains `pairing_link_ttl_s: 600` and `unjoined_hub_ttl_s: 86400`, `pairing_link_deadline: "expires_at"` identifies the authoritative field, and `unjoined_hub_clock: "registration"` identifies the clock origin. These defaults are guidance, not a newly calculated hub deadline.
 
-The phone pairs with one agent at a time. Ask the owner to unpair its previous connection first. `syncky pair` immediately prints a private HTTPS link, QR and code. Pairing parameters stay in the fragment after `#`. The fragment is not included in the browser's HTTP request to the pairing page. After installing, reopen the HTTPS link, copy it and paste it in Syncky, or scan the agent’s QR code inside Syncky. Legacy scheme output is for scanning inside Syncky or pasting only; it cannot be opened by tapping or the system Camera. Explicit `--url-scheme syncky` selects scan-in-Syncky/paste-only legacy output; `--v1` changes the confirmation flow while keeping HTTPS by default. Show those only to the requesting owner; never copy the credential-bearing URI to reports/logs. Scanning alone does not confirm trust. After the owner picks the code, pairing completes by itself: a short-lived background waiter or the running receive loop reads the authenticated proof. Optionally use `syncky wait --timeout 600` to see the result. MCP does not start receiving.
+The phone pairs with one agent at a time. Ask the owner to unpair its previous connection first. Pairing parameters stay in the fragment after `#`. The fragment is not included in the browser's HTTP request to the pairing page. After installing, reopen the HTTPS link, copy it and paste it in Syncky, or scan the agent’s QR code inside Syncky. Explicit `--url-scheme syncky` keeps the https://syncky.app/pair link; on a syncky.app relay a labelled scheme must match that relay and otherwise fails with invalid_url_scheme. The app accepts a labelled pairing site only with its matching `relay-<label>.syncky.app`. For a relay outside `syncky.app`, select `syncky` or leave the scheme setting unset, including in saved configuration. Relay trust requirements still apply. `--v1` changes the confirmation flow; its link is HTTPS too. Scanning alone does not confirm trust. After the owner picks the code, pairing completes by itself: a short-lived background waiter or the running receive loop reads the authenticated proof. Optionally use `syncky wait --timeout 600` to see the result. MCP does not start receiving.
 
-For a narrow or terminal chat, use `syncky pair --show-qr` to redisplay the current pending link, QR, code and expiry without replacing it. Add the boolean flags `--qr-png` or `--qr-svg` to `pair` or `pair --show-qr` to create a private QR image in the protected home at `pairing-qr/<pairing_id>.png` or `.svg`. The directory is mode 0700 and images are created exclusively with mode 0600; insecure directories, existing files and symlinks are refused. Stale images are swept on pairing commands, completion, replacement and expiry; cleanup failures do not interrupt pairing. Human output labels the image paths. JSON adds `qr_text` (null with `--no-qr`) and absolute `qr_png`/`qr_svg` paths. Include the HTTPS link, QR copied verbatim inside a ```text fenced block, code and expiry only in the private reply to the requesting owner; attach or point to the image if needed. Never put the link, QR or file in public posts, group chats, logs, reports, memory/notes or any other service or tool outside that private conversation.
+Run `pair` directly in your terminal tool and read its output yourself. Do not redirect it to a file or ask the owner to open a file.
+
+Run `syncky pair`. In your first reply after `pair` succeeds, send the owner the terminal QR verbatim in a fenced `text` block, the HTTPS link, the pairing code and the expiry. Send them in the chat where the owner asked, even when the host's retention policy is unknown. The owner decides where it is safe to pair. Leave out local file paths and other command output. If `pair` fails, explain the error without sharing credentials. If the owner asks for a QR image and your client supports attachments, attach the image in the same chat.
+
+`syncky pair --show-qr` redisplays the current pending link, QR, code and expiry without replacing it. The boolean flags `--qr-png` and `--qr-svg` create private images in the protected home at `pairing-qr/<pairing_id>.png` or `.svg`. The directory is mode 0700 and images are created exclusively with mode 0600. Insecure directories, existing files and symlinks are refused. Stale images are swept on pairing commands, completion, replacement and expiry. Cleanup failures do not interrupt pairing. Human output labels the image paths. JSON adds `qr_text` (null with `--no-qr`) and absolute `qr_png`/`qr_svg` paths.
 
 From agent 0.1.4, with explicit owner approval for the exact types, you can use `syncky pair --read body_mass,heart_rate --write dietary_water`. Either flag is optional and an omitted side is empty. Names are sorted and deduplicated, must be catalog types, and writes must be writable. At least one type is required when flags are supplied. With no flags, the legacy no-scope Health selection flow still applies after confirmation.
 
-New v2 links carry `v,r,h,t,k,n,c`, optional `a=1` when the requested scope is on the relay, and optional `s=http`. The marker makes the request mandatory for a phone that supports encrypted pairing scope, so the relay cannot silently turn it into a bare pairing. The agent creates a fresh 32-lowercase-hex `request_ref` and encrypts the requested lists with a key derived from the link secret `c` and stores only the ciphertext on the relay. The relay learns the presence and size of the ciphertext and clears it on successful join or expiry cleanup (the link is valid for 10 minutes by default). The new link and QR still carry pairing credentials and the decryption secret. Share them only with the requesting owner in private. For old inline links only: The link contains credentials and the requested Health type names; anyone who sees its full text can read them. A new phone still accepts valid inline v1/v2 links during the transition.
+New v2 links carry `v,r,h,t,k,n,c`, optional `a=1` when the requested scope is on the relay, and optional `s=http`. The marker makes the request mandatory for a phone that supports encrypted pairing scope, so the relay cannot silently turn it into a bare pairing. The agent creates a fresh 32-lowercase-hex `request_ref` and encrypts the requested lists with a key derived from the link secret `c` and stores only the ciphertext on the relay. The relay learns the presence and size of the ciphertext and clears it on successful join or expiry cleanup (the link is valid for 10 minutes by default). The new link and QR still carry pairing credentials and the decryption secret. For old inline links only: The link contains credentials and the requested Health type names; anyone who sees its full text can read them. A new phone still accepts valid inline v1/v2 links during the transition.
 
 The encrypted v2 scope limit is 12000 decoded bytes (16000 base64url characters) inside a 16384-byte pairing request body by default. The synthetic request and largest pairing reply must fit the 131072-byte access envelope cap. Ordinary controls keep their 4096-byte cap. The current complete read/write catalog fits a single pairing request. If the relay does not acknowledge storing the encrypted scope, the agent withholds the link. If the phone finds the relay lacks scope support at join, it stops pairing. In either case, try again later or contact Syncky support.
 
@@ -183,19 +200,24 @@ New `pair --v1` links omit scope. With scope flags, the agent queues one ordinar
 
 Later explicit `wait` uses the link in `pairing.json`: a completed binding for that same pairing remains available after link or reply expiry, while an expired or pending-past-grace link returns `pairing_expired`. Only when no pairing file remains does it return the latest eligible completed binding to the current phone and key. Confirmed trust stays confirmed; a joined phone returns its fingerprint and still requires owner confirmation. Revoked, rejected, forgotten or unpaired bindings are excluded. These local results need no expired-link lookup; the detached waiter remains bounded.
 
-A running receiver uses a separate 300-second response polling schedule after scoped pairing and successfully sent access requests, diagnostics requests or commands awaiting acknowledgments. Matching replies/acks or expiry close only their own waits. V2 pairing waits use link expiry before join, 15 minutes after verified join for confirmation, then 15 minutes after confirmation for the reply; command ack waits last 15 minutes from first successful send, and request waits end at request expiry. These bounded waits are separate from the existing 25-second first-sync join window and the configured background cadence (default 1800 seconds). `receive --once` ignores configured cadence once the 300-second floor has passed, while preserving existing join/pagination exceptions and Retry-After. A deferred result includes `reason: "poll_floor"` or `reason: "retry_after"` and `next_poll_at` in epoch milliseconds. MCP starts no receiver and has no pairing tool; later requests use generic `syncky_send`.
+A running receiver uses a separate 300-second response polling schedule while waiting for scoped pairing, access or diagnostics replies. For a pending command acknowledgment, a relay that supports earlier checks can let the agent fetch immediately after sending and then every 25 seconds. A matching reply or acknowledgment ends its own wait, as does expiry. V2 pairing waits use link expiry before join, 15 minutes after verified join for confirmation, then 15 minutes after confirmation for the reply; command ack waits last 15 minutes from first successful send, and request waits end at request expiry. These bounded waits are separate from the existing 25-second first-sync join window and the configured background cadence (default 1800 seconds). `receive --once` skips the configured cadence. It can check before the ordinary 300-second floor during the first sync, while fetching subsequent pages, or while a command acknowledgment is pending. Relay Retry-After still applies. A deferred result includes `reason: "poll_floor"` or `reason: "retry_after"` and `next_poll_at` in epoch milliseconds. MCP starts no receiver and has no pairing tool; later requests use generic `syncky_send`.
 
 For no-scope pairing, ask the owner to open **Choose Health data**, select the categories or individual types to share, tap **Save**, complete Health authorization (in the Health permission sheet, or later in Settings → Health → Data Access & Devices → Syncky Health), then tap **Sync now**. Nothing syncs or applies while the phone is locked, because iOS locks the Health data. Scoped pairing sends its initial scope without this manual step.
-
-After pairing, ask the owner: **Should the agent receive continuously in the background (recommended, `receive`), or only when you ask (on-demand `receive --once`)?** Explain the missed its expected check-in / **Needs attention** warning: uploads wait without continuous receiving. The answer **continuous** is the explicit request to install and start a service with the same home, login startup and restart on failure. **Only when you ask** means run `syncky receive --once`; do not install a service or schedule. If the owner has not answered, ask and wait before installing anything.
 
 V1 fallback: `syncky pair --v1 --wait --timeout 600 --no-qr`. Compare the 16 digits the owner reads from the phone with this agent's fingerprint. `syncky confirm m_dev_1 '<digits from phone>'` refuses a mismatch. Never copy the status fingerprint back as confirmation: that verifies nothing. After invalid proof, ask for the owner's digits before confirming; never confirm on your own. Owner-approved `syncky reject m_dev_1` discards held ciphertext and revokes the joined phone. If the relay call fails, local rejection remains; finish relay revocation with `syncky revoke <member_id>` after the relay is reachable or the token is fixed. After `invalid_token`, stop and tell the owner. A new pairing never inherits trust or rewrites the old sender's raw history.
 
 If the phone says the relay was not told, run `syncky revoke <member_id>` only with the owner's explicit approval; relay 404 succeeds, while other relay errors leave local state unchanged for retry. After revocation, preview `syncky forget <member_id>` and obtain deletion approval before adding `--yes`.
 
+### Required last setup step
+
+After pairing, check `syncky inbox --type sync` for the first data. If no receiver is running, use `syncky receive --once` to collect it and honor `next_poll_at` if deferred. With continuous receive, data from the phone can arrive within seconds while Syncky is open during the first sync after pairing. Timing depends on the phone, network and service availability.
+
+After the first data arrives, ask the owner **“Should the agent receive continuously in the background (recommended), or only when you ask?”** Explain that without continuous receive the phone shows **Needs attention** for missed check-ins and uploads wait. Wait for the answer and act on it before completing setup. Install and start a service for the same home only if the owner chooses continuous receive. For on-demand receive, stop any existing receiving service for this home and use `syncky receive --once` only when asked.
+
 ## 6. Security rules
 
-- Never print, log, send or commit: anything in `secrets.json`, relay tokens (`sk_hub_…`), webhook secrets or pairing tokens. Show a requested QR/code only privately to its owner; never disclose the credential-bearing URI in reports or logs.
+- Never print, log, send or commit the contents of `secrets.json`, relay tokens or webhook secrets.
+- Share the pairing QR, HTTPS link, code and expiry in the chat where the owner asked. Never copy pairing credentials into logs, reports or commits.
 - Health values are the owner's private data. Use them only for what the owner asked; do not paste raw values into third-party services or public places. Opt-in receive stdout (--emit-records), inbox and MCP responses are private data channels, never logs. Services discard receive stdout and log only safe stderr metadata.
 - Commands write to the owner's real Apple Health. Send a write only when the owner asked for it or explicitly approved a standing rule; say exactly what you will write before you send it. Never bypass phone policy. Diagnostics and access requests also require explicit owner intent; the phone still requires consent.
 - Do not edit files in `$SYNCKY_AGENT_HOME` or legacy databases by hand. Do not run two `receive` processes. Install services or schedules only after explicit owner approval.

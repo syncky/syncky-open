@@ -6,8 +6,8 @@ import { deviceName, isB64u, isTimestamp } from "./encoding.js";
 import { isMemberId, isPairingId, uuidv7 } from "./ids.js";
 import { fingerprint, normalizeFingerprint } from "./fingerprint.js";
 import { pairCode, pairProof, pairProofMatches } from "./pair-code.js";
-import { readHomeState, updateHomeState, createCipherFiles } from "./home-state.js";
-import { parsePrivateJson, privateStat, readPrivateFile, removePrivateFile, syncDirectory, withHomeLock } from "./protected-files.js";
+import { cipherEntries, readHomeState, STATE_FILE, updateHomeState, validateHomeState } from "./home-state.js";
+import { atomicPrivateWrite, parsePrivateJson, privateStat, readPrivateFile, removePrivateFile, syncDirectory, withHomeLock } from "./protected-files.js";
 import { joinGraceUntil } from "./transport-time.js";
 import { isStoredRequestedScope } from './access-scope.js';
 import { cancelPairingAccess, maintainPairingAccess, PAIRING_REPLY_MS, validV1Scope } from './pairing-access.js';
@@ -169,7 +169,8 @@ export function createThinPairing(home, { fs = nodeFs, now = () => new Date() } 
       }, "fingerprint");
     },
     revoke(id, { rejected = false } = {}) {
-      const result = updateHomeState(home, state => {
+      return withHomeLock(home, () => {
+        const state = readHomeState(home, options);
         const member = requireMember(state, id);
         if (rejected && member.state !== "joined" && member.state !== "rejected") throw new LocalStateError("invalid_transition", "only a joined phone can be rejected");
         member.state = rejected ? "rejected" : "revoked"; member.revoked_at ??= now().toISOString(); member.pair_code = null; member.pair_proof = null;
@@ -177,13 +178,19 @@ export function createThinPairing(home, { fs = nodeFs, now = () => new Date() } 
         cancelPairingAccess(ownPairing(state, member.pairing_id));
         if (state.transport.fast_poll?.devices) state.transport.fast_poll.devices = state.transport.fast_poll.devices.filter(device => device !== id);
         maintainResponseWaits(state, now().getTime());
+        // Persist the trust change first so a retry can finish interrupted cleanup.
+        atomicPrivateWrite(join(home, STATE_FILE), JSON.stringify(validateHomeState(state)) + "\n", options);
+        for (const entry of cipherEntries(home, "held", options)) {
+          if (entry.from === id || entry.held_member === id) removePrivateFile(join(home, "held", `${entry.msg_id}.json`), options);
+        }
+        for (const entry of cipherEntries(home, "outbox", options)) {
+          if (entry.to?.includes(id) && entry.state === "pending") {
+            const failed = { ...entry, state: "failed", code: "target_revoked", relay_code: null, relay_status: null };
+            atomicPrivateWrite(join(home, "outbox", `${entry.msg_id}.json`), JSON.stringify(failed) + "\n", options);
+          }
+        }
+        for (const area of ["held", "outbox"]) if (privateStat(join(home, area), { ...options, directory: true, optional: true })) syncDirectory(join(home, area), options);
       }, options);
-      const held = createCipherFiles(home, "held", options);
-      for (const entry of held.list().filter(e => e.from === id || e.held_member === id)) held.remove(entry.msg_id);
-      const outbox = createCipherFiles(home, "outbox", options);
-      for (const entry of outbox.list().filter(e => e.to?.includes(id) && e.state === "pending")) outbox.update(entry.msg_id, { state: "failed", code: "target_revoked", relay_code: null, relay_status: null });
-      for (const area of ["held", "outbox"]) if (privateStat(join(home, area), { ...options, directory: true, optional: true })) syncDirectory(join(home, area), options);
-      return result;
     },
   };
 }

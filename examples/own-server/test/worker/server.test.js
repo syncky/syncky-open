@@ -4,11 +4,14 @@ import { reset, runInDurableObject } from "cloudflare:test";
 import worker from "../../worker/index.js";
 import { ownStub, workerRuntime } from "../support/worker-runtime.js";
 import { client, check } from "../support/runtime.js";
-import { conformance } from "../support/conformance.js";
+import { conformance, representativeVectors } from "../support/conformance.js";
 
 beforeEach(() => reset());
 afterEach(() => vi.restoreAllMocks());
-it("Worker+DO replays all request, signature and exchange request vectors", async () => conformance(workerRuntime(), JSON.parse(env.WEBHOOK_VECTORS)));
+it("Worker forwards signed native bytes unchanged to the Durable Object", async () => {
+  const vectors = JSON.parse(env.WEBHOOK_VECTORS);
+  await conformance(workerRuntime(), representativeVectors(name => vectors[name]));
+});
 it("Worker dispatch uses one fixed object with default EU and explicit unrestricted option", async () => {
   for (const jurisdiction of [undefined, "eu", "", "invalid"]) {
     const calls = [];

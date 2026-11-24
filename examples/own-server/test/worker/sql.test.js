@@ -43,7 +43,7 @@ it("DO SQLite enforces its 100 bound parameter limit", async () => {
   });
 });
 
-for (const kind of ["samples", "summaries"]) it("DO SQLite selects " + kind + " pages once across 50,000 historical rows", async () => {
+for (const kind of ["samples", "summaries"]) it("DO SQLite selects " + kind + " pages once across filtered history", async () => {
   await runInDurableObject(ownStub(), instance => historyQueries(instance.sql, kind));
 });
 

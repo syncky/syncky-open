@@ -192,6 +192,29 @@ describe('thin agent against the real relay (wrangler dev)', { skip: SKIP }, () 
     const preview = await json(['forget', phone.memberId]); assert.ok(preview);
     assert.deepEqual(await inbox(), history); await json(['forget', phone.memberId, '--yes']); assert.deepEqual(await inbox(), []); assert.equal((await member()).state, 'revoked');
   });
+  it('confirms through the background pairing waiter within seconds of the phone picking the code', { timeout: TIMEOUT }, async () => {
+    const lab = tempHome(), options = { home: lab.home };
+    try {
+      await json(['init', '--relay', RELAY, '--name', 'Waiter e2e'], options);
+      const pairing = await json(['pair'], { ...options, privateOutput: true });
+      pairingTokens.push(parsePairUri(pairing.uri, { allowInsecureRelay: true }).value.pairingToken);
+      await waitFor(() => /pair_waiter_started/.test(readFileSync(join(lab.home, 'pair-waiter.log'), 'utf8')), { ...WAIT, what: 'pairing waiter started' });
+      const waiterPhone = createFakePhone({ relayUrl: RELAY }); await waiterPhone.pair(pairing.uri);
+      privateTokens.push(waiterPhone.token);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      const picked = Date.now();
+      await waiterPhone.sendPairProof();
+      await waitFor(async () => (await json(['status'], options)).members.find(m => m.member_id === waiterPhone.memberId)?.state === 'confirmed',
+        { timeoutMs: 40_000, intervalMs: 100, what: 'waiter confirmed the phone' });
+      const seconds = (Date.now() - picked) / 1000;
+      process.stdout.write(`# code picked -> paired ${seconds.toFixed(2)} s\n`);
+      assert.ok(seconds < 5, `code picked -> paired took ${seconds.toFixed(2)} s`);
+    } finally {
+      const pid = /"pid":(\d+)/.exec((() => { try { return readFileSync(join(lab.home, 'pair-waiter.log'), 'utf8'); } catch { return ''; } })())?.[1];
+      if (pid) { try { process.kill(Number(pid)); } catch {} }
+      lab.cleanup();
+    }
+  });
   it('revokes a confirmed phone through the CLI before explicitly forgetting it', { timeout: TIMEOUT }, async () => {
     const recovery = tempHome(), options = { home: recovery.home };
     try {

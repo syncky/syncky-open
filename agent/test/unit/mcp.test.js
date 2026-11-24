@@ -2,8 +2,6 @@ import { ERROR_GUIDANCE, errorHint } from '../../src/error-guidance.js';
 import { LocalStateError } from '../../src/config.js';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
 import { Readable } from 'node:stream';
 import { test } from 'node:test';
 import Ajv from 'ajv/dist/2020.js';
@@ -306,15 +304,13 @@ for (const [label, toolName, mutate, check, expected] of [
 }
 
 test('MCP compiles tool schemas only on the first tool call and shares them across servers', () => {
-  const url = process.env.SYNCKY_AGENT_BUNDLE_FIXTURE
-    ? pathToFileURL(JSON.parse(readFileSync(process.env.SYNCKY_AGENT_BUNDLE_FIXTURE, 'utf8')).release.bundlePath).href
-    : new URL('../../src/mcp.js', import.meta.url).href;
+  const url = new URL('../../src/mcp.js', import.meta.url).href;
   const child = spawnSync(process.execPath, ['--input-type=module', '--eval', `
     import assert from 'node:assert/strict';
     let compiled = 0;
     globalThis.Function = new Proxy(Function, { construct(target, args) { compiled++; return Reflect.construct(target, args); } });
     const module = await import(${JSON.stringify(url)});
-    const { createMcpServer, TOOLS } = module.modules?.['mcp.js'] ?? module;
+    const { createMcpServer, TOOLS } = module;
     assert.equal(compiled, 0);
     const handlers = Object.fromEntries(TOOLS.map(tool => [tool.name, () => ({ skill: 'verified' })]));
     const server = createMcpServer({ handlers });

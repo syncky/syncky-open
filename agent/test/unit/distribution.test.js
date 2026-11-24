@@ -48,12 +48,8 @@ describe("carried distributions", () => {
     root = mkdtempSync(join(tmpdir(), "syncky distributions "));
     cwd = join(root, "unrelated cwd");
     mkdirSync(cwd);
-    if (process.env.SYNCKY_AGENT_BUNDLE_FIXTURE) {
-      dist = dirname(json(process.env.SYNCKY_AGENT_BUNDLE_FIXTURE).release.bundlePath);
-    } else {
-      const { buildAgent } = await import("../../build.mjs");
-      dist = dirname((await buildAgent({ outdir: join(root, "build") })).bundlePath);
-    }
+    const { buildAgent } = await import("../../build.mjs");
+    dist = dirname((await buildAgent({ outdir: join(root, "build") })).bundlePath);
     const bin = join(root, "runtime only");
     mkdirSync(bin);
     symlinkSync(process.execPath, join(bin, "node"));
@@ -97,7 +93,11 @@ describe("carried distributions", () => {
     cpSync(leaves[0].leaf, target, { recursive: true });
     return target;
   };
-  const hasPair = (run) => run.code === 0 && !run.timedOut && /[▀▄█]/.test(run.stdout) && /code: \d{3} \d{3} \d{3}/.test(run.stdout);
+  const hasPair = (run) => run.code === 0 && !run.timedOut
+    && /^https:\/\/[^\s]+\/pair#\S+$/m.test(run.stdout)
+    && /^```text\n[^`]*[▀▄█][^`]*\n```$/m.test(run.stdout)
+    && /^Pairing code: \d{3} \d{3} \d{3}$/m.test(run.stdout)
+    && /^Link expires_at: \d{4}-\d{2}-\d{2}T\S+$/m.test(run.stdout);
 
   it("contains only the promised trees, archives, release payload, MCPB and checksum inventory", () => {
     assert.deepEqual(readdirSync(dist).sort(), ["syncky-agent.mjs", "syncky-agent.mjs.sha256", "syncky-health.mcpb", "syncky-health.mcpb.sha256", "SHA256SUMS", "clawhub-light", "syncky-agent-clawhub-light.tar.gz", ...packages.flatMap(([tree, archive]) => [tree, archive])].sort());
@@ -268,10 +268,14 @@ describe("carried distributions", () => {
   for (const index of [0, 1, 2, 3]) it(`executes the exact ${packages[index][0]} onboarding recipe safely on fresh and existing homes`, async () => {
     const { leaf } = leaves[index];
     const relay = await startRelayDouble({ invite: "local-distribution-invite" });
-    const other = await startRelayDouble();
     const home = join(root, `private home ${index}`);
     const local = { SYNCKY_AGENT_HOME: home, SYNCKY_RELAY_URL: relay.url, SYNCKY_INVITE: "local-distribution-invite", SYNCKY_AGENT_NAME: "Name with spaces ' and $literal" };
+    let other;
     try {
+      other = await startRelayDouble();
+      // The recipe returns immediately. Its detached waiter can still look up each link.
+      relay.failNext("getPairing", 404);
+      relay.failNext("getPairing", 404);
       const missingInvite = await onboard(leaf, { ...local, SYNCKY_INVITE: "" });
       assert.ok(missingInvite.code !== 0 && /relay refused registration/i.test(missingInvite.stderr) && !existsSync(join(home, "secrets.json")), "missing invite did not stop safely");
       const first = await onboard(leaf, local);
@@ -285,7 +289,7 @@ describe("carried distributions", () => {
       assert.ok(readFileSync(secretsPath).equals(originalSecrets), "initialized credentials changed");
       assert.equal(relay.state.requests.filter((r) => r.route === "register").length, registrations);
       assert.ok([...relay.state.hub().members.values()].every((m) => m.name === local.SYNCKY_AGENT_NAME), "name arguments changed");
-      assert.ok(relay.state.requests.every((r) => ["register", "createPairing"].includes(r.route)), "recipe fetched unexpected data or waited");
+      assert.ok(relay.state.requests.every((r) => ["register", "createPairing", "getPairing", "socket"].includes(r.route)), "recipe fetched unexpected data");
       const request = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "distribution-test", version: "1" } } });
       const mcp = await launch(leaf, ["mcp"], local, `${request}\n`);
       assert.ok(mcp.code === 0 && mcp.stdout.trim().split("\n").every((line) => { try { return JSON.parse(line).jsonrpc === "2.0"; } catch { return false; } }), "MCP stdin/stdout contract failed");
@@ -312,16 +316,39 @@ describe("carried distributions", () => {
       assert.ok(!/local-distribution-invite|\{broken-state/.test([missingInvite, mismatch, keys, corrupt, partial].map((r) => r.stderr).join("")), "failure output disclosed private input");
     } finally {
       await relay.stop();
-      await other.stop();
+      await other?.stop();
     }
   });
 
   it("uses the documented default name for a fresh home", async () => {
     const relay = await startRelayDouble();
     try {
+      relay.failNext("getPairing", 404);
       const run = await onboard(leaves[0].leaf, { SYNCKY_AGENT_HOME: join(root, "default name home"), SYNCKY_RELAY_URL: relay.url, SYNCKY_INVITE: "test-invite" });
       assert.ok(hasPair(run), "default-name onboarding failed");
       assert.ok([...relay.state.hub().members.values()].every((m) => m.name === "Syncky agent"));
+    } finally { await relay.stop(); }
+  });
+
+  it("reports a refused pairing without owner output and pairs on retry from the same home", async () => {
+    const { leaf } = leaves[0];
+    const relay = await startRelayDouble();
+    const home = join(root, "configured pairing home");
+    const local = { SYNCKY_AGENT_HOME: home, SYNCKY_RELAY_URL: relay.url };
+    try {
+      relay.failNext("createPairing", 401);
+      const refused = await onboard(leaf, { ...local, SYNCKY_INVITE: "test-invite" });
+      assert.equal(refused.code, 3);
+      assert.ok(/invalid_token/.test(refused.stderr), "the recipe did not report why pairing stopped");
+      assert.ok(!/\/pair#|[▀▄█]|Pairing code:|Link expires_at:|\bpt_/.test(refused.stdout + refused.stderr),
+        "a refused pairing printed details for a reply");
+      assert.deepEqual(relay.state.requests.map(({ route }) => route), ["register", "createPairing"]);
+      assert.equal(existsSync(join(home, "pairing.json")), false);
+
+      relay.failNext("getPairing", 404);
+      const retry = await onboard(leaf, local);
+      assert.ok(hasPair(retry), "plain onboarding did not return the fenced QR, link, code and expiry");
+      assert.equal(relay.state.requests.filter(({ route }) => route === "register").length, 1);
     } finally { await relay.stop(); }
   });
 });
