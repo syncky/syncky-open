@@ -75,7 +75,7 @@ describe("thin feature skill", () => {
     for (const document of SKILLS) {
       for (const type of ['commands', 'diagnostics_request', 'access_request', 'scope_release']) {
         assert.doesNotThrow(() => validate(skillExample(type, {}, document)));
-        assert.match(document, new RegExp(`send --type ${type} --validate --json -`));
+        assert.match(document, new RegExp(`send --type ${type} --json -`));
       }
       for (const type of ['diagnostics_request', 'access_request']) {
         const inner = skillExample(type, {}, document);

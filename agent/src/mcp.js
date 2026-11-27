@@ -21,17 +21,18 @@ export const TOOLS = Object.freeze([
       until: { type: 'string', format: 'date-time', description: 'Include records whose `received_at` is at or before this inclusive ISO 8601 date-time, e.g. 2026-11-15T23:59:59Z; must not precede `since`. Omit for no upper time bound; empty strings are invalid; include Z or an offset.' },
       limit: { type: 'integer', minimum: 1, maximum: 1000, description: 'Maximum records to return (integer 1 to 1000, default 100), e.g. 50; byte or scan limits can produce a shorter page, so check `has_more`.' },
     }), annotations: read },
-  { name: 'syncky_send', description: "Send caller-owned JSON to one confirmed phone; use syncky_skill for rules and syncky_inbox to read replies. Scope releases need no owner approval. Obtain owner approval for writes, diagnostics and access requests. Writes use the owner's standing per-type allowance. The phone enforces policy and consent; sent means relay delivery only. Returns a send receipt. Pending sends retry while receive runs; check `state` and `hint`, then `outbox` counts and `sends` receipts in syncky_status.",
+  { name: 'syncky_send', description: "Send caller-owned JSON to one confirmed phone; use syncky_skill for rules and syncky_inbox to read replies. Scope releases need no owner approval. Obtain owner approval for writes, diagnostics and access requests. Writes use the owner's standing per-type allowance. The phone enforces policy and consent; sent means relay delivery only. Returns a send receipt or, with validate set to true, valid: true without sending. Pending sends retry while receive runs; check `state` and `hint`, then `outbox` counts and `sends` receipts in syncky_status.",
     inputSchema: { ...object({
       type: { ...text, description: "Message type string, e.g. 'access_request'; must equal the `type` field inside `inner`." },
       inner: { type: 'object', description: 'Caller-owned inner JSON message object, including its required `type` string and the message fields defined by the current skill.',
         properties: { type: { ...text, description: "Inner message type string, e.g. 'access_request'; must equal the outer `type` parameter." } }, required: ['type'] },
-      to: { ...member, description: "Target confirmed phone's member ID string, e.g. m_dev_1; omit only when exactly one eligible confirmed phone is available." },
-      validate: { type: 'boolean', description: "Boolean, default false. Set true to check available local message schemas before sending; unknown types may have no schema. Messages of type 'access_request' and 'scope_release' are always validated by this MCP tool, even when false. Validation does not grant approval or permission." },
+      to: { ...member, description: "Target confirmed phone's member ID string, e.g. m_dev_1. Sending without a target requires exactly one eligible confirmed phone. Validation alone needs no target." },
+      validate: { type: 'boolean', description: "Default false. Set true to validate only against available local message schemas. It sends nothing. Real sends of access_request and scope_release always validate. Validation does not grant approval or permission." },
     }), required: ['type','inner'] },
     outputSchema: {
       type: 'object',
       properties: {
+        valid: { type: 'boolean', const: true, description: 'Local validation succeeded. Nothing was sent.' },
         msg_id: { type: 'string', description: 'Sealed message ID used to track this send.' },
         kind: { type: 'string', enum: ['data', 'control'], description: 'Outgoing envelope kind.' },
         type: { type: 'string', description: 'Caller-supplied message type.' },
@@ -51,6 +52,7 @@ export const TOOLS = Object.freeze([
       anyOf: [
         { required: ['msg_id', 'kind', 'type', 'to', 'state'] },
         { required: ['code'], properties: { code: { type: 'string', pattern: '^[a-z_]{1,64}$', description: 'Safe tool error code.' } } },
+        { required: ['valid'] },
       ],
       additionalProperties: true,
     },

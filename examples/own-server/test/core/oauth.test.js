@@ -98,9 +98,11 @@ it("access expiry, refresh rotation, replay family revocation and client isolati
   assert.equal(response.status, 200);
   const next = await response.json();
   assert.ok(next.refresh_token !== tokens.refresh_token, "refresh rotates");
+  b.deps.now = () => time + 300 + 31;
   assert.equal((await refresh(a, tokens.refresh_token)).status, 400);
   assert.equal((await b.mcp(next.access_token)).status, 401);
   assert.equal((await refresh(a, next.refresh_token)).status, 400);
+  b.deps.now = () => time + 300;
   const fresh = await b.access(a);
   b.deps.now = () => time + 300 + 7 * 86400;
   assert.equal((await refresh(a, fresh.refresh_token)).status, 400);
@@ -224,4 +226,22 @@ it("removing a consented client invalidates its codes, tokens and pending consen
   assert.equal(b.sql.all("SELECT * FROM consent_requests").length, 0);
   assert.equal(b.sql.all("SELECT state FROM commands")[0].state, "cancelled");
   assert.notEqual((await b.mcp(otherTokens.access_token)).status, 401);
+});
+
+it("two refreshes racing with the same token both succeed, while a replay after the grace window revokes the family", async (t) => {
+  const b = await browser(t);
+  await b.login();
+  const a = await b.register(), other = await b.register();
+  const tokens = await b.access(a);
+  const refresh = (client, token) => b.post("/oauth/token", { grant_type: "refresh_token", client_id: client.client_id, refresh_token: token, resource: origin + "/mcp" });
+  const [first, second] = await Promise.all([refresh(a, tokens.refresh_token), refresh(a, tokens.refresh_token)]);
+  assert.deepEqual([first.status, second.status], [200, 200]);
+  const pairs = [await first.json(), await second.json()];
+  assert.notEqual(pairs[0].access_token, pairs[1].access_token);
+  for (const pair of pairs) assert.notEqual((await b.mcp(pair.access_token)).status, 401);
+  assert.equal((await refresh(other, tokens.refresh_token)).status, 400, "another client never gets the grace");
+  const time = b.deps.now();
+  b.deps.now = () => time + 31;
+  assert.equal((await refresh(a, tokens.refresh_token)).status, 400);
+  for (const pair of pairs) assert.equal((await b.mcp(pair.access_token)).status, 401, "late replay revokes the whole family");
 });

@@ -157,7 +157,7 @@ describe('thin agent against the real relay (wrangler dev)', { skip: SKIP }, () 
     const inners = [false, true].map(mcp => ({ ...futureEcho, request: mcp ? 'mcp-echo' : 'cli-echo' }));
     for (const [i, inner] of inners.entries()) {
       const receipt = i === 0 ? await send(inner) : (await json(['mcp'], {
-        input: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'syncky_send', arguments: { type: inner.type, inner, to: phone.memberId, validate: true } } }) + '\n',
+        input: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'syncky_send', arguments: { type: inner.type, inner, to: phone.memberId } } }) + '\n',
       })).result.structuredContent;
       await waitForSend(receipt, status, WAIT);
       const page = await (await fetch(`${RELAY}/v1/messages`, { headers: { Authorization: `Bearer ${phone.token}` } })).json();

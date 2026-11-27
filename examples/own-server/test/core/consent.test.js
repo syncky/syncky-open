@@ -1,7 +1,7 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
-import { browser, hidden, callback } from "../support/browser.js";
-import { secret, databasePath } from "../support/helpers.js";
+import { browser, hidden, callback, setupParams } from "../support/browser.js";
+import { secret, databasePath, native, sample } from "../support/helpers.js";
 import { openSqlite } from "../../docker/sql.js";
 import { createStore } from "../../src/store.js";
 
@@ -141,4 +141,48 @@ it("removing exact callbacks invalidates grants; consent cannot be replayed afte
   assert.equal((await b.post("/admin/settings", { redirect_allowlist: callback })).status, 200);
   assert.equal((await b.mcp(tokens.access_token)).status, 401);
   assert.equal((await b.post("/oauth/authorize", { consent: hidden(auth.html, "consent"), decision: "approve", scope: "read:steps" })).status, 400);
+});
+
+it("a client that sends no scope, like Claude connectors, reaches consent with the uploaded types and gets only the picked ones", async (t) => {
+  const b = await browser(t);
+  const params = setupParams((await b.login()).link);
+  b.config.token = params.get("token");
+  b.config.hmac = params.get("hmac");
+  const client = await b.register();
+  const empty = await b.authorize(client, { scope: undefined }, false);
+  assert.equal(empty.page.status, 200);
+  assert.ok(empty.html.includes("No Health data yet"));
+  assert.equal((await b.send(native(b, { samples: [sample(), sample({ type: "heart_rate", unit: "count/min" })] }))).status, 200);
+  const auth = await b.authorize(client, { scope: undefined }, false);
+  assert.equal(auth.page.status, 200);
+  for (const type of ["steps", "heart_rate"]) assert.ok(auth.html.includes(`value="read:${type}"`), type);
+  assert.ok(!auth.html.includes('value="write:'));
+  const state = hidden(auth.html, "consent");
+  assert.equal((await b.post("/oauth/authorize", { consent: state, decision: "approve", scope: "read:body_mass" })).status, 400);
+  const response = await b.post("/oauth/authorize", { consent: state, decision: "approve", scope: "read:steps" });
+  assert.equal(response.status, 303);
+  assert.deepEqual(JSON.parse(b.sql.all("SELECT read_types_json FROM grants")[0].read_types_json), ["steps"]);
+});
+
+it("before sign-in, discovery and consent reveal nothing about which Health data the server holds", async (t) => {
+  const b = await browser(t);
+  const params = setupParams((await b.login()).link);
+  b.config.token = params.get("token");
+  b.config.hmac = params.get("hmac");
+  const client = await b.register();
+  const signedIn = b.cookie;
+  const paths = ["/.well-known/oauth-authorization-server", "/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp"];
+  b.cookie = "";
+  const before = await Promise.all(paths.map(async path => (await b.get(path)).text()));
+  const anonymousEmpty = await b.authorize(client, { scope: undefined }, false);
+  b.cookie = signedIn;
+  assert.equal((await b.send(native(b, { samples: [sample()] }))).status, 200);
+  b.cookie = "";
+  assert.deepEqual(await Promise.all(paths.map(async path => (await b.get(path)).text())), before);
+  for (const text of before) assert.ok(!text.includes("scopes_supported") && !text.includes("steps"));
+  const anonymousData = await b.authorize(client, { scope: undefined }, false);
+  for (const auth of [anonymousEmpty, anonymousData]) {
+    assert.ok(auth.html.includes("Admin login required"));
+    assert.ok(!auth.html.includes("No Health data yet") && !auth.html.includes("read:steps"));
+  }
 });

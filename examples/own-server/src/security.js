@@ -10,7 +10,7 @@ export const escaped = (value) => String(value).replace(/[&<>"']/g, c => ({ "&":
 export const input = (name, value) => `<input type="hidden" name="${escaped(name)}" value="${escaped(value)}">`;
 export const pagePolicy = (callbackOrigin) => `default-src 'none'; form-action 'self'${callbackOrigin ? " " + callbackOrigin : ""}; frame-ancestors 'none'; base-uri 'none'`;
 export const page = (title, body, headers = {}) => new Response(`<!doctype html><html lang="en"><meta charset="utf-8"><title>${escaped(title)}</title><body><h1>${escaped(title)}</h1>${body}</body></html>`, { headers: {
-  "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer",
+  "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "same-origin",
   "X-Frame-Options": "DENY", "X-Content-Type-Options": "nosniff",
   "Content-Security-Policy": pagePolicy(), ...headers,
 } });

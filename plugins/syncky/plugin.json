@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "syncky",
+  "version": "0.2.3",
+  "description": "Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone.",
+  "author": {
+    "name": "Syncky",
+    "email": "support@syncky.app",
+    "url": "https://syncky.app"
+  },
+  "homepage": "https://syncky.app/hermes-apple-health",
+  "repository": "https://github.com/syncky/syncky-open",
+  "license": "Apache-2.0",
+  "keywords": [
+    "apple-health",
+    "healthkit",
+    "hermes",
+    "mcp",
+    "read-write",
+    "two-way",
+    "write-to-apple-health",
+    "e2ee"
+  ]
+}

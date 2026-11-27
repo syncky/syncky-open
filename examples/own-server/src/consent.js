@@ -4,10 +4,16 @@ import { fail, page, pagePolicy, escaped, input, method, parameters, session, mu
 
 export const purpose = "answer your personal health and fitness questions";
 
+const SCOPE_RE = /^(read|write):[a-z][a-z0-9_]{1,63}$/;
+
+function readScopes(store) {
+  return store.sql.all("SELECT type FROM samples UNION SELECT type FROM summaries ORDER BY type").map(row => "read:" + row.type).filter(scope => SCOPE_RE.test(scope)).slice(0, 128);
+}
+
 function scopes(value, store) {
   if (typeof value !== "string" || value.length > 8192) fail(400, "invalid_scope");
   const list = [...new Set(value.trim().split(/\s+/))];
-  if (list.length < 1 || list.length > 128 || list.some(v => !/^(read|write):[a-z][a-z0-9_]{1,63}$/.test(v))) fail(400, "invalid_scope");
+  if (list.length < 1 || list.length > 128 || list.some(v => !SCOPE_RE.test(v))) fail(400, "invalid_scope");
   if (list.some(v => v.startsWith("write:") && (!store.setting("writes_enabled") || !Object.hasOwn(catalog.types, v.slice(6))))) fail(400, "invalid_scope");
   return list;
 }
@@ -19,7 +25,7 @@ function validated(params, store, origin) {
   if (params.resource !== origin + "/mcp") fail(400, "invalid_target");
   if (params.code_challenge_method !== "S256" || typeof params.code_challenge !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(params.code_challenge)) fail(400, "invalid_request");
   if (params.state !== undefined && (typeof params.state !== "string" || params.state.length > 1024)) fail(400, "invalid_request");
-  const selected = scopes(params.scope, store);
+  const selected = params.scope === undefined ? readScopes(store) : scopes(params.scope, store);
   return { client, selected };
 }
 
@@ -46,6 +52,7 @@ export async function consent(request, deps, origin) {
       if (error.status !== 401) throw error;
       return page("Admin login required", '<p>Log in to your server, then return to this authorization request.</p><a href="/admin/login" target="_blank" rel="noreferrer">Admin login</a>');
     }
+    if (selected.length === 0) return page("No Health data yet", "<p>This server has no Health data to share yet. Send data from Syncky Health on your iPhone first, then connect this client again.</p>");
     const nonce = random(), state = nonce + "." + await mac(store.key("oauth"), nonce);
     const stateHash = await digest(state);
     store.sql.transaction(() => {

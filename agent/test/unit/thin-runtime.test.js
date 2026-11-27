@@ -254,9 +254,9 @@ test('large E10 acceptance and a legacy phone ACK do not establish access; a mat
   const runtime = createRuntime({ home, env: {}, now: clock, fetch });
   const { types, characteristics } = loadJson('types.json'), catalog = [...types, ...characteristics, { name: 'workout' }];
   const ttl = 600000;
-  const request = n => ({ v: 1, type: 'access_request', request_ref: String(n).repeat(32), created_at: clock().toISOString(),
-    expires_at: new Date(at + ttl).toISOString(), read: catalog.map(t => t.name), write: catalog.filter(t => t.write).map(t => t.name) });
-  const send = inner => runtime.send({ type: inner.type, inner });
+  const request = n => ({ v: 1, type: 'access_request', request_ref: String(n).repeat(32), created_at: formatTimestamp(clock()),
+    expires_at: formatTimestamp(at + ttl), read: catalog.map(t => t.name), write: catalog.filter(t => t.write).map(t => t.name) });
+  const send = inner => runtime.send({ type: inner.type, inner, validate: true });
   const rejected = await send(request(1));
   assert.equal(rejected.state, 'failed'); assert.equal(rejected.relay_status, 413);
   assert.equal(rejected.relay_code, 'payload_too_large');
@@ -289,7 +289,46 @@ test('large E10 acceptance and a legacy phone ACK do not establish access; a mat
   assert.doesNotMatch(JSON.stringify(waits), /request_ref|public_key|"read"|"write"/);
 });
 
-for (const surface of ['cli', 'mcp']) test(`${surface} validates access TTL boundaries and malformed dates before any send`, async t => {
+for (const surface of ['cli', 'mcp']) test(`${surface} validation never queues or posts a write, while a plain send delivers it`, async t => {
+  const { home } = homeFixture(t);
+  const at = formatTimestamp(now());
+  const write = { command_id: 'validate-only', version: 1, op: 'write', type: 'dietary_water', value: 250, unit: 'mL', start: at, end: at };
+  const inner = { v: 1, type: 'commands', commands: [write] };
+  const requests = [];
+  const fetch = async (url, { method }) => {
+    requests.push([method, new URL(url).pathname]);
+    return Response.json({ seq: 1 }, { status: 201 });
+  };
+  const send = (payload, validate) => surface === 'cli'
+    ? cli(home, ['send', '--type', payload.type, '--json', '-', ...(validate ? ['--validate'] : [])], JSON.stringify(payload), fetch)
+    : cli(home, ['mcp'], JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: {
+      name: 'syncky_send', arguments: { type: payload.type, inner: payload, validate },
+    } }) + '\n', fetch);
+  const value = result => surface === 'cli' ? result.json : result.json.result.structuredContent;
+  const queue = createCipherFiles(home, 'outbox');
+  const valid = await send(inner, true);
+  assert.equal(valid.code, 0);
+  assert.deepEqual(value(valid), { valid: true });
+  assert.equal(valid.stderr, surface === 'cli' ? 'validated only; nothing sent\n' : '');
+  assert.deepEqual(requests, []);
+  assert.deepEqual(queue.list(), []);
+  const invalid = await send({ ...inner, commands: [{ ...write, value: 'invalid' }] }, true);
+  if (surface === 'cli') {
+    assert.equal(invalid.code, 4);
+    assert.equal(invalid.stdout, '');
+    assert.equal(JSON.parse(invalid.stderr).error, 'schema_invalid');
+  } else {
+    assert.equal(invalid.json.result.isError, true);
+    assert.equal(value(invalid).code, 'schema_invalid');
+  }
+  assert.deepEqual(requests, []);
+  assert.deepEqual(queue.list(), []);
+  assert.equal(value(await send(inner, false)).state, 'sent');
+  assert.deepEqual(requests, [['POST', '/v1/messages']]);
+  assert.equal(queue.list().length, 1);
+});
+
+for (const surface of ['cli', 'mcp']) test(`${surface} checks access TTL boundaries and malformed dates when validation applies`, async t => {
   const { home } = homeFixture(t), created_at = now().toISOString().replace('.000Z', 'Z');
   const base = { v: 1, type: 'access_request', request_ref: 'b'.repeat(32), created_at, read: ['steps'], write: [] };
   for (const [patch, valid] of [
@@ -300,12 +339,15 @@ for (const surface of ['cli', 'mcp']) test(`${surface} validates access TTL boun
     let sends = 0;
     const fetch = async () => { sends++; return Response.json({ seq: sends }, { status: 201 }); };
     const inner = { ...base, ...patch };
-    const request = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'syncky_send', arguments: { type: 'access_request', inner } } };
-    const result = surface === 'cli' ? await cli(home, ['send', '--type', 'access_request', '--validate', '--json', '-'], JSON.stringify(inner), fetch)
+    const request = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'syncky_send', arguments: { type: 'access_request', inner, validate: false } } };
+    const result = surface === 'cli' ? await cli(home, ['send', '--type', 'access_request', '--json', '-', '--validate'], JSON.stringify(inner), fetch)
       : await cli(home, ['mcp'], JSON.stringify(request) + '\n', fetch);
     assert.equal(result.code, surface === 'cli' && !valid ? 4 : 0);
     const value = surface === 'cli' ? valid ? result.json : JSON.parse(result.stderr) : result.json.result.structuredContent;
-    if (valid) {
+    if (valid && surface === 'cli') {
+      assert.deepEqual(value, { valid: true });
+      assert.equal(sends, 0);
+    } else if (valid) {
       assertSendReceipt(value);
       assert.equal(value.state, 'sent'); assert.equal(value.kind, 'control'); assert.equal(value.type, 'access_request');
       assert.equal(sends, 1);
@@ -323,6 +365,32 @@ for (const surface of ['cli', 'mcp']) test(`${surface} validates access TTL boun
     }
   }
 });
+test('plain CLI access requests reject schema violations before queuing and send valid requests', async t => {
+  const { home } = homeFixture(t);
+  const inner = { v: 1, type: 'access_request', request_ref: 'b'.repeat(32), created_at: formatTimestamp(now()),
+    expires_at: formatTimestamp(now().getTime() + 600000), read: ['steps'], write: [] };
+  const requests = [];
+  const fetch = async (url, { method }) => {
+    requests.push([method, new URL(url).pathname]);
+    return Response.json({ seq: requests.length }, { status: 201 });
+  };
+  const send = payload => cli(home, ['send', '--type', inner.type, '--json', '-'], JSON.stringify(payload), fetch);
+  const queue = createCipherFiles(home, 'outbox');
+  const invalid = await send({ ...inner, unexpected: true });
+  assert.equal(invalid.code, 4);
+  assert.equal(JSON.parse(invalid.stderr).error, 'schema_invalid');
+  assert.equal(invalid.stdout, '');
+  assert.deepEqual(requests, []);
+  assert.deepEqual(queue.list(), []);
+
+  const valid = await send(inner);
+  assert.equal(valid.code, 0);
+  assert.equal(valid.stderr, '');
+  assert.equal(valid.json.state, 'sent');
+  assert.deepEqual(requests, [['POST', '/v1/messages']]);
+  assert.equal(queue.list().length, 1);
+});
+
 async function cli(home, args, input = '', fetch = () => { throw Error('unexpected network'); }) {
   let stdout = '', stderr = '';
   const code = await main(['--home', home, ...args], { env: {}, now, fetch, stdin: Readable.from([input]),

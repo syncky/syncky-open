@@ -15,9 +15,11 @@ Read the local rules before the first send, pairing confirmation, service instal
 
 ## Pairing and receiving
 
-The request **Use Syncky and start onboarding with a QR code.** authorizes the following onboarding recipe. The recipe uses npm when `SYNCKY_RUNNER` is unset. In a carried package, set it to the absolute adjacent launcher. Keep the same runner for all `syncky_run` examples. Use the home already set in `SYNCKY_AGENT_HOME` for every command. Use the default home only when that setting is empty or unset. Reuse the relay saved in an initialized home.
+The request **Use Syncky and start onboarding with a QR code.** authorizes the following onboarding recipe. In your first reply after `pair` succeeds, paste the terminal QR verbatim in a fenced `text` block, the HTTPS link, the pairing code and the expiry into the chat where the owner asked. Never reply with a file path or a command for the owner to run.
 
-Run `pair` directly in your terminal tool and read its output yourself. Do not redirect it to a file or ask the owner to open a file.
+The recipe uses npm when `SYNCKY_RUNNER` is unset. In a carried package, set it to the absolute adjacent launcher. Keep the same runner for all `syncky_run` examples. Use the home already set in `SYNCKY_AGENT_HOME` for every command. Use the default home only when that setting is empty or unset. Reuse the relay saved in an initialized home.
+
+Run `pair` directly in your terminal tool and read its output without redirecting it.
 
 ```sh
 set -eu
@@ -44,7 +46,7 @@ syncky_run pair
 
 Stop safely on partial/corrupt state, `migration_required`, or a relay that refuses registration. Tell the owner; do not retry or force registration. Never force registration, silently switch relays or weaken trust. Existing homes need an owner-assisted offline migration preserving identity and old databases; do not initialize over them.
 
-In your first reply after `pair` succeeds, send the owner the terminal QR verbatim in a fenced `text` block, the HTTPS link, the pairing code and the expiry. Send them in the chat where the owner asked, even when the host's retention policy is unknown. The owner decides where it is safe to pair. Leave out local file paths and other command output. If `pair` fails, explain the error without sharing credentials.
+If `pair` fails, explain the error without sharing credentials.
 
 Scanning alone does not confirm trust: after the owner picks the displayed code on the phone, pairing completes by itself through a short-lived background waiter or the running receiver. Do not block onboarding waiting for the phone. V1 pairing requires comparing the fingerprint on both devices and explicit `confirm`; a mismatch requires investigation or `reject` by the owner. Never echo the status fingerprint as proof.
 
@@ -52,13 +54,15 @@ From agent 0.1.4, with explicit owner approval for the exact types, you can use 
 
 New v2 links carry `v,r,h,t,k,n,c`, optional `a=1` when the requested scope is on the relay, and optional `s=http`. The marker makes the request mandatory for a phone that supports encrypted pairing scope, so the relay cannot silently turn it into a bare pairing. The agent creates a fresh 32-lowercase-hex `request_ref` and encrypts the requested lists with a key derived from the link secret `c` and stores only the ciphertext on the relay. The relay learns the presence and size of the ciphertext and clears it on successful join or expiry cleanup (the link is valid for 10 minutes by default). The new link and QR still carry pairing credentials and the decryption secret. For old inline links only: The link contains credentials and the requested Health type names; anyone who sees its full text can read them. A new phone still accepts valid inline v1/v2 links during the transition.
 
-The encrypted v2 scope limit is 12000 decoded bytes (16000 base64url characters) inside a 16384-byte pairing request body by default. The synthetic request and largest pairing reply must fit the 131072-byte access envelope cap. Ordinary controls keep their 4096-byte cap. The current complete read/write catalog fits a single pairing request. If the relay does not acknowledge storing the encrypted scope, the agent withholds the link. If the phone finds the relay lacks scope support at join, it stops pairing. In either case, try again later or contact Syncky support.
+The encrypted v2 scope limit is 12000 decoded bytes (16000 base64url characters) inside a 16384-byte pairing request body by default.
+
+The synthetic request and largest pairing reply must fit the 131072-byte access envelope cap. Ordinary controls keep their 4096-byte cap. The current complete read/write catalog fits a single pairing request. If the relay does not acknowledge storing the encrypted scope, the agent withholds the link. If the phone finds the relay lacks scope support at join, it stops pairing. In either case, try again later or contact Syncky support.
 
 For no-scope pairing, ask the owner to open **Choose Health data**, select the categories or individual types to share, tap **Save**, complete Health authorization (in the Health permission sheet, or later in Settings → Health → Data Access & Devices → Syncky Health), then tap **Sync now**. Nothing syncs or applies while the phone is locked, because iOS locks the Health data. Scoped pairing sends its initial scope without this manual step.
 
 For a link marked `a=1` on a phone that supports encrypted pairing scope, first confirm the join, then review the verified Read and Write items before picking the code. Valid legacy inline links still review the items before the join. The review offers per-type choices, Allow all and Decline all. Allow all submits your choices and continues pairing; iOS asks only about listed types it has not decided yet. If iOS interrupts the Health sheet, the review keeps your choices. Keep Syncky open and tap Allow again. Decline all opens no Health sheet and grants empty scope. Choices made at pairing have no quota; a type declined at pairing starts the same seven-day wait. Pairing grants stay with this agent and do not change the app-wide Health selection or write allowance. You can change or stop this later under Connections › this agent › Data types, or unpair it. After scoped v2 confirmation, the standard `access_reply` reports `allowed`, `declined` or `needs_health_settings` for each requested item. `status --json` retains requested types and outcomes after `pairing.json` is removed. CLI and MCP status omit request refs; response waits expose only kind, member, state and timing metadata. Outcomes describe the decision; only authenticated `sync.scope` updates effective scope. The phone sends this scope promptly without sample collection or a manual initial Sync. Read authorization remains unobservable; follow Health Settings guidance for `needs_health_settings`.
 
-Syncky 0.1.5 can confirm a new v2 link through a relay that supports encrypted scope. Choose Health data on that phone, or update Syncky and ask the agent for an ordinary access request. A confirmed pairing without a matching reply stays confirmed. Status keeps `awaiting`, then `no_reply` after the 15-minute post-confirmation deadline. A late matching reply can still resolve it. Check the phone, connectivity and pending consent. Only with renewed explicit owner intent and phone availability, use `send --type access_request --validate --json <file|->` with the same intended types, a fresh `request_ref`, and current timestamps with finite positive TTL up to 24 hours (`0 < expires_at - created_at <= 24h`). No automatic fallback is sent for v2. Never invent outcomes or scope. See [the access request example](https://github.com/syncky/syncky-open/blob/main/agent/skills/syncky/SKILL.md#access-request) for complete JSON.
+Syncky 0.1.5 can confirm a new v2 link through a relay that supports encrypted scope. Choose Health data on that phone, or update Syncky and ask the agent for an ordinary access request. A confirmed pairing without a matching reply stays confirmed. Status keeps `awaiting`, then `no_reply` after the 15-minute post-confirmation deadline. A late matching reply can still resolve it. Check the phone, connectivity and pending consent. Only with renewed explicit owner intent and phone availability, use `send --type access_request --json <file|->` with the same intended types, a fresh `request_ref`, and current timestamps with finite positive TTL up to 24 hours (`0 < expires_at - created_at <= 24h`). No automatic fallback is sent for v2. Never invent outcomes or scope. See [the access request example](https://github.com/syncky/syncky-open/blob/main/agent/skills/syncky/SKILL.md#access-request) for complete JSON.
 
 New `pair --v1` links omit scope. With scope flags, the agent queues one ordinary `access_request` with a fresh reference and a 24-hour TTL after verified fingerprint confirmation and relay acceptance of `confirmed`. Those flags authorize that first request. Retries keep the original reference, message id and sealed body. If it expires without a reply, check the phone and get explicit owner approval before sending another request.
 
@@ -72,7 +76,7 @@ After pairing, check `inbox --type sync` for the first data. If no receiver is r
 
 **Required last setup step.** After the first data arrives, ask the owner **“Should the agent receive continuously in the background (recommended), or only when you ask?”** Explain that without continuous receive the phone shows **Needs attention** for missed check-ins and uploads wait. Wait for the answer and act on it before completing setup. Install and start a service for the same home with login startup and restart on failure only if the owner chooses continuous receive. For on-demand receive, stop any existing receiving service for this home and use `receive --once` only when asked.
 
-Run one receiver per home. Before switching, stop the old service and terminate any stray receiver for this home by its verified PID. Never stop receivers by pattern. For an npm service, install the chosen release into a fixed local prefix with `npm install --prefix`. Have the supervisor run `<absolute-node> <absolute-prefix>/node_modules/@syncky/agent/dist/syncky-agent.mjs receive` directly. Use `KillMode=control-group` in systemd. See the [service recipes](https://github.com/syncky/syncky-open/blob/main/agent/SETUP.md#4-run-continuously).
+Run one receiver per home. Before switching, stop the old service and terminate any stray receiver for this home by its verified PID. Never stop receivers by pattern. For an npm service, install the chosen release into a fixed local prefix as shown in the [service recipes](https://github.com/syncky/syncky-open/blob/main/agent/SETUP.md#4-run-continuously). Have the supervisor run `<absolute-node> <absolute-prefix>/node_modules/@syncky/agent/dist/syncky-agent.mjs receive` directly. Use `KillMode=control-group` in systemd.
 
 An MCP connection alone does not receive. Canonical npm MCP is `npx -y @syncky/agent mcp`; the relay sees delivery metadata and plaintext system notices, but no Health values. From agent 0.1.4, receive prints no records to stdout by default; earlier releases print records, so keep the redirect. Records remain durable for `inbox` and MCP. `receive --emit-records` writes private JSONL to stdout. Service stdout must go to `/dev/null` (Windows `NUL`) as defence in depth; log only stderr metadata. Do not automatically schedule writes or reports.
 
@@ -103,11 +107,15 @@ When the phone says the relay was not told, run `revoke <member_id>` only with t
 
 ## Writes
 
+For a local check, first confirm that the installed `help send` or MCP tool description says validation sends nothing. `send --validate` and MCP `syncky_send` with `validate: true` validate only and return `{"valid":true}` on success. Plain sends omit the flag or argument. Both the CLI and MCP validate scope releases and access requests before sending.
+
 **When:** Only after the owner explicitly asks for the exact value/time, or approves a standing rule. Confirm inferred entries first. The caller owns stable `command_id` and `version`, timestamps, units and batching. No local policy, command ledger, unit conversion or automatic version generation exists.
 
 `end` must not be later than now + 1 h; the phone rejects a later `end` with `invalid`. For a running daily total, set `start` to local day start and `end` to now or the last diary entry time. Never use the end of the day. When a total changes, resend the same `command_id` with `version` + 1.
 
-Put all nutrients of one day in one `send` with several `commands`. Send several entries in ONE `send` with a `commands` array; the transport does not combine separate calls. The 256 KiB (262144 bytes) data-envelope cap counts the complete serialized UTF-8 JSON, including base64 ciphertext and recipient metadata. The inner `commands` JSON can be up to roughly 191 KiB for one recipient, less with more recipients. The relay allows a burst of up to 60 data envelopes per agent, then about one a minute (about 60 data envelopes per hour per agent sustained), within the per-token limit of 60 requests a minute shared with polling, ACKs and heartbeats. A 429 `rate_limited` from either limit is retried automatically by the outbox after `Retry-After` when the receiver runs, so the caller does not resend. `status --json` shows `transport.send_lanes` (lane id to next allowed Unix time in milliseconds, including any legacy data-lane deadline) and pending `sends` with `code`, `next_attempt_at` and `retry_after_until`.
+Put all nutrients of one day in one `send` with several `commands`. Send several entries in ONE `send` with a `commands` array; the transport does not combine separate calls. The 256 KiB (262144 bytes) data-envelope cap counts the complete serialized UTF-8 JSON, including base64 ciphertext and recipient metadata. The inner `commands` JSON can be up to roughly 191 KiB for one recipient, less with more recipients.
+
+The relay allows a burst of up to 60 data envelopes per agent, then about one a minute (about 60 data envelopes per hour per agent sustained), within the per-token limit of 60 requests a minute shared with polling, ACKs and heartbeats. A 429 `rate_limited` from either limit is retried automatically by the outbox after `Retry-After` when the receiver runs, so the caller does not resend. `status --json` shows `transport.send_lanes` (lane id to next allowed Unix time in milliseconds, including any legacy data-lane deadline) and pending `sends` with `code`, `next_attempt_at` and `retry_after_until`.
 
 `access_request` is an optional ask-ahead, not a required step before writes. For a catalog-writable type without an explicit decline, a phone ack of `type_not_in_scope`, `type_not_allowed` or `healthkit_denied` means: tell the owner to allow that type on the phone (including Health Settings for iOS denial). With explicit owner approval, send an `access_request` for exactly those write types if the phone has not asked yet. Resend only after the next ordinary sync shows the effective write scope. A refused write creates no access request or automatic system consent prompt; its Home card may offer an owner-tapped Allow action. Unknown or read-only types cannot be enabled; correct the type instead.
 
@@ -118,7 +126,7 @@ On an `invalid` ack, check the command format first (`--validate`): fix timestam
 **JSON:** This executable example is illustrative; replace its value/time with the owner's approved entry before sending. Do not execute a historical example as a new write.
 
 ```sh
-syncky_run send --type commands --validate --json - <<'JSON'
+syncky_run send --type commands --json - <<'JSON'
 {"v":1,"type":"commands","commands":[{"command_id":"owner-water-20261105","version":1,"op":"write","type":"dietary_water","value":300,"unit":"mL","start":"2026-11-05T12:00:00Z","end":"2026-11-05T12:00:00Z"}]}
 JSON
 syncky_run inbox --type sync --limit 100
@@ -137,7 +145,7 @@ For optional rejection `detail` meanings and fixes, see the [REFERENCE table](ht
 **JSON:** Generate a fresh 32-lowercase-hex request_ref and current created_at/expires_at at most 24 hours apart for each approved request. These literal fields demonstrate the schema.
 
 ```sh
-syncky_run send --type diagnostics_request --validate --json - <<'JSON'
+syncky_run send --type diagnostics_request --json - <<'JSON'
 {"v":1,"type":"diagnostics_request","request_ref":"0123456789abcdef0123456789abcdef","created_at":"2026-11-05T12:00:00Z","expires_at":"2026-11-06T12:00:00Z"}
 JSON
 syncky_run inbox --type diagnostics_reply
@@ -155,7 +163,7 @@ syncky_run inbox --type diagnostics
 **JSON:** Generate a fresh request_ref and timestamps as above. Empty arrays are explicit; at least one side must request a type. Use sorted, unique catalog names and writable write types. Reason is literal plain text, at most 200 Unicode code points.
 
 ```sh
-syncky_run send --type access_request --validate --json - <<'JSON'
+syncky_run send --type access_request --json - <<'JSON'
 {"v":1,"type":"access_request","request_ref":"fedcba9876543210fedcba9876543210","created_at":"2026-11-05T12:00:00Z","expires_at":"2026-11-06T12:00:00Z","read":["body_mass"],"write":["dietary_water"],"reason":"Owner-approved weight and water tracking"}
 JSON
 syncky_run inbox --type access_reply
@@ -178,7 +186,7 @@ No phone app version or access-request capability is exposed in sync or status. 
 **JSON:** Both arrays are explicit; at least one side names a type. Use catalog names and writable write types. The agent sorts, deduplicates and always validates a release.
 
 ```sh
-syncky_run send --type scope_release --validate --json - <<'JSON'
+syncky_run send --type scope_release --json - <<'JSON'
 {"v":1,"type":"scope_release","read":["sleep_analysis"],"write":[]}
 JSON
 syncky_run status --json

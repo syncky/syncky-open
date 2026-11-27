@@ -10,7 +10,7 @@ import { setup, self, now } from '../support/thin-transport.js';
 import { scopedRequest, requestedScope } from '../support/pairing-scope.js';
 import { localStatus, readSkill } from '../../src/runtime.js';
 import { createOutbox, sendReceipt } from '../../src/outbox.js';
-import { createGenericSender } from '../../src/send.js';
+import { createGenericSender, validateSendInput } from '../../src/send.js';
 import { createCipherFiles, updateHomeState } from '../../src/home-state.js';
 
 const sendTool = TOOLS.find(tool => tool.name === 'syncky_send');
@@ -54,11 +54,11 @@ function assertSendOutputSchema(tool) {
   for (const { name, description } of inputProperties(tool.outputSchema, `${tool.name}.outputSchema`)) {
     assert.ok(typeof description === 'string' && description.trim(), `${name} needs an output description`);
   }
-  assert.deepEqual(tool.outputSchema.anyOf.map(branch => branch.required), [['msg_id', 'kind', 'type', 'to', 'state'], ['code']]);
+  assert.deepEqual(tool.outputSchema.anyOf.map(branch => branch.required), [['msg_id', 'kind', 'type', 'to', 'state'], ['code'], ['valid']]);
   assert.equal(tool.outputSchema.additionalProperties, true);
 }
 
-test('send alone declares an open receipt or error object with descriptions on every property', () => {
+test('send alone declares an output schema with descriptions for receipts, checks and errors', () => {
   assertSendOutputSchema(sendTool);
   for (const tool of TOOLS.filter(tool => tool !== sendTool)) assert.equal(Object.hasOwn(tool, 'outputSchema'), false);
 });
@@ -155,6 +155,7 @@ test('send output schema conforms to real sender, outbox and receipt projections
     }
     assertSendReceipt(value); assert.deepEqual(value, original);
   });
+  assert.deepEqual(collect(validateSendInput({ type: 'future', innerText: '{"type":"future"}' }, [])), { valid: true });
   assert.deepEqual([...projectedKeys].sort(), Object.keys(sendTool.outputSchema.properties).sort());
 });
 
@@ -216,7 +217,8 @@ function assertToolGuidance(tools) {
     assert.equal(returns.length, 1, `${tool.name} needs one return-shape sentence`);
     const shape = returns[0][0];
     if (tool.name === 'syncky_send') {
-      assert.equal(shape, 'Returns a send receipt.');
+      assert.match(shape, /^Returns a send receipt\b/);
+      assert.match(shape, /validate set to true.*valid: true without sending/);
       const sentences = tool.description.split(/(?<=\.) /);
       assert.equal(sentences.at(-1), SEND_RETRY_GUIDANCE, 'syncky_send needs the exact retry guidance');
       assert.equal(sentences.length, 7, 'syncky_send needs five purpose/safety sentences, one return sentence and one retry sentence');
@@ -286,7 +288,7 @@ for (const [label, toolName, mutate, check, expected] of [
   ['qualified sends reference in an input description', 'syncky_send', tool => { tool.inputSchema.properties.validate.description += ' Check `sends` in syncky_status.'; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field sends/],
   ['qualified sends reference from another tool', 'syncky_ack', tool => { tool.description += ' Check `sends` in syncky_status.'; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field sends/],
   ['second qualified sends occurrence', 'syncky_send', tool => { tool.description += ' Check `sends` receipts in syncky_status.'; }, tool => assertDescriptionIdentifiers([tool]), /unknown backticked field sends/],
-  ['old send receipt tail', 'syncky_send', tool => { tool.description = tool.description.replace('Returns a send receipt.', 'Returns a receipt object with `msg_id`.'); }, tool => assertToolGuidance([tool]), /Returns a send receipt/],
+  ['old send receipt tail', 'syncky_send', tool => { tool.description = tool.description.replace('Returns a send receipt', 'Returns a receipt object with `msg_id`'); }, tool => assertToolGuidance([tool]), /Returns a send receipt/],
   ['missing retry guidance', 'syncky_send', tool => { tool.description = tool.description.replace(` ${SEND_RETRY_GUIDANCE}`, ''); }, tool => assertToolGuidance([tool]), /exact retry guidance/],
   ['altered retry guidance', 'syncky_send', tool => { tool.description = tool.description.replace('Pending sends retry while receive runs', 'The caller retries manually'); }, tool => assertToolGuidance([tool]), /exact retry guidance/],
   ['missing receiver condition', 'syncky_send', tool => { tool.description = tool.description.replace(' while receive runs', ''); }, tool => assertToolGuidance([tool]), /exact retry guidance/],

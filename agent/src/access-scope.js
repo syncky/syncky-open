@@ -49,6 +49,10 @@ export function accessRequestFits(scope, request) {
   return accessFits(scope, { request, union });
 }
 
+export function nonWritableAccessTypes(names) {
+  return names.filter(name => types.has(name) && types.get(name).write !== true);
+}
+
 export function validateAccessScope(scope, { normalize = false, request, maxBytes } = {}) {
   if (!scope || !isRequestRef(scope.request_ref)) return invalid('request_ref', 'malformed');
   const value = { request_ref: scope.request_ref, read: normalize ? normalizeScopeNames(scope.read) : scope.read,
@@ -56,7 +60,7 @@ export function validateAccessScope(scope, { normalize = false, request, maxByte
   for (const side of ['read', 'write']) if (!canonical(value[side])) return invalid(side, 'malformed');
   if (!value.read.length && !value.write.length) return invalid('read', 'empty');
   for (const side of ['read', 'write']) if (value[side].some(n => !/^[a-z][a-z0-9_]{0,63}$/.test(n) || !types.has(n))) return invalid(side, 'unknown_type');
-  const readOnly = value.write.filter(n => types.get(n).write !== true);
+  const readOnly = nonWritableAccessTypes(value.write);
   if (readOnly.length) return { ...invalid('write', 'not_writable'), types: readOnly };
   if (!accessFits(value, { request, maxBytes })) return invalid('scope', 'too_large');
   return { ok: true, value };

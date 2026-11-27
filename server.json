@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.syncky/syncky-health",
   "title": "Syncky Health",
-  "description": "Apple Health → your own AI agent over an end-to-end encrypted relay; per-type write-back; no account",
-  "version": "0.2.2",
+  "description": "Syncky Health: two-way Apple Health MCP for self-hosted agents, end-to-end encrypted, no account",
+  "version": "0.2.3",
   "repository": {
     "url": "https://github.com/syncky/syncky-open",
     "source": "github"
@@ -14,7 +14,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@syncky/agent",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "runtimeHint": "npx",
       "packageArguments": [
         {
@@ -28,7 +28,7 @@
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/syncky/syncky-open/releases/download/v0.2.2/syncky-health.mcpb",
+      "identifier": "https://github.com/syncky/syncky-open/releases/download/v0.2.3/syncky-health.mcpb",
       "transport": {
         "type": "stdio"
       }
@@ -47,7 +47,7 @@
         },
         {
           "name": "syncky_send",
-          "description": "Send caller-owned JSON to one confirmed phone; use syncky_skill for rules and syncky_inbox to read replies. Scope releases need no owner approval. Obtain owner approval for writes, diagnostics and access requests. Writes use the owner's standing per-type allowance. The phone enforces policy and consent; sent means relay delivery only. Returns a send receipt. Pending sends retry while receive runs; check `state` and `hint`, then `outbox` counts and `sends` receipts in syncky_status."
+          "description": "Send caller-owned JSON to one confirmed phone; use syncky_skill for rules and syncky_inbox to read replies. Scope releases need no owner approval. Obtain owner approval for writes, diagnostics and access requests. Writes use the owner's standing per-type allowance. The phone enforces policy and consent; sent means relay delivery only. Returns a send receipt or, with validate set to true, valid: true without sending. Pending sends retry while receive runs; check `state` and `hint`, then `outbox` counts and `sends` receipts in syncky_status."
         },
         {
           "name": "syncky_ack",

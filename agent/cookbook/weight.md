@@ -1,7 +1,7 @@
 <!-- description: A private AI-agent recipe for weight using raw Syncky JSON and exact owner-approved permission arrays. -->
 # Weight recipe
 
-Show recorded weigh-ins without prescribing a target. See [cookbook](README.md). Read [setup](../SETUP.md) and [pairing](../SETUP.md#5-pair-the-owners-iphone) and its [security rules](../SETUP.md#6-security-rules) before acting. Reuse an installed launcher/home and confirmed phone. Check `syncky status --json`; never register again after revocation or corrupt state. Fresh-home setup is `syncky selftest`, `syncky init --name 'My agent'`, then `syncky pair`. Show QR/code only privately to the owner; receive must read their code proof. For v1 compare the owner's fingerprint from the phone, never copy status's value back.
+Show recorded weigh-ins without prescribing a target. See [cookbook](README.md). Read [setup](../SETUP.md) and [pairing](../SETUP.md#5-pair-the-owners-iphone) and its [security rules](../SETUP.md#6-security-rules) before acting. Reuse an installed launcher/home and confirmed phone. Check `syncky status --json`; never register again after revocation or corrupt state. Fresh-home setup is `syncky selftest`, `syncky init --name 'My agent'`, then `syncky pair`. In your first reply, paste the QR block, the HTTPS link, the pairing code and the expiry into the chat where the owner asked. The receiver must read the phone's code proof. For v1 compare the owner's fingerprint from the phone, never copy status's value back.
 
 Keep one explicitly approved receive service per home. Install only after the owner chooses continuous receiving; otherwise use `syncky receive --once >/dev/null`. Explain the phone's Needs attention warning without continuous polling. MCP alone does not receive. Receive prints no records to stdout by default; records stay durable for inbox and MCP. `syncky receive --emit-records` writes private JSONL to stdout. Services keep discarding stdout as defence in depth and log only safe stderr metadata.
 
@@ -19,7 +19,7 @@ Catalog names and units come from [types](../../protocol/types.json) and [units]
 Start with this access_request setup for owner-approved writes, requesting exactly this recipe's write types. Obtain explicit owner approval for the exact arrays; follow [access setup and recovery](README.md#access-setup-and-recovery). Replace the historical request_ref and timestamps before sending.
 
 ```sh
-syncky send --type access_request --validate --json - <<'JSON'
+syncky send --type access_request --json - <<'JSON'
 {"v":1,"type":"access_request","request_ref":"11111111111111111111111111111111","created_at":"2026-11-05T12:00:00Z","expires_at":"2026-11-06T12:00:00Z","read":["body_mass"],"write":["body_mass"]}
 JSON
 ```
@@ -27,7 +27,7 @@ JSON
 For read-only reporting, use this request instead:
 
 ```sh
-syncky send --type access_request --validate --json - <<'JSON'
+syncky send --type access_request --json - <<'JSON'
 {"v":1,"type":"access_request","request_ref":"00000000000000000000000000000000","created_at":"2026-11-05T12:00:00Z","expires_at":"2026-11-06T12:00:00Z","read":["body_mass"],"write":[]}
 JSON
 ```

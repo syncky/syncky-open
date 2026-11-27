@@ -40,7 +40,7 @@ export function browserSession(f) {
   b.authorize = async (client, extra = {}, approve = true) => {
     const verifier = secret();
     const params = { response_type: "code", client_id: client.client_id, redirect_uri: callback, resource: origin + "/mcp", code_challenge_method: "S256", code_challenge: challenge(verifier), scope: "read:steps", state: secret(), ...extra };
-    const page = await b.get("/oauth/authorize?" + new URLSearchParams(params));
+    const page = await b.get("/oauth/authorize?" + new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined)));
     const html = await page.text();
     if (!approve || page.status !== 200) return { page, html, params, verifier };
     const response = await b.post("/oauth/authorize", { consent: hidden(html, "consent"), scope: params.scope, decision: "approve" });

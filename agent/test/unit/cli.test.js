@@ -124,7 +124,7 @@ function commandReceiveHome(t) {
   };
   const send = async () => {
     const date = new Date(at).toISOString().replace('.000Z', 'Z');
-    const result = await run(['send', '--type', 'commands', '--json', '-', '--validate'], { stdin: Readable.from([JSON.stringify({
+    const result = await run(['send', '--type', 'commands', '--json', '-'], { stdin: Readable.from([JSON.stringify({
       v: 1, type: 'commands', commands: [{ command_id: 'write-1', version: 1, op: 'write', type: 'dietary_water',
         value: 0.25, unit: 'L', start: date, end: date }],
     })]) });

@@ -22,7 +22,7 @@ export const futureSchema = JSON.stringify({
   type: 'object', required: ['type', 'request', 'nested'],
   properties: { type: { const: 'future_echo' }, request: { type: 'string' }, nested: { type: 'object' } },
 });
-const extraSkill = '\n## Future echo\n\nOnly on explicit owner request, send an unmarked control and read its unchanged nested fields from inbox.\n\n```sh\nsyncky-agent send --type future_echo --validate --json - <<\'JSON\'\n' + JSON.stringify(futureEcho) + '\nJSON\nsyncky-agent inbox --type future_echo\n```\n';
+const extraSkill = '\n## Future echo\n\nOnly on explicit owner request, send an unmarked control and read its unchanged nested fields from inbox.\n\n```sh\nsyncky-agent send --type future_echo --json - <<\'JSON\'\n' + JSON.stringify(futureEcho) + '\nJSON\nsyncky-agent inbox --type future_echo\n```\n';
 
 export function receiverClock() {
   let at = Date.now(), wake, advancing = false, completed = 0;
@@ -95,7 +95,7 @@ export async function proveSkillExtension(t) {
           const code = await modules['cli.js'].main(['--home', home, ...args], { env: {}, fetch, stdin: Readable.from([input]),
             stdout: { write: s => { stdout += s; } }, stderr: { write: s => { stderr += s; } } });
           logs.push(stderr); if (!privateOutput) logs.push(stdout);
-          return { code, json: stdout ? JSON.parse(stdout) : null, error: stderr.trim() ? JSON.parse(stderr.trim().split('\n').at(-1)).error : undefined };
+          return { code, json: stdout ? JSON.parse(stdout) : null, error: code !== 0 && stderr.trim() ? JSON.parse(stderr.trim().split('\n').at(-1)).error : undefined };
         }
         async function ok(args, input, privateOutput) { const r = await cli(args, input, privateOutput); assert.equal(r.code, 0, 'CLI succeeded'); return r.json; }
         const rpc = async (name, args, privateOutput = false) => {
@@ -118,11 +118,15 @@ export async function proveSkillExtension(t) {
           await ok(['confirm', phone.memberId, phone.fingerprint()]); await phone.fetchCommands();
           const read = async mcp => mcp ? (await rpc('syncky_inbox', { type: 'future_echo' }, true)).structuredContent.records
             : (await ok(['inbox', '--type', 'future_echo'], '', true)).records;
-          const send = async (inner, mcp, validate = true) => mcp ? (await rpc('syncky_send', { type: inner.type, inner, to: phone.memberId, validate })).structuredContent
+          const send = async (inner, mcp, validate = false) => mcp ? (await rpc('syncky_send', { type: inner.type, inner, to: phone.memberId, validate })).structuredContent
             : (await cli(['send', '--type', inner.type, '--to', phone.memberId, '--json', '-', ...(validate ? ['--validate'] : [])], JSON.stringify(inner)));
           let count = 0;
           async function roundTrip(inner, mcp, validate = true) {
-            const sent = await send(inner, mcp, validate), receipt = mcp ? sent : sent.json;
+            if (validate) {
+              const checked = await send(inner, mcp, true);
+              assert.deepEqual(mcp ? checked : checked.json, { valid: true });
+            }
+            const sent = await send(inner, mcp), receipt = mcp ? sent : sent.json;
             if (!mcp) assert.equal(sent.code, 0);
             assert.equal(receipt.state, 'sent');
             const envelope = [...relay.state.hub(identity.hub_id).messages.values()].find(row => row.msgId === receipt.msg_id);
@@ -162,7 +166,7 @@ export async function proveSkillExtension(t) {
           assert.ok(JSON.stringify(example) === JSON.stringify(futureEcho), 'signed skill provides the executable example');
           for (const mcp of [false, true]) {
             const lastSeq = relay.state.hub(identity.hub_id).lastSeq;
-            const rejected = await send(malformed, mcp);
+            const rejected = await send(malformed, mcp, true);
             assert.equal(rejected.code, mcp ? 'schema_invalid' : 4);
             if (!mcp) assert.equal(rejected.error, 'schema_invalid');
             assert.equal(relay.state.hub(identity.hub_id).lastSeq, lastSeq, 'malformed validated send never reaches relay');

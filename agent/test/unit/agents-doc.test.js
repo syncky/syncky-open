@@ -130,7 +130,7 @@ function requests(text, recipe) {
   }
   assert.match(text, /\[access setup and recovery\]\(README\.md#access-setup-and-recovery\)/);
   assert.ok(text.indexOf('syncky send --type access_request') < text.indexOf('## On a schedule'), recipe);
-  for (const match of text.matchAll(/syncky send --type commands --validate --json - <<'JSON'\n([^]*?)\nJSON/g)) {
+  for (const match of text.matchAll(/syncky send --type commands --json - <<'JSON'\n([^]*?)\nJSON/g)) {
     const payload = JSON.parse(match[1]); validate(payload);
     assert.ok(text.indexOf('syncky send --type access_request') < match.index, recipe);
     assert.deepEqual([...new Set(payload.commands.map(c => c.type))].sort(), write, recipe);
@@ -207,7 +207,7 @@ test('cookbook permission arrays, markers, consent, outcomes and schedules match
 });
 test('calories recipe batches schema-valid Vienna daily totals within the stated now', () => {
   const text = docs['cookbook/calories.md'];
-  const example = /syncky send --type commands --validate --json - <<'JSON'\n([^]*?)\nJSON/.exec(text);
+  const example = /syncky send --type commands --json - <<'JSON'\n([^]*?)\nJSON/.exec(text);
   assert.ok(example);
   const payload = JSON.parse(example[1]);
   validate(payload);
@@ -352,7 +352,7 @@ test('setup and reference pin recovery to the same relay despite a conflicting e
     for (const pattern of [/does not prove why/, /explicit owner intent/, /known service identity or known PID/, /Stop its supervisor/,
       /Retain the old private home and its history/, /fresh, unused absolute `--home`/, /\*\*same relay\*\*/,
       /syncky --home '<fresh-absolute-home>' --relay '<same-relay-url>' init --name 'My agent'/,
-      /syncky --home '<fresh-absolute-home>' --relay '<same-relay-url>' pair --no-qr/, /Repoint the chosen receiver and MCP together/,
+      /first reply.*terminal QR.*HTTPS link.*pairing code.*expiry.*chat where the owner asked/, /Repoint the chosen receiver and MCP together/,
       /SYNCKY_AGENT_HOME/, /SYNCKY_RELAY_URL/, /does not inherit old trust or history/, /'<old-absolute-home>' inbox/]) assert.match(section, pattern, name);
     const commands = [...section.matchAll(/syncky --home '<fresh-absolute-home>'[^`\n]*/g)].map(([example]) => {
       const argv = example.match(/'[^']*'|\S+/g).slice(1).map(arg => arg.startsWith("'") ? arg.slice(1, -1) : arg);
@@ -362,6 +362,7 @@ test('setup and reference pin recovery to the same relay despite a conflicting e
         env: { SYNCKY_RELAY_URL: 'https://conflicting-relay.example' }, file: { relay_url: relay } });
       assert.equal(flags.home, '<fresh-absolute-home>', `${name}: ${command}`);
       assert.equal(config.relay_url, relay, `${name}: ${command}`);
+      if (command === 'pair') assert.ok(!flags['no-qr'] && !flags.wait, `${name}: pair must print the QR and return before the phone joins`);
       return command;
     });
     assert.deepEqual(commands, ['init', 'pair', 'receive', 'mcp'], name);

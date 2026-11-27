@@ -30,7 +30,7 @@ it("sessions expire, logout invalidates them, cookies and pages have strict priv
   for (const path of ["/admin", "/admin/clients", "/admin/login"]) {
     const page = await b.get(path);
     assert.equal(page.headers.get("cache-control"), "no-store");
-    assert.equal(page.headers.get("referrer-policy"), "no-referrer");
+    assert.equal(page.headers.get("referrer-policy"), "same-origin", "no-referrer makes browsers send Origin: null on the form POST");
     assert.equal(page.headers.get("x-frame-options"), "DENY");
     assert.match(page.headers.get("content-security-policy"), /default-src 'none'/);
     assert.ok(!/<script|<img|<link[^>]+href="https?:/i.test(await page.text()));
@@ -98,4 +98,14 @@ it("admin export is bounded and authenticated, erasure is explicit and rotates c
   assert.equal((await b.post("/admin/erase", { confirm: "erase" })).status, 200);
   assert.equal(b.sql.all("SELECT * FROM samples").length, 0);
   assert.equal((await b.send(native(b))).status, 401);
+});
+
+it("a browser login form posts with a real Origin, and a null Origin is still refused", async (t) => {
+  const b = await browser(t);
+  const page = await b.get("/admin/login");
+  assert.equal(page.headers.get("referrer-policy"), "same-origin");
+  b.cookie = page.headers.get("set-cookie").split(";", 1)[0];
+  b.csrf = (await page.text()).match(/name="csrf" value="([^"]+)"/)[1];
+  assert.equal((await b.post("/admin/login", { password: b.password }, { Origin: "null" })).status, 403);
+  assert.equal((await b.post("/admin/login", { password: b.password })).status, 200);
 });

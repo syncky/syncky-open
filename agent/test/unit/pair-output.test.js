@@ -19,6 +19,7 @@ const limits = { hosted_defaults: { pairing_link_ttl_s: 600, unjoined_hub_ttl_s:
   pairing_link_deadline: 'expires_at', unjoined_hub_clock: 'registration', max_pairing_scope_blob_bytes: 12000,
   max_pairing_scope_blob_base64url_chars: 16000, max_pairing_request_body_bytes: 16384,
   max_control_envelope_bytes: 4096, max_access_envelope_bytes: 131072 };
+const chatReminder = 'Show the owner the QR block, HTTPS link, pairing code and expiry in this chat. Leave out image paths.\n';
 
 test('plain pair uses the configured home and ends with copy-ready details for the owner', async t => {
   const tmp = tempHome(), relay = await startRelayDouble({ invite: 'output-fixture' });
@@ -34,8 +35,8 @@ test('plain pair uses the configured home and ends with copy-ready details for t
   assert.equal(result.code, 0);
   const { uri, pair_secret, expires_at } = readPairingFile(home);
   assert.ok(uri.startsWith('https://'), 'the owner needs a tappable HTTPS link');
-  assert.ok(result.stdout.endsWith(`\n${uri}\n\n\`\`\`text\n${renderTerminalQr(uri)}\`\`\`\n\nPairing code: ${pairCode(pair_secret)}\nLink expires_at: ${expires_at}\n`),
-    'the QR, link, matching code and expiry must be ready to copy from the end of stdout');
+  assert.ok(result.stdout.endsWith(`\n${uri}\n\n\`\`\`text\n${renderTerminalQr(uri)}\`\`\`\n\nPairing code: ${pairCode(pair_secret)}\nLink expires_at: ${expires_at}\n${chatReminder}`),
+    'plain pair must print all pairing details followed by the chat reminder');
   assert.ok(!result.stdout.includes(home) && !result.stdout.includes('Private QR'), 'default pairing must not substitute file paths');
 
   relay.failNext('createPairing', 401);
@@ -79,7 +80,9 @@ test('every pair presentation labels hosted defaults without inventing a new reg
     } else {
       assert.ok(result.stdout.includes('\n' + pairing.uri + '\n'), 'private URI changed');
       const qr = noQr ? '' : '\n```text\n' + renderTerminalQr(pairing.uri) + '```\n\n';
-      assert.ok(result.stdout === `${limitsNotice}\nPairing link (open on the iPhone with Syncky Health, single use):\n${pairing.uri}\n${qr}${v1 ? '' : 'Pairing code: ' + pairCode(pairing.pair_secret) + '\n'}Link expires_at: ${expires}\n`, 'pair presentation changed');
+      const reminder = (noQr ? 'Run `pair --show-qr` for this home to display the QR block. ' : '')
+        + (v1 ? 'Show the owner the QR block, HTTPS link and expiry in this chat. Leave out image paths.\n' : chatReminder);
+      assert.ok(result.stdout === `${limitsNotice}\nPairing link (open on the iPhone with Syncky Health, single use):\n${pairing.uri}\n${qr}${v1 ? '' : 'Pairing code: ' + pairCode(pairing.pair_secret) + '\n'}Link expires_at: ${expires}\n${reminder}`, 'pair presentation changed');
     }
     for (const secret of [pairing.uri, parsed.value.pairingToken, parsed.value.pairSecret].filter(Boolean)) {
       assert.ok(!result.stderr.includes(secret), 'credential leaked into logs');
@@ -140,7 +143,7 @@ test('pair output follows flag > environment > saved config, leaving config inta
         assert.ok(result.stdout.includes('\n' + uri + '\n'), 'printed link differs from persisted link');
         const qr = renderTerminalQr(uri);
         assert.ok(qr.length > 0, 'expected QR is empty');
-        assert.ok(result.stdout === `${limitsNotice}\nPairing link (open on the iPhone with Syncky Health, single use):\n${uri}\n\n\`\`\`text\n${qr}\`\`\`\n\nPairing code: ${pairCode(pairing.pair_secret)}\nLink expires_at: ${pairing.expires_at}\n`, 'QR differs from printed link');
+        assert.ok(result.stdout === `${limitsNotice}\nPairing link (open on the iPhone with Syncky Health, single use):\n${uri}\n\n\`\`\`text\n${qr}\`\`\`\n\nPairing code: ${pairCode(pairing.pair_secret)}\nLink expires_at: ${pairing.expires_at}\n${chatReminder}`, 'QR differs from printed link');
       }
       assert.equal(fs.readFileSync(path, 'utf8'), before);
       for (const credential of [uri, parsed.value.pairingToken, parsed.value.pairSecret]) assert.ok(!result.stderr.includes(credential), 'credential leaked into logs');

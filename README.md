@@ -1,17 +1,32 @@
-# Syncky: open protocol, reference agent and reference server
+# Syncky Health: open protocol, Apple Health MCP agent and reference server
+
+Two-way Apple Health for self-hosted AI agents: an Apple Health MCP server and shell skill that read and write Health over an end-to-end encrypted relay, with write permission per type; no account.
+
+Syncky Health sends the Apple Health data you choose from your iPhone to your own AI agent, such as Claude Code, OpenClaw, Hermes or Codex (local MCP server or shell skill), or your own server. The AI agent route is end-to-end encrypted. Your agent and your server can both write entries back into Health once you allow writing on the iPhone, so the connection is two-way: read and write. Free during launch, writes included, with no subscription; plans are coming later ([pricing](https://syncky.app/pricing)). No Syncky account required.
+
+Client health-data envelopes are end-to-end encrypted (HPKE Auth + ChaCha20-Poly1305): the relay sees delivery metadata and emits plaintext hub notices, but sees no health values. The app can also send straight to a server the user runs, with no relay at all. The user's agent or server receives plaintext, and a chosen model sees what the agent supplies.
+
+**Website:** [syncky.app](https://syncky.app) · [agent setup](https://syncky.app/agent) · [writing to Apple Health](https://syncky.app/write-to-apple-health) · [options compared](https://syncky.app/apple-health-mcp)
+
+```text
+Agent route: end-to-end encrypted, no inbound port on your side
+  iPhone (Syncky Health) --sealed--> Syncky Relay <--HTTPS polling-- your agent (@syncky/agent)
+                                     queues ciphertext,              local MCP server and CLI;
+                                     sees no health values           writes for allowed types go back the same way
+
+Direct route: no Syncky service in between
+  iPhone (Syncky Health) --HTTP(S)--> your server (webhook, Home Assistant, n8n or the own-server template)
+                                      a compatible server can return writes for allowed types in its reply
+```
+
+Use HTTPS for remote servers. The Home Assistant LAN recipe receives data only; the n8n and own-server recipes can return permitted writes in their data reply.
 
 [![Glama MCP server score](https://glama.ai/mcp/servers/syncky/syncky-open/badges/score.svg)](https://glama.ai/mcp/servers/syncky/syncky-open)
 [![npm](https://img.shields.io/npm/v/@syncky/agent)](https://www.npmjs.com/package/@syncky/agent)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Node.js](https://img.shields.io/node/v/@syncky/agent)](https://nodejs.org)
 
-[![Download on the App Store](https://tools.applemarketingtools.com/api/badges/download-on-the-app-store/black/en-us?size=250x83)](https://apps.apple.com/app/id6827472070)
-
-Apple Health → your own AI agent over an end-to-end encrypted relay, with per-type write-back into Health; no account.
-
-Syncky Health sends the Apple Health data you choose from your iPhone to your own AI agent, such as Claude Code, OpenClaw, Hermes or Codex (local MCP server or shell skill), or your own server. The AI agent route is end-to-end encrypted. Your agent and your server can both write entries back into Health once you allow writing on the iPhone. Free during launch; plans are coming later ([pricing](https://syncky.app/pricing)). No Syncky account required.
-
-Client health-data envelopes are end-to-end encrypted (HPKE Auth + ChaCha20-Poly1305): the relay sees delivery metadata and emits plaintext hub notices, but sees no health values. The app can also send straight to a server the user runs, with no relay at all. The user's agent or server receives plaintext, and a chosen model sees what the agent supplies.
+[![Download on the App Store](https://syncky.app/app-store-badge.svg)](https://apps.apple.com/app/id6827472070)
 
 Get [Syncky Health on the App Store](https://apps.apple.com/app/id6827472070) or visit [syncky.app](https://syncky.app). Agents that read web pages, such as Hermes (tested), can do the agent-side setup themselves from [syncky.app/agent](https://syncky.app/agent); you confirm on the iPhone.
 

@@ -1,5 +1,6 @@
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { isUtf8 } from "node:buffer";
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
@@ -17,7 +18,7 @@ const hash = (path) => createHash("sha256").update(readFileSync(path)).digest("h
 const version = json(join(SOURCE, "agent/package.json")).version;
 const config = { command: "npx", args: ["-y", `@syncky/agent@${version}`, "mcp"] };
 const description = "Give your AI agent Apple Health data you pick, end-to-end encrypted between your iPhone and the local Syncky agent; send writes you authorize through your agent, for the types allowed on your iPhone.";
-const registryDescription = "Apple Health → your own AI agent over an end-to-end encrypted relay; per-type write-back; no account";
+const registryDescription = "Syncky Health: two-way Apple Health MCP for self-hosted agents, end-to-end encrypted, no account";
 const offline = { npm_config_offline: "true", npm_config_audit: "false", npm_config_fund: "false", npm_config_update_notifier: "false" };
 const assets = ["syncky-agent.mjs", "syncky-agent.mjs.sha256", "syncky-health.mcpb", "syncky-health.mcpb.sha256", "SHA256SUMS", "server.json",
   ...["claude-code", "codex", "clawhub", "clawhub-light", "skills"].map((name) => `syncky-agent-${name}.tar.gz`)].sort();
@@ -109,11 +110,11 @@ function manifests(root) {
 
 describe("public installation manifests", () => {
   it("opens both READMEs with user-facing copy and preserves privacy and installation links", () => {
-    const lede = "Syncky Health sends the Apple Health data you choose from your iPhone to your own AI agent, such as Claude Code, OpenClaw, Hermes or Codex (local MCP server or shell skill), or your own server. The AI agent route is end-to-end encrypted. Your agent and your server can both write entries back into Health once you allow writing on the iPhone. Free during launch; plans are coming later ([pricing](https://syncky.app/pricing)). No Syncky account required.";
+    const lede = "Syncky Health sends the Apple Health data you choose from your iPhone to your own AI agent, such as Claude Code, OpenClaw, Hermes or Codex (local MCP server or shell skill), or your own server. The AI agent route is end-to-end encrypted. Your agent and your server can both write entries back into Health once you allow writing on the iPhone, so the connection is two-way: read and write. Free during launch, writes included, with no subscription; plans are coming later ([pricing](https://syncky.app/pricing)). No Syncky account required.";
     const readme = readFileSync(join(PUBLIC, "README.md"), "utf8");
     const paragraphs = readme.split("\n\n").filter(block => !block.startsWith("[!["));
     const agentReadme = readFileSync(join(SOURCE, "agent/README.md"), "utf8");
-    assert.equal(paragraphs[1], "Apple Health → your own AI agent over an end-to-end encrypted relay, with per-type write-back into Health; no account.");
+    assert.equal(paragraphs[1], "Two-way Apple Health for self-hosted AI agents: an Apple Health MCP server and shell skill that read and write Health over an end-to-end encrypted relay, with write permission per type; no account.");
     assert.equal(paragraphs[2], lede);
     assert.equal(agentReadme.split("\n\n")[1], lede);
     assert.equal(paragraphs[3], "Client health-data envelopes are end-to-end encrypted (HPKE Auth + ChaCha20-Poly1305): the relay sees delivery metadata and emits plaintext hub notices, but sees no health values. The app can also send straight to a server the user runs, with no relay at all. The user's agent or server receives plaintext, and a chosen model sees what the agent supplies.");
@@ -124,6 +125,41 @@ describe("public installation manifests", () => {
   });
 
   it("registers contained plugin/skill paths, canonical MCP commands and both Registry distributions", () => manifests(PUBLIC));
+
+  it("keeps the Hermes package loadable as Agent Plugins v1, pinned to this release", () => {
+    const root = join(PUBLIC, "plugins/syncky");
+    const plugin = json(join(root, "plugin.json"));
+    assert.equal(plugin.$schema, "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json");
+    assert.deepEqual(Object.keys(plugin).filter(key => !["$schema", "name", "version", "description", "author", "homepage", "repository", "license", "keywords", "extensions"].includes(key)), []);
+    assert.equal(plugin.name, "syncky");
+    assert.equal(plugin.version, version);
+    assert.deepEqual(json(join(root, "mcp.json")), { $schema: "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json", mcpServers: { syncky: { type: "stdio", ...config } } });
+    assert.match(readFileSync(join(root, "skills/syncky/SKILL.md"), "utf8"), /^---\nname: syncky\ndescription: .{1,1024}\n/);
+  });
+
+  it("keeps published plugin text installable by Hermes at the community tier", () => {
+    const files = readdirSync(join(PUBLIC, "plugins/syncky"), { recursive: true, withFileTypes: true })
+      .filter(entry => entry.isFile())
+      .map(entry => join(entry.parentPath, entry.name));
+    files.push(join(PUBLIC, "SKILL.md"), join(SOURCE, "agent/clawhub/SKILL.md"), join(SOURCE, "agent/skills/pointer.md"));
+    const rules = {
+      encoded_exfil: /base64[^\n]*env/i,
+      unpinned_npm_install: /npm\s+install\s+(?!.*@\d)/i,
+      context_exfil: /\b(?:include|output|print|send|share)\s+(?:\w+\s+){0,3}?(?:conversation|chat\s+history|previous\s+messages)\b/i,
+    };
+    const findings = [];
+    for (const file of files.sort()) {
+      const bytes = readFileSync(file);
+      if (bytes.includes(0) || !isUtf8(bytes)) continue;
+      const lines = bytes.toString("utf8").split(/\r?\n/);
+      for (const [index, line] of lines.entries()) {
+        for (const [rule, pattern] of Object.entries(rules)) {
+          if (pattern.test(line)) findings.push(`${relative(SOURCE, file)}:${index + 1} ${rule}`);
+        }
+      }
+    }
+    assert.deepEqual(findings, []);
+  });
 
   for (const [label, mutate] of [
     ["missing settings", gemini => { delete gemini.settings; }],

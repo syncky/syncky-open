@@ -141,12 +141,14 @@ test('pair and show-qr preserve URI, scope, code and deadline while creating and
   assert.ok(human.stdout.includes('\n\nPairing link (open on the iPhone with Syncky Health, single use):\n'));
   assert.ok(human.stdout.indexOf(before.uri) < human.stdout.indexOf(started.qr_text));
   assert.ok(human.stdout.indexOf(started.qr_text) < human.stdout.indexOf('Pairing code: ' + started.code));
-  const pngLine = 'Private QR PNG: ' + png + '\n';
+  const pngLine = 'QR PNG: ' + png + '\n';
   assert.ok(human.stdout.includes(pngLine));
   assert.ok(human.stdout.indexOf(pngLine) < human.stdout.indexOf('Pairing link'), 'the image path is outside the pairing details copied to chat');
+  assert.ok(human.stdout.endsWith('Show the owner the QR block, HTTPS link, pairing code and expiry in this chat. Leave out image paths.\n'));
   fs.unlinkSync(svg);
   const humanSvg = await f.cli(['pair', '--show-qr', '--qr-svg', '--no-qr']);
-  assert.equal(humanSvg.code, 0); assert.ok(humanSvg.stdout.includes('Private QR SVG: ' + svg + '\n'));
+  assert.equal(humanSvg.code, 0); assert.ok(humanSvg.stdout.includes('QR SVG: ' + svg + '\n'));
+  assert.doesNotMatch(human.stdout + humanSvg.stdout, /Private QR (?:PNG|SVG):/);
   const noQr = await f.cli(['pair', '--show-qr', '--no-qr', '--json']); assert.deepEqual(JSON.parse(noQr.stdout), { ...started, qr_svg: svg, qr_text: null });
   const plain = await f.cli(['pair', '--show-qr', '--no-qr']); assert.ok(!plain.stdout.includes(started.qr_text));
   for (const flag of ['--v1', '--read', '--write']) {

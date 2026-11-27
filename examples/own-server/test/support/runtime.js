@@ -189,6 +189,8 @@ export async function authorization(runtime) {
   const rotated = await b.post("/oauth/token", refresh);
   check(rotated.status === 200, "runtime refresh rotation");
   const fresh = await rotated.json();
+  check((await b.post("/oauth/token", refresh)).status === 200, "runtime concurrent refresh grace");
+  runtime.setNow(runtime.now() + 31);
   check((await b.post("/oauth/token", refresh)).status === 400, "runtime refresh replay denied");
   check((await b.rpc(fresh.access_token)).status === 401, "runtime replay revokes family");
   const encoded = JSON.stringify(await runtime.all("SELECT * FROM oauth_tokens"));

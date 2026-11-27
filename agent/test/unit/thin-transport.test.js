@@ -268,7 +268,7 @@ test("CLI and MCP refuse a write request for types computed by Apple before send
   const catalog = loadJson("types.json").types;
   for (const name of computed) assert.deepEqual([name, catalog.find(type => type.name === name).computed_by_apple], [name, true]);
   const options = { now, fetch: () => { assert.fail("local validation must stay offline"); } };
-  const send = inner => runCli(["--home", home, "send", "--type", "access_request", "--json", "-", "--validate"], { ...options, stdin: Readable.from([JSON.stringify(inner)]) });
+  const send = inner => runCli(["--home", home, "send", "--type", "access_request", "--json", "-"], { ...options, stdin: Readable.from([JSON.stringify(inner)]) });
   const refused = await send({ ...accessRequest(), read: [], write: computed });
   assert.equal(refused.code, 4);
   assert.deepEqual(JSON.parse(refused.stderr.trim().split("\n").at(-1)), { error: "schema_invalid", detail: "not_writable", types: sorted, hint: errorHint("schema_invalid") });

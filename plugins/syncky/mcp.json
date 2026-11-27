@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "syncky": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@syncky/agent@0.2.3",
+        "mcp"
+      ]
+    }
+  }
+}

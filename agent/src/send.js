@@ -6,7 +6,7 @@ import { uuidv7 } from './ids.js';
 import { cipherEntries, readHomeState, createCipherFiles, updateHomeState } from "./home-state.js";
 import { MAX_CONTROL_ENVELOPE_BYTES, parseRawInner } from "./thin-transport.js";
 import { retryHomeLock } from "./thin-lock.js";
-import { accessRequestFits, normalizeAccessRequest, scopeReleaseProblem, validateAccessScope } from './access-scope.js';
+import { accessRequestFits, normalizeAccessRequest, nonWritableAccessTypes, scopeReleaseProblem, validateAccessScope } from './access-scope.js';
 import { recordScopeRelease } from './scope-release.js';
 import { v1AccessMember, V1_ACCESS_TTL_MS } from './pairing-access.js';
 import { ACCESS_SIZE_HINT } from './error-guidance.js';
@@ -15,6 +15,11 @@ import { responseCorrelations } from "./response-waits.js";
 
 export { normalizeAccessRequest } from './access-scope.js';
 
+function invalidAccessRequest(detail, types) {
+  return new LocalStateError("schema_invalid", detail === 'too_large' ? ACCESS_SIZE_HINT : `invalid access request: ${detail}`,
+    { detail, ...(detail === 'not_writable' && { types }) });
+}
+
 function validateAccessRequest(inner) {
   if (inner.type !== "access_request") return;
   const created = parseTimestamp(inner.created_at), expires = parseTimestamp(inner.expires_at);
@@ -22,7 +27,7 @@ function validateAccessRequest(inner) {
   const scope = validateAccessScope(inner, { request: inner });
   const detail = !Number.isFinite(ttl) || ttl <= 0 || ttl > 86400000 ? 'ttl' : !scope.ok ? scope.detail
     : accessRequestFits(scope.value, inner) ? null : 'too_large';
-  if (detail) throw new LocalStateError("schema_invalid", detail === 'too_large' ? ACCESS_SIZE_HINT : `invalid access request: ${detail}`, { detail, ...(detail === "not_writable" && { types: scope.types }) });
+  if (detail) throw invalidAccessRequest(detail, scope.types);
 }
 
 function validateScopeRelease(inner) {
@@ -60,18 +65,30 @@ export function createLocalValidator(schemas = []) {
   };
 }
 
+function sendInner(type, innerText) {
+  const { inner } = parseRawInner(innerText);
+  if (inner.type !== type) throw new LocalStateError("invalid_input", "send type must match input type");
+  return inner;
+}
+
+export function validateSendInput({ type, innerText }, schemas) {
+  createLocalValidator(schemas)(sendInner(type, innerText));
+  return { valid: true };
+}
+
 export function createGenericSender({ home, transport, self, now = () => new Date(), fs, schemas = [] }) {
   const validateLocal = createLocalValidator(schemas), outbox = createCipherFiles(home, "outbox", { fs });
   return async ({ type, innerText, to, validate = false }, intent) => {
-    const { inner } = parseRawInner(innerText);
-    if (inner.type !== type) throw new LocalStateError("invalid_input", "send type must match input type");
+    const inner = sendInner(type, innerText);
     normalizeAccessRequest(inner);
     // The phone never answers a release, so a malformed one would vanish without a trace.
     if (validate || inner.type === "scope_release") validateLocal(inner);
     if (!validate && inner.type === 'access_request') {
       const names = value => Array.isArray(value) ? value.filter(name => typeof name === 'string') : [];
       const scope = { request_ref: inner.request_ref, read: names(inner.read), write: names(inner.write) };
-      if (!accessRequestFits(scope, inner)) throw new LocalStateError('schema_invalid', ACCESS_SIZE_HINT, { detail: 'too_large' });
+      const readOnly = nonWritableAccessTypes(scope.write);
+      if (readOnly.length) throw invalidAccessRequest('not_writable', readOnly);
+      if (!accessRequestFits(scope, inner)) throw invalidAccessRequest('too_large');
     }
     if (["access_request", "scope_release"].includes(inner.type)) innerText = JSON.stringify(inner);
     const state = readHomeState(home, { fs });

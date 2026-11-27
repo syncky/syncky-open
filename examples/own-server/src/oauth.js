@@ -2,6 +2,7 @@ import { random, digest, equal, pkceChallenge } from "./crypto.js";
 import { fail, json, method, data, exactRedirect, redirectAllowed, activeGrant, mutation, session, page, escaped, input } from "./security.js";
 
 export const resourcePath = "/.well-known/oauth-protected-resource/mcp";
+const REFRESH_REUSE_GRACE = 30;
 const oauthError = (status, code) => json(status, { error: code });
 
 export async function registerClient(body, store, now, manual = false) {
@@ -88,9 +89,10 @@ async function token(request, store, now, origin) {
     granted = store.sql.transaction(() => {
       const row = store.sql.all("SELECT * FROM oauth_tokens WHERE token_hash = ? AND kind = 'refresh'", hash)[0];
       if (!row || row.client_id !== client.id) return false;
-      if (row.used) { store.sql.run("UPDATE oauth_tokens SET revoked = 1 WHERE family = ?", row.family); return false; }
+      // `used` holds the second of first use; clients refresh concurrently, so a repeat inside the grace window is not treated as theft.
+      if (row.used && now - row.used > REFRESH_REUSE_GRACE) { store.sql.run("UPDATE oauth_tokens SET revoked = 1 WHERE family = ?", row.family); return false; }
       if (row.revoked || row.expires_at <= now || row.family_expires_at <= now || !validBinding(store, row, client, origin)) return false;
-      store.sql.run("UPDATE oauth_tokens SET used = 1 WHERE token_hash = ?", hash);
+      if (!row.used) store.sql.run("UPDATE oauth_tokens SET used = ? WHERE token_hash = ?", now, hash);
       scope = persistTokens(store, tokens, row, now);
       return true;
     });

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { agentErrorCode, errorHint } from './error-guidance.js';
 import { LocalStateError, POLL_INTERVAL_MIN_S, agentHome, errorDetail, resolveConfig } from './config.js';
 import { LEVELS, createLogger } from './log.js';
-import { createRuntime, readSkill, AGENT_VERSION, INBOX_MAX_LIMIT } from './runtime.js';
+import { createRuntime, readSkill, validateSend, AGENT_VERSION, INBOX_MAX_LIMIT } from './runtime.js';
 import { createSkillUpdater } from './skill-update.js';
 import { registerAgent } from './register.js';
 import { createPairingService, readPairingFile } from './pairing.js';
@@ -294,22 +294,28 @@ export async function main(argv, { env = process.env, stdout = process.stdout, s
       if (flags.json) json(result); else print((flags.diff ? result.diff : result.skill) + '\n'); return 0;
     }
     if (command === 'selftest') { const result = await runSelftest({ dir: protocolDir(env) }); json(result); return result.ok ? 0 : 4; }
+    const makeRuntime = () => createRuntime({ home, flags, env, fetch, WebSocket, now, sleep, random, logger, outboxMaxAttempts: command === 'pair-waiter' ? Infinity : undefined, createPoller, timers, onRecord: command === 'receive' && flags['emit-records'] ? json : undefined });
     if (command === 'mcp') {
-      const runtime = () => createRuntime({ home, flags, env, fetch, now, sleep, random, logger, timers });
       await runMcp({ input: stdin, write: print, version: AGENT_VERSION, logger, handlers: {
-        syncky_status: () => { const current = runtime(); return retryHomeLock(() => current.status()); },
-        syncky_inbox: args => { const current = runtime(); return retryHomeLock(() => current.inbox(args)); },
-        syncky_send: args => runtime().send({ ...args, validate: ['access_request', 'scope_release'].includes(args.type) || args.validate === true }),
-        syncky_ack: args => runtime().poller.ack(args.up_to_seq), syncky_skill: args => readSkill(createSkillUpdater({ home }), args),
+        syncky_status: () => { const current = makeRuntime(); return retryHomeLock(() => current.status()); },
+        syncky_inbox: args => { const current = makeRuntime(); return retryHomeLock(() => current.inbox(args)); },
+        syncky_send: ({ validate, ...args }) => validate ? validateSend(home, args)
+          : makeRuntime().send({ ...args, validate: ['access_request', 'scope_release'].includes(args.type) }),
+        syncky_ack: args => makeRuntime().poller.ack(args.up_to_seq), syncky_skill: args => readSkill(createSkillUpdater({ home }), args),
       } }); return 0;
     }
-    const runtime = createRuntime({ home, flags, env, fetch, WebSocket, now, sleep, random, logger, outboxMaxAttempts: command === 'pair-waiter' ? Infinity : undefined, createPoller, timers, onRecord: command === 'receive' && flags['emit-records'] ? json : undefined });
-    if (command === 'status') { json(await retryHomeLock(() => runtime.status())); return 0; }
-    if (command === 'inbox') { json(await retryHomeLock(() => runtime.inbox(inboxArgs(flags)))); return 0; }
     if (command === 'send') {
       if (!flags.type || !flags.json || (flags.to !== undefined && !isMemberId(flags.to))) throw new UsageError('send requires type and JSON input path');
-      json(await runtime.send({ type: flags.type, innerText: await inputText(flags.json, stdin), to: flags.to, validate: flags.validate })); return 0;
+      const args = { type: flags.type, innerText: await inputText(flags.json, stdin), to: flags.to };
+      if (flags.validate) {
+        json(await validateSend(home, args));
+        stderr.write('validated only; nothing sent\n');
+      } else json(await makeRuntime().send({ ...args, validate: args.type === 'access_request' }));
+      return 0;
     }
+    const runtime = makeRuntime();
+    if (command === 'status') { json(await retryHomeLock(() => runtime.status())); return 0; }
+    if (command === 'inbox') { json(await retryHomeLock(() => runtime.inbox(inboxArgs(flags)))); return 0; }
     if (command === 'ack') { json(await runtime.poller.ack(integer(flags['up-to-seq'], 0, Number.MAX_SAFE_INTEGER))); return 0; }
     if (command === 'receive') {
       if (flags.once) {

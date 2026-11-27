@@ -6,7 +6,7 @@ import { createInbox } from './inbox.js';
 import { createThinTransport } from './thin-transport.js';
 import { createThinInbound } from './thin-inbound.js';
 import { createThinPoller } from './thin-poller.js';
-import { createGenericSender, queueV1Access } from './send.js';
+import { createGenericSender, queueV1Access, validateSendInput } from './send.js';
 import { createPairingService } from "./pairing.js";
 import { createOutbox, sendReceipt } from './outbox.js';
 import { createSkillUpdater } from './skill-update.js';
@@ -22,6 +22,14 @@ import { deviceName } from './encoding.js';
 export const AGENT_VERSION = metadata.version;
 export const INBOX_MAX_BYTES = 1048576;
 export const INBOX_MAX_LIMIT = 1000;
+
+async function localSchemas(updater) {
+  return Object.values((await retryHomeLock(() => updater.read())).document.schemas).map(text => JSON.parse(text));
+}
+
+export async function validateSend(home, { type, inner, innerText = JSON.stringify(inner) }) {
+  return validateSendInput({ type, innerText }, await localSchemas(createSkillUpdater({ home })));
+}
 
 export async function readSkill(updater, { diff = false } = {}) {
   const { document, previous } = await retryHomeLock(() => updater.read());
@@ -129,7 +137,7 @@ export function createRuntime({ home, flags = {}, env = process.env, fetch, WebS
     inbox: args => readInbox(home, args),
     skill: args => readSkill(updater, args),
     async send({ type, inner, innerText = JSON.stringify(inner), to, validate = false }) {
-      const schemas = Object.values((await retryHomeLock(() => updater.read())).document.schemas).map(text => JSON.parse(text));
+      const schemas = await localSchemas(updater);
       const receipt = await createGenericSender({ home, transport, self, now, schemas })({ type, innerText, to, validate });
       await outbox.flush();
       return (await retryHomeLock(() => outbox.receipts())).find(e => e.msg_id === receipt.msg_id) ?? receipt;

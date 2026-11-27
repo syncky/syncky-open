@@ -107,7 +107,7 @@ describe("public npm package", () => {
       assert.match(metadata.description, /end-to-end encrypted between your iPhone and the local Syncky agent/);
       assert.ok(metadata.description.length <= 200);
       assert.equal(metadata.description, source.description);
-      assert.deepEqual(metadata.keywords, ["apple-health", "healthkit", "mcp", "mcp-server", "model-context-protocol", "ai-agent", "quantified-self", "e2ee", "hpke", "claude-code", "openclaw", "hermes", "write-to-apple-health"]);
+      assert.deepEqual(metadata.keywords, ["apple-health", "healthkit", "mcp", "mcp-server", "model-context-protocol", "ai-agent", "quantified-self", "e2ee", "hpke", "claude-code", "openclaw", "hermes", "write-to-apple-health", "apple-health-mcp", "two-way", "bidirectional", "read-write", "self-hosted"]);
       assert.equal(metadata.homepage, "https://syncky.app/agents");
       assert.deepEqual(metadata.repository, REPOSITORY);
       assert.deepEqual(metadata.bin, { "syncky-agent": "dist/syncky-agent.mjs", "syncky": "dist/syncky-agent.mjs" });
